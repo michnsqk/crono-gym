@@ -29,7 +29,17 @@ import {
   type ReactNode,
 } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
-import { ArrowRight, Check, LogOut, Sparkles, Upload } from "lucide-react";
+import { ArrowRight, Check, LogOut, Pencil, Sparkles, Upload, X } from "lucide-react";
+import { WeightTrackerCard } from "@/components/profile/WeightTrackerCard";
+import {
+  JOINT_DISCOMFORT_OPTIONS,
+  PRIORITY_MUSCLE_OPTIONS,
+  loadClinicalDossier,
+  loadWeightHistory,
+  saveClinicalDossier,
+  type AthleteClinicalDossier,
+  type WeightHistoryEntry,
+} from "@/lib/profile/weightHistoryStore";
 import { supabase } from "@lib/supabase";
 import { GlassButton, GlassCard, Skeleton } from "@/components/ui";
 import { GymSettingsTrigger } from "@/components/workout/GymSettingsTrigger";
@@ -62,6 +72,7 @@ import {
   RADIUS,
   SPACE,
   STATUS,
+  SURFACE,
   TEXT,
   TYPE,
 } from "@/design/tokens";
@@ -460,62 +471,425 @@ function BiometricTabContent({
   age: number | null;
   update: (patch: Partial<Profile>) => Promise<boolean>;
 }) {
+  const [editingFicha, setEditingFicha] = useState(false);
+  const [dossier, setDossier] = useState<AthleteClinicalDossier>(() =>
+    loadClinicalDossier(profile.user_id),
+  );
+  const [weightHistory, setWeightHistory] = useState<WeightHistoryEntry[]>(() =>
+    loadWeightHistory(profile.user_id),
+  );
+
+  // Draft state for Editar ficha
+  const [draftName, setDraftName] = useState(profile.display_name ?? "");
+  const [draftBirthDate, setDraftBirthDate] = useState(profile.birth_date ?? "");
+  const [draftSex, setDraftSex] = useState<Profile["sex"]>(profile.sex);
+  const [draftHeight, setDraftHeight] = useState(
+    profile.height_cm ? String(profile.height_cm) : "",
+  );
+  const [draftWeight, setDraftWeight] = useState(
+    profile.weight_kg ? String(profile.weight_kg) : "",
+  );
+  const [draftGoalWeight, setDraftGoalWeight] = useState(
+    dossier.goalWeightKg ? String(dossier.goalWeightKg) : "",
+  );
+  const [draftDays, setDraftDays] = useState(dossier.trainingDaysPerWeek);
+  const [draftMuscles, setDraftMuscles] = useState<string[]>(dossier.priorityMuscles);
+  const [draftDiscomforts, setDraftDiscomforts] = useState<string[]>(
+    dossier.jointDiscomforts,
+  );
+  const [savingFicha, setSavingFicha] = useState(false);
+
+  const bmiValue = useMemo(() => {
+    if (!profile.weight_kg || !profile.height_cm || profile.height_cm <= 0) return null;
+    const hM = profile.height_cm / 100;
+    return Math.round((profile.weight_kg / (hM * hM)) * 10) / 10;
+  }, [profile.weight_kg, profile.height_cm]);
+
+  const openFichaEditor = () => {
+    setDraftName(profile.display_name ?? "");
+    setDraftBirthDate(profile.birth_date ?? "");
+    setDraftSex(profile.sex);
+    setDraftHeight(profile.height_cm ? String(profile.height_cm) : "");
+    setDraftWeight(profile.weight_kg ? String(profile.weight_kg) : "");
+    setDraftGoalWeight(dossier.goalWeightKg ? String(dossier.goalWeightKg) : "");
+    setDraftDays(dossier.trainingDaysPerWeek);
+    setDraftMuscles(dossier.priorityMuscles);
+    setDraftDiscomforts(dossier.jointDiscomforts);
+    setEditingFicha(true);
+  };
+
+  const toggleMuscle = (m: string) => {
+    setDraftMuscles((prev) =>
+      prev.includes(m) ? prev.filter((x) => x !== m) : [...prev, m],
+    );
+  };
+
+  const toggleDiscomfort = (item: string) => {
+    if (item === "Ninguna") {
+      setDraftDiscomforts(["Ninguna"]);
+      return;
+    }
+    setDraftDiscomforts((prev) => {
+      const withoutNone = prev.filter((x) => x !== "Ninguna");
+      if (withoutNone.includes(item)) {
+        const next = withoutNone.filter((x) => x !== item);
+        return next.length > 0 ? next : ["Ninguna"];
+      }
+      return [...withoutNone, item];
+    });
+  };
+
+  const handleSaveFicha = async () => {
+    setSavingFicha(true);
+    const parsedHeight = Number(draftHeight.replace(",", "."));
+    const parsedWeight = Number(draftWeight.replace(",", "."));
+    const parsedGoalWeight = Number(draftGoalWeight.replace(",", "."));
+
+    const patch: Partial<Profile> = {
+      display_name: draftName.trim() || null,
+      birth_date: draftBirthDate.trim() || null,
+      sex: draftSex,
+    };
+    if (Number.isFinite(parsedHeight) && parsedHeight > 80 && parsedHeight < 250) {
+      patch.height_cm = Math.round(parsedHeight * 10) / 10;
+    }
+    if (Number.isFinite(parsedWeight) && parsedWeight >= 25 && parsedWeight <= 300) {
+      patch.weight_kg = Math.round(parsedWeight * 10) / 10;
+    }
+
+    await update(patch);
+
+    const nextDossier: AthleteClinicalDossier = {
+      goalWeightKg:
+        Number.isFinite(parsedGoalWeight) && parsedGoalWeight >= 25 && parsedGoalWeight <= 300
+          ? Math.round(parsedGoalWeight * 10) / 10
+          : null,
+      trainingDaysPerWeek: draftDays,
+      priorityMuscles: draftMuscles,
+      jointDiscomforts: draftDiscomforts.length > 0 ? draftDiscomforts : ["Ninguna"],
+      updatedAt: new Date().toISOString(),
+    };
+    saveClinicalDossier(nextDossier, profile.user_id);
+    setDossier(nextDossier);
+    setSavingFicha(false);
+    setEditingFicha(false);
+  };
+
   return (
     <>
       <GroupedSection title={PROFILE_LABELS.bodyLabel}>
-        <dl style={readoutGridStyle}>
-          <div className="flex items-center justify-between gap-3">
-            <dt style={readoutLabelStyle}>{PROFILE_LABELS.birthDateLabel}</dt>
-            <dd style={readoutValueStyle}>{profile.birth_date ?? PROFILE_LABELS.notSet}</dd>
-          </div>
-          <div className="flex items-center justify-between gap-3">
-            <dt style={readoutLabelStyle}>{PROFILE_LABELS.ageLabel}</dt>
-            <dd style={readoutValueStyle}>
-              {age === null
-                ? PROFILE_LABELS.notSet
-                : age < 18
-                  ? PROFILE_LABELS.ageMinor(age)
-                  : PROFILE_LABELS.ageYears(age)}
-            </dd>
-          </div>
-          <div>
-            <dt style={readoutLabelStyle}>{PROFILE_LABELS.sexLabel}</dt>
-            <dd style={readoutValueStyle}>{profile.sex ? (SEX_LABELS[profile.sex] ?? profile.sex) : PROFILE_LABELS.notSet}</dd>
-          </div>
-          <div>
-            <dt style={readoutLabelStyle}>{PROFILE_LABELS.heightLabel}</dt>
-            <dd style={readoutValueStyle}>
-              <span
-                role="textbox"
-                contentEditable
-                suppressContentEditableWarning
-                aria-label={PROFILE_LABELS.heightLabel}
-                onBlur={(event) => {
-                  const value = Number(event.currentTarget.textContent?.replace(/[^\d.]/g, ""));
-                  if (Number.isFinite(value) && value > 0) void update({ height_cm: value });
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <span className="text-xs" style={{ color: TEXT.tertiary }}>
+            Ficha biométrica y clínica 360°
+          </span>
+          <button
+            type="button"
+            onClick={() => (editingFicha ? setEditingFicha(false) : openFichaEditor())}
+            className="h-8 px-3 rounded-full inline-flex items-center gap-1.5 text-xs font-semibold"
+            style={{
+              backgroundColor: editingFicha ? GLASS.fillRaised : ACCENT.subtle,
+              color: editingFicha ? TEXT.secondary : ACCENT.text,
+              border: `1px solid ${editingFicha ? GLASS.border : ACCENT.border}`,
+            }}
+          >
+            {editingFicha ? (
+              <>
+                <X className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Cancelar</span>
+              </>
+            ) : (
+              <>
+                <Pencil className="h-3.5 w-3.5" aria-hidden="true" />
+                <span>Editar ficha</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {editingFicha ? (
+          <div className="space-y-3 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <label className="block">
+                <span style={fieldLabelStyle}>Nombre / Alias</span>
+                <input
+                  type="text"
+                  value={draftName}
+                  onChange={(e) => setDraftName(e.target.value)}
+                  placeholder="Tu nombre"
+                  className="w-full h-10 px-3 rounded-xl text-sm outline-none"
+                  style={{
+                    backgroundColor: SURFACE.base,
+                    border: `1px solid ${GLASS.border}`,
+                    color: TEXT.primary,
+                  }}
+                />
+              </label>
+              <label className="block">
+                <span style={fieldLabelStyle}>{PROFILE_LABELS.birthDateLabel}</span>
+                <input
+                  type="date"
+                  value={draftBirthDate}
+                  onChange={(e) => setDraftBirthDate(e.target.value)}
+                  className="w-full h-10 px-3 rounded-xl text-sm outline-none"
+                  style={{
+                    backgroundColor: SURFACE.base,
+                    border: `1px solid ${GLASS.border}`,
+                    color: TEXT.primary,
+                  }}
+                />
+              </label>
+              <label className="block">
+                <span style={fieldLabelStyle}>{PROFILE_LABELS.sexLabel}</span>
+                <select
+                  value={draftSex ?? ""}
+                  onChange={(e) =>
+                    setDraftSex((e.target.value || null) as Profile["sex"])
+                  }
+                  className="w-full h-10 px-3 rounded-xl text-sm outline-none"
+                  style={{
+                    backgroundColor: SURFACE.base,
+                    border: `1px solid ${GLASS.border}`,
+                    color: TEXT.primary,
+                  }}
+                >
+                  <option value="">Sin definir</option>
+                  <option value="male">{SEX_LABELS.male}</option>
+                  <option value="female">{SEX_LABELS.female}</option>
+                  <option value="other">{SEX_LABELS.other}</option>
+                </select>
+              </label>
+              <label className="block">
+                <span style={fieldLabelStyle}>Días disponibles (2–6)</span>
+                <div className="grid grid-cols-5 gap-1">
+                  {[2, 3, 4, 5, 6].map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      onClick={() => setDraftDays(d)}
+                      className="h-10 rounded-xl text-xs font-semibold"
+                      style={{
+                        backgroundColor: draftDays === d ? ACCENT.base : SURFACE.base,
+                        color: draftDays === d ? TEXT.onAccent : TEXT.secondary,
+                        border: `1px solid ${draftDays === d ? ACCENT.base : GLASS.border}`,
+                      }}
+                    >
+                      {d}d
+                    </button>
+                  ))}
+                </div>
+              </label>
+              <label className="block">
+                <span style={fieldLabelStyle}>{PROFILE_LABELS.heightLabel} (cm)</span>
+                <input
+                  type="number"
+                  step="0.5"
+                  value={draftHeight}
+                  onChange={(e) => setDraftHeight(e.target.value)}
+                  placeholder="175"
+                  className="w-full h-10 px-3 rounded-xl text-sm outline-none"
+                  style={{
+                    backgroundColor: SURFACE.base,
+                    border: `1px solid ${GLASS.border}`,
+                    color: TEXT.primary,
+                    fontFamily: TYPE.mono.font,
+                  }}
+                />
+              </label>
+              <label className="block">
+                <span style={fieldLabelStyle}>{PROFILE_LABELS.weightLabel} (kg)</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={draftWeight}
+                  onChange={(e) => setDraftWeight(e.target.value)}
+                  placeholder="78.0"
+                  className="w-full h-10 px-3 rounded-xl text-sm outline-none"
+                  style={{
+                    backgroundColor: SURFACE.base,
+                    border: `1px solid ${GLASS.border}`,
+                    color: TEXT.primary,
+                    fontFamily: TYPE.mono.font,
+                  }}
+                />
+              </label>
+              <label className="block sm:col-span-2">
+                <span style={fieldLabelStyle}>Peso objetivo (kg)</span>
+                <input
+                  type="number"
+                  step="0.1"
+                  value={draftGoalWeight}
+                  onChange={(e) => setDraftGoalWeight(e.target.value)}
+                  placeholder="75.0"
+                  className="w-full h-10 px-3 rounded-xl text-sm outline-none"
+                  style={{
+                    backgroundColor: SURFACE.base,
+                    border: `1px solid ${GLASS.border}`,
+                    color: TEXT.primary,
+                    fontFamily: TYPE.mono.font,
+                  }}
+                />
+              </label>
+            </div>
+
+            <div>
+              <span style={fieldLabelStyle}>Músculos prioritarios</span>
+              <div className="flex flex-wrap gap-1.5">
+                {PRIORITY_MUSCLE_OPTIONS.map((m) => {
+                  const active = draftMuscles.includes(m);
+                  return (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => toggleMuscle(m)}
+                      className="h-8 px-3 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: active ? ACCENT.subtle : SURFACE.base,
+                        color: active ? ACCENT.text : TEXT.secondary,
+                        border: `1px solid ${active ? ACCENT.border : GLASS.border}`,
+                      }}
+                    >
+                      {m}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <span style={fieldLabelStyle}>Molestias articulares / Lesiones</span>
+              <div className="flex flex-wrap gap-1.5">
+                {JOINT_DISCOMFORT_OPTIONS.map((j) => {
+                  const active = draftDiscomforts.includes(j);
+                  return (
+                    <button
+                      key={j}
+                      type="button"
+                      onClick={() => toggleDiscomfort(j)}
+                      className="h-8 px-3 rounded-full text-xs font-medium"
+                      style={{
+                        backgroundColor: active ? ACCENT.subtle : SURFACE.base,
+                        color: active ? ACCENT.text : TEXT.secondary,
+                        border: `1px solid ${active ? ACCENT.border : GLASS.border}`,
+                      }}
+                    >
+                      {j}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="flex justify-end pt-1">
+              <button
+                type="button"
+                disabled={savingFicha}
+                onClick={() => void handleSaveFicha()}
+                className="h-10 px-5 rounded-full text-xs font-semibold"
+                style={{
+                  backgroundColor: ACCENT.base,
+                  color: TEXT.onAccent,
+                  opacity: savingFicha ? 0.6 : 1,
                 }}
-                className="font-mono text-base font-bold text-white outline-none"
-              >{profile.height_cm === null ? PROFILE_LABELS.notSet : `${profile.height_cm} cm`}</span>
-            </dd>
+              >
+                {savingFicha ? "Guardando..." : "Guardar ficha 360°"}
+              </button>
+            </div>
           </div>
-          <div>
-            <dt style={readoutLabelStyle}>{PROFILE_LABELS.weightLabel}</dt>
-            <dd style={readoutValueStyle}>
-              <span
-                role="textbox"
-                contentEditable
-                suppressContentEditableWarning
-                aria-label={PROFILE_LABELS.weightLabel}
-                onBlur={(event) => {
-                  const value = Number(event.currentTarget.textContent?.replace(/[^\d.]/g, ""));
-                  if (Number.isFinite(value) && value > 0) void update({ weight_kg: value });
+        ) : (
+          <dl className="divide-y divide-white/10 m-0">
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>Nombre / Alias</dt>
+              <dd style={readoutValueStyle}>
+                {profile.display_name ?? PROFILE_LABELS.notSet}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>{PROFILE_LABELS.birthDateLabel}</dt>
+              <dd style={{ ...readoutValueStyle, fontFamily: TYPE.mono.font }}>
+                {profile.birth_date ?? PROFILE_LABELS.notSet}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>{PROFILE_LABELS.ageLabel}</dt>
+              <dd style={{ ...readoutValueStyle, fontFamily: TYPE.mono.font }}>
+                {age === null
+                  ? PROFILE_LABELS.notSet
+                  : age < 18
+                    ? PROFILE_LABELS.ageMinor(age)
+                    : PROFILE_LABELS.ageYears(age)}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>{PROFILE_LABELS.sexLabel}</dt>
+              <dd style={readoutValueStyle}>
+                {profile.sex ? (SEX_LABELS[profile.sex] ?? profile.sex) : PROFILE_LABELS.notSet}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>{PROFILE_LABELS.heightLabel}</dt>
+              <dd style={{ ...readoutValueStyle, fontFamily: TYPE.mono.font }}>
+                {profile.height_cm === null ? PROFILE_LABELS.notSet : `${profile.height_cm} cm`}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>{PROFILE_LABELS.weightLabel}</dt>
+              <dd style={{ ...readoutValueStyle, fontFamily: TYPE.mono.font }}>
+                {profile.weight_kg === null ? PROFILE_LABELS.notSet : `${profile.weight_kg} kg`}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>IMC estimado</dt>
+              <dd style={{ ...readoutValueStyle, fontFamily: TYPE.mono.font }}>
+                {bmiValue !== null ? `${bmiValue}` : PROFILE_LABELS.notSet}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>Peso objetivo</dt>
+              <dd style={{ ...readoutValueStyle, fontFamily: TYPE.mono.font }}>
+                {dossier.goalWeightKg !== null
+                  ? `${dossier.goalWeightKg} kg`
+                  : PROFILE_LABELS.notSet}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>Días disponibles</dt>
+              <dd style={{ ...readoutValueStyle, fontFamily: TYPE.mono.font }}>
+                {dossier.trainingDaysPerWeek} días / sem
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>Músculos prioritarios</dt>
+              <dd className="text-right text-xs" style={{ color: TEXT.primary }}>
+                {dossier.priorityMuscles.length > 0
+                  ? dossier.priorityMuscles.join(", ")
+                  : "Balanceado"}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-3 py-2.5">
+              <dt style={readoutLabelStyle}>Molestias articulares</dt>
+              <dd
+                className="text-right text-xs"
+                style={{
+                  color: dossier.jointDiscomforts.some((d) => d !== "Ninguna")
+                    ? STATUS.warning.text
+                    : TEXT.primary,
                 }}
-                className="font-mono text-base font-bold text-white outline-none"
-              >{profile.weight_kg === null ? PROFILE_LABELS.notSet : `${profile.weight_kg} kg`}</span>
-            </dd>
-          </div>
-        </dl>
+              >
+                {dossier.jointDiscomforts.join(", ")}
+              </dd>
+            </div>
+          </dl>
+        )}
       </GroupedSection>
+
+      <WeightTrackerCard
+        userId={profile.user_id}
+        currentProfileWeightKg={profile.weight_kg}
+        goalWeightKg={dossier.goalWeightKg}
+        entries={weightHistory}
+        onEntriesChange={setWeightHistory}
+        onSyncProfileWeight={(weightKg) => void update({ weight_kg: weightKg })}
+      />
 
       <MacroCard energy={energy} />
 
@@ -951,13 +1325,6 @@ const fieldLabelStyle: CSSProperties = {
   marginBottom: SPACE.xs,
   fontSize: TYPE.label.size,
   color: TEXT.tertiary,
-};
-
-const readoutGridStyle: CSSProperties = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))",
-  gap: SPACE.md,
-  margin: 0,
 };
 
 const readoutLabelStyle: CSSProperties = {

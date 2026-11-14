@@ -26,6 +26,11 @@ import type { CoachRoutineDraft } from "@/lib/routines/coachRoutineDraft";
 import { resolveExercise } from "@/lib/routines/routineTemplates";
 import { getExerciseDisplayName } from "@/utils/exerciseTranslation";
 import { ROUTINE_TEMPLATES } from "@/lib/routines/routineTemplates";
+import {
+  computeMonthlyWeightDelta,
+  loadClinicalDossier,
+  loadWeightHistory,
+} from "@/lib/profile/weightHistoryStore";
 
 export interface AthleteDetailViewProps {
   /** La solicitud activa (lleva el id para el chat). */
@@ -70,6 +75,11 @@ export function AthleteDetailView({
   const SWIPE_THRESHOLD = 50;
 
   const { exercises: catalog } = useExerciseCatalog();
+  const clinicalDossier = useMemo(() => loadClinicalDossier(athleteId), [athleteId]);
+  const monthlyWeightStats = useMemo(
+    () => computeMonthlyWeightDelta(loadWeightHistory(athleteId)),
+    [athleteId],
+  );
   const [assigningTemplate, setAssigningTemplate] = useState<string | null>(null);
   const [templateMessage, setTemplateMessage] = useState<{ kind: "success" | "error"; text: string } | null>(null);
 
@@ -556,7 +566,41 @@ export function AthleteDetailView({
                     {profile?.height_cm ? `${profile.height_cm} cm` : T.athleteDetailUnknown}
                   </p>
                 </div>
+                <div style={statStyle}>
+                  <span style={statLabelStyle}>Meta &amp; Cambio Mensual</span>
+                  <p style={{ margin: 0, fontSize: TYPE.subhead.size, color: TEXT.primary }}>
+                    {clinicalDossier.goalWeightKg
+                      ? `${clinicalDossier.goalWeightKg} kg`
+                      : "Sin meta"}
+                    {monthlyWeightStats.deltaKg !== null
+                      ? ` (${monthlyWeightStats.deltaKg > 0 ? `+${monthlyWeightStats.deltaKg}` : monthlyWeightStats.deltaKg} kg)`
+                      : ""}
+                  </p>
+                </div>
+                <div style={statStyle}>
+                  <span style={statLabelStyle}>Días / Prioridad</span>
+                  <p style={{ margin: 0, fontSize: TYPE.subhead.size, color: TEXT.primary }}>
+                    {clinicalDossier.trainingDaysPerWeek}d ·{" "}
+                    {clinicalDossier.priorityMuscles.length > 0
+                      ? clinicalDossier.priorityMuscles.join(", ")
+                      : "Balanceado"}
+                  </p>
+                </div>
               </div>
+              {clinicalDossier.jointDiscomforts.some((d) => d !== "Ninguna") ? (
+                <div
+                  style={{
+                    padding: SPACE.sm,
+                    borderRadius: RADIUS.control,
+                    backgroundColor: STATUS.warning.muted,
+                    border: `1px solid ${STATUS.warning.border}`,
+                    color: STATUS.warning.text,
+                    fontSize: TYPE.caption.size,
+                  }}
+                >
+                  Alerta articular: {clinicalDossier.jointDiscomforts.join(", ")}
+                </div>
+              ) : null}
             </div>
           </GlassCard>
         )}

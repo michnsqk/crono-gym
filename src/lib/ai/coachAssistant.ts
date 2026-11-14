@@ -654,7 +654,8 @@ const DEV_RESPONSES: { message: string; action: CoachAction | null }[] = [
     },
   },
   {
-    message: "Press de banca: completaste todas las reps la semana pasada. Sube 2.5 kg.",
+    message:
+      "[[EXERCISE:Press horizontal en máquina]]\n[[EXERCISE:Press inclinado guiado]]\n\nCompletaste todas las reps la semana pasada, así que toca progresar:\n\n1. Sube 2.5 kg en tu serie principal de press.\n2. Descansa 2–3 minutos entre series pesadas.\n\nClave biomecánica: retrae y deprime escápulas antes de desbloquear el carro.\n\n¿Sentiste alguna molestia en hombro o codo?",
     action: {
       type: "training_adjustment",
       field: "weight",

@@ -130,6 +130,19 @@ export function BiomechanicalGripStanceModal({
     return countsMapFromSlugs(currentTrajectory.muscleSlugs);
   }, [activeTab, currentStance, currentAttachment, currentTrajectory]);
 
+  const handleSelectStance = (stanceId: FootStanceId) => {
+    setSelectedStanceId(stanceId);
+    if (stanceId === "high_neutral" || stanceId === "bottom_edge_calves") {
+      setStanceMapSide("back");
+    } else if (
+      stanceId === "low_narrow" ||
+      stanceId === "standard_mid" ||
+      stanceId === "high_wide_sumo"
+    ) {
+      setStanceMapSide("front");
+    }
+  };
+
   if (!open) return null;
 
   const handleApply = () => {
@@ -295,7 +308,7 @@ export function BiomechanicalGripStanceModal({
                   <button
                     key={chip.id}
                     type="button"
-                    onClick={() => setSelectedStanceId(chip.id)}
+                    onClick={() => handleSelectStance(chip.id)}
                     className="rounded-xl px-1.5 py-2 text-center min-w-0"
                     style={{
                       backgroundColor: selected ? ACCENT.subtle : GLASS.fill,
@@ -393,7 +406,7 @@ export function BiomechanicalGripStanceModal({
                     return (
                       <g
                         key={zone.id}
-                        onClick={() => setSelectedStanceId(zone.id)}
+                        onClick={() => handleSelectStance(zone.id)}
                         className="cursor-pointer"
                         opacity={opacity}
                       >
@@ -491,12 +504,17 @@ export function BiomechanicalGripStanceModal({
                   </div>
                 </div>
 
-                <div className="w-24 mx-auto my-1">
-                  <MuscleReadonlyMap
-                    counts={activeMuscleCounts}
-                    side={stanceMapSide}
-                    label={`Activación anatómica para ${currentStance.label}`}
-                  />
+                <div
+                  className="w-full h-40 mx-auto my-1 overflow-hidden flex justify-center items-start rounded-xl"
+                  data-testid="lower-body-zoom-frame"
+                >
+                  <div className="w-36 shrink-0 scale-[1.85] -translate-y-[43%] origin-top">
+                    <MuscleReadonlyMap
+                      counts={activeMuscleCounts}
+                      side={stanceMapSide}
+                      label={`Activación anatómica para ${currentStance.label}`}
+                    />
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-1 justify-center">

@@ -30,15 +30,33 @@ import {
 } from "react";
 import {
   AlertTriangle,
-  Send,
+  ArrowDown,
+  ArrowUp,
+  History,
+  Plus,
+  Sparkles,
   Square,
+  ThumbsDown,
+  ThumbsUp,
   Trash2,
   X,
 } from "lucide-react";
-import { ACCENT, MOTION, RADIUS, SCRIM, SPACE, STATUS, SURFACE, TEXT, TYPE } from "@/design/tokens";
+import { ACCENT, GLASS, MOTION, RADIUS, SCRIM, SOLID, SPACE, STATUS, SURFACE, TEXT, TYPE } from "@/design/tokens";
 import { GlassButton } from "@/components/ui";
 import { COACH_LABELS as T } from "@/lib/i18n";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { useExerciseCatalog } from "@/hooks/useExerciseCatalog";
+import { RecommendedExerciseCard } from "@/components/coach/RecommendedExerciseCard";
+import {
+  createNewThread,
+  getActiveThreadId,
+  loadChatThreads,
+  resolveRecommendedExercisesFromAIResponse,
+  saveChatThreads,
+  setActiveThreadId,
+  stripExerciseTags,
+  type CronosChatThread,
+} from "@/lib/ai/cronosIntelligence";
 import type { GymSettings } from "@/context/GymSettingsContext";
 import type { CoachContext } from "@/lib/coach/types";
 import {
@@ -121,9 +139,17 @@ export function CoachChat({
   const [proposedRoutine, setProposedRoutine] = useState<GeneratedRoutine | null>(null);
   const [proposedRoutineError, setProposedRoutineError] = useState<string | null>(null);
   const [focused, setFocused] = useState(false);
+  const [threads, setThreads] = useState<CronosChatThread[]>(() => loadChatThreads());
+  const [activeThreadId, setActiveThreadState] = useState<string | null>(() =>
+    getActiveThreadId(),
+  );
+  const [feedbackByMsgId, setFeedbackByMsgId] = useState<Record<string, "up" | "down" | null>>({});
+  const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const { exercises: catalog } = useExerciseCatalog();
 
   const abortRef = useRef<AbortController | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLTextAreaElement | null>(null);
 
   // --------------------------------------------------------------- persistencia
@@ -163,14 +189,98 @@ export function CoachChat({
 
   // --------------------------------------------------------------- acciones
 
+  const syncThread = useCallback(
+    (nextMessages: ChatMessage[], feedbackOverrides?: Record<string, "up" | "down" | null>) => {
+      const serializable = nextMessages
+        .filter((m) => m.role === "user" || m.role === "assistant")
+        .map((m) => ({
+          id: m.id,
+          role: m.role as "user" | "assistant",
+          content: m.content,
+          createdAt: new Date(m.timestamp || Date.now()).toISOString(),
+          feedback: (feedbackOverrides ?? feedbackByMsgId)[m.id] ?? null,
+        }));
+      if (serializable.length === 0) return;
+
+      const firstUser = serializable.find((m) => m.role === "user")?.content ?? "Nueva consulta";
+      const title = firstUser.length > 42 ? `${firstUser.slice(0, 42)}…` : firstUser;
+      const targetId = activeThreadId ?? createNewThread(title).id;
+
+      setActiveThreadState(targetId);
+      setActiveThreadId(targetId);
+      setThreads((prev) => {
+        const existing = prev.find((t) => t.id === targetId);
+        const updated: CronosChatThread = {
+          id: targetId,
+          title: existing?.title && existing.messages.length > 0 ? existing.title : title,
+          updatedAt: new Date().toISOString(),
+          messages: serializable,
+        };
+        const next = [updated, ...prev.filter((t) => t.id !== targetId)];
+        saveChatThreads(next);
+        return next;
+      });
+    },
+    [activeThreadId, feedbackByMsgId],
+  );
+
   const handleNewSession = () => {
     abortRef.current?.abort();
+    const fresh = createNewThread();
+    setActiveThreadState(fresh.id);
+    setActiveThreadId(fresh.id);
     setMessages([]);
+    setFeedbackByMsgId({});
     setDraft("");
     setLoaded(true);
     setPersisted(true);
     setShowHistory(false);
   };
+
+  const handleSelectThread = (thread: CronosChatThread) => {
+    abortRef.current?.abort();
+    setActiveThreadState(thread.id);
+    setActiveThreadId(thread.id);
+    const restored: ChatMessage[] = thread.messages.map((m) => ({
+      id: m.id,
+      role: m.role,
+      content: m.content,
+      timestamp: Date.parse(m.createdAt) || Date.now(),
+      isStreaming: false,
+    }));
+    const restoredFeedback: Record<string, "up" | "down" | null> = {};
+    for (const m of thread.messages) {
+      if (m.feedback) restoredFeedback[m.id] = m.feedback;
+    }
+    setMessages(restored);
+    setFeedbackByMsgId(restoredFeedback);
+    setShowHistory(false);
+  };
+
+  const handleDeleteThread = (id: string) => {
+    setThreads((prev) => {
+      const next = prev.filter((t) => t.id !== id);
+      saveChatThreads(next);
+      return next;
+    });
+    if (activeThreadId === id) {
+      setActiveThreadState(null);
+      setActiveThreadId(null);
+      setMessages([]);
+    }
+  };
+
+  const handleFeedback = useCallback(
+    (msgId: string, vote: "up" | "down") => {
+      setFeedbackByMsgId((prev) => {
+        const nextVal = prev[msgId] === vote ? null : vote;
+        const nextMap = { ...prev, [msgId]: nextVal };
+        syncThread(messages, nextMap);
+        return nextMap;
+      });
+    },
+    [messages, syncThread],
+  );
 
   const handleClear = async () => {
     setMessages([]);
@@ -182,8 +292,9 @@ export function CoachChat({
   const persist = useCallback(
     (next: ChatMessage[]) => {
       void saveChat(next).then((ok) => setPersisted(ok));
+      syncThread(next);
     },
-    [],
+    [syncThread],
   );
 
   const send = useCallback(
@@ -425,27 +536,6 @@ export function CoachChat({
     transition: `transform ${MOTION.fast} ${MOTION.spring}`,
   });
 
-  const inputStyle: React.CSSProperties = {
-    width: "100%",
-    resize: "none",
-    borderRadius: RADIUS.card,
-    border: `1px solid ${tooLong ? STATUS.warning.text : focused ? "rgba(220,38,38,0.45)" : "rgba(255,255,255,0.08)"}`,
-    backgroundColor: "rgba(9,9,11,0.6)",
-    color: TEXT.primary,
-    padding: "12px 14px",
-    fontSize: TYPE.subhead.size,
-    fontFamily: "inherit",
-    backdropFilter: "blur(24px)",
-    WebkitBackdropFilter: "blur(24px)",
-    transform: focused ? "translateY(-2px)" : "translateY(0)",
-    transition: `border-color ${MOTION.fast} ${MOTION.easeOut}, box-shadow ${MOTION.fast} ${MOTION.easeOut}, transform ${MOTION.fast} ${MOTION.spring}`,
-    boxShadow: busy
-      ? "0 0 25px rgba(220,38,38,0.12)"
-      : focused
-      ? "0 0 18px rgba(220,38,38,0.08), 0 4px 24px rgba(0,0,0,0.4)"
-      : "0 4px 24px rgba(0,0,0,0.4)",
-  };
-
   const inputAreaStyle: React.CSSProperties = {
     padding: `${SPACE.lg} ${SPACE.xl}`,
     borderTop: "1px solid rgba(255,255,255,0.04)",
@@ -474,42 +564,39 @@ export function CoachChat({
   return (
     <div style={containerStyle}>
       {fullScreen && onClose && (
-        <header style={headerStyle}>
-          <div style={headerLeftStyle}>
-            <span aria-hidden="true" style={{ color: ACCENT.base }}>
-              ✦
-            </span>
-            <h2 style={titleStyle}>Cronos IA</h2>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: SPACE.sm }}>
-            <GlassButton
-              type="button"
-              variant="ghost"
-              onClick={handleNewSession}
-              aria-label={T.chatNewSession}
-              style={{ minHeight: MOTION.minTouchTarget }}
-            >
-              {T.chatNewSession}
-            </GlassButton>
-            <GlassButton
-              type="button"
-              variant="ghost"
-              onClick={() => setShowHistory((prev) => !prev)}
-              aria-label={T.chatHistory}
-              style={{ minHeight: MOTION.minTouchTarget }}
-            >
-              {showHistory ? T.chatHistory : T.chatHistory}
-            </GlassButton>
-            <button
-              type="button"
-              onClick={onClose}
-              aria-label="Cerrar Cronos IA"
-              style={closeStyle}
-            >
-              <X size={20} strokeWidth={1.8} />
-            </button>
-          </div>
-        </header>
+        <>
+          <div className="w-11 h-1 rounded-full bg-white/20 mx-auto mt-2.5 mb-1 shrink-0" />
+          <header style={headerStyle}>
+            <div style={headerLeftStyle}>
+              <span
+                aria-hidden="true"
+                className="h-8 w-8 rounded-full flex items-center justify-center"
+                style={{ backgroundColor: ACCENT.subtle, color: ACCENT.base }}
+              >
+                <Sparkles size={16} />
+              </span>
+              <h2 style={titleStyle}>Cronos Intelligence</h2>
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs }}>
+              <button
+                type="button"
+                onClick={() => setShowHistory((prev) => !prev)}
+                aria-label="Historial de conversaciones"
+                style={closeStyle}
+              >
+                <History size={18} strokeWidth={1.8} />
+              </button>
+              <button
+                type="button"
+                onClick={onClose}
+                aria-label="Cerrar Cronos Intelligence"
+                style={closeStyle}
+              >
+                <X size={20} strokeWidth={1.8} />
+              </button>
+            </div>
+          </header>
+        </>
       )}
 
       {!fullScreen ? (
@@ -586,36 +673,148 @@ export function CoachChat({
 
       {showHistory && fullScreen && (
         <div style={historyPanelStyle}>
-          <h3
-            style={{
-              margin: "0 0 12px",
-              fontSize: TYPE.subhead.size,
-              fontWeight: 600,
-              color: TEXT.primary,
-            }}
-          >
-            {T.chatSessionsTitle}
-          </h3>
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <h3
+              style={{
+                margin: 0,
+                fontSize: TYPE.subhead.size,
+                fontWeight: 600,
+                color: TEXT.primary,
+              }}
+            >
+              {T.chatSessionsTitle}
+            </h3>
+            <button
+              type="button"
+              onClick={handleNewSession}
+              className="h-9 px-3 rounded-full inline-flex items-center gap-1.5 text-xs font-semibold"
+              style={{
+                backgroundColor: ACCENT.base,
+                color: TEXT.onAccent,
+              }}
+            >
+              <Plus size={14} aria-hidden="true" />
+              <span>Nueva conversación</span>
+            </button>
+          </div>
+          {threads.length === 0 ? (
+            <p className="text-xs" style={{ color: TEXT.tertiary }}>
+              Aún no hay conversaciones guardadas.
+            </p>
+          ) : (
+            <ul className="space-y-2">
+              {threads.map((th) => {
+                const isActive = th.id === activeThreadId;
+                return (
+                  <li
+                    key={th.id}
+                    className="flex items-center justify-between gap-2 p-3 rounded-2xl"
+                    style={{
+                      backgroundColor: isActive ? ACCENT.subtle : SOLID.card,
+                      border: `1px solid ${isActive ? ACCENT.border : GLASS.border}`,
+                    }}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => handleSelectThread(th)}
+                      className="flex-1 text-left min-w-0"
+                    >
+                      <p
+                        className="text-sm font-medium truncate"
+                        style={{ color: TEXT.primary }}
+                      >
+                        {th.title}
+                      </p>
+                      <p className="text-[11px]" style={{ color: TEXT.tertiary }}>
+                        {th.messages.length} mensajes · {th.updatedAt.slice(0, 10)}
+                      </p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteThread(th.id)}
+                      aria-label={`Eliminar conversación ${th.title}`}
+                      className="h-8 w-8 rounded-full flex items-center justify-center shrink-0"
+                      style={{ color: TEXT.tertiary }}
+                    >
+                      <Trash2 size={14} aria-hidden="true" />
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
         </div>
       )}
 
-      <div
-        style={scrollStyle}
-        aria-live="polite"
-        aria-busy={busy}
-      >
-        {!loaded ? (
-          <p style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
-            {T.loading}
-          </p>
-        ) : messages.length === 0 ? (
-          <p style={{ margin: 0, fontSize: TYPE.subhead.size, color: TEXT.tertiary }}>
-            {T.chatEmpty}
-          </p>
-        ) : (
-          messages.map((message) => <Bubble key={message.id} message={message} />)
-        )}
-        <div ref={listEndRef} />
+      <div className="relative flex-1 flex flex-col min-h-0">
+        <div
+          ref={scrollContainerRef}
+          onScroll={(e) => {
+            const el = e.currentTarget;
+            const distFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+            setShowScrollBottom(distFromBottom > 120);
+          }}
+          style={scrollStyle}
+          aria-live="polite"
+          aria-busy={busy}
+        >
+          {!loaded ? (
+            <p style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+              {T.loading}
+            </p>
+          ) : messages.length === 0 ? (
+            <p style={{ margin: 0, fontSize: TYPE.subhead.size, color: TEXT.tertiary }}>
+              {T.chatEmpty}
+            </p>
+          ) : (
+            messages.map((message, idx) => {
+              const prevUser =
+                message.role === "assistant"
+                  ? [...messages.slice(0, idx)]
+                      .reverse()
+                      .find((m) => m.role === "user")?.content ?? ""
+                  : "";
+              const recommended =
+                message.role === "assistant" && !message.isStreaming
+                  ? resolveRecommendedExercisesFromAIResponse(
+                      message.content,
+                      prevUser,
+                      catalog,
+                      { limit: 3 },
+                    )
+                  : [];
+              return (
+                <Bubble
+                  key={message.id}
+                  message={message}
+                  recommended={recommended}
+                  feedback={feedbackByMsgId[message.id] ?? null}
+                  onFeedback={(vote) => handleFeedback(message.id, vote)}
+                />
+              );
+            })
+          )}
+          <div ref={listEndRef} />
+        </div>
+
+        {showScrollBottom ? (
+          <button
+            type="button"
+            onClick={() => {
+              const el = scrollContainerRef.current;
+              if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+            }}
+            aria-label="Bajar al último mensaje"
+            className="absolute bottom-3 right-4 h-9 w-9 rounded-full flex items-center justify-center shadow-lg"
+            style={{
+              backgroundColor: SOLID.card,
+              border: `1px solid ${GLASS.borderStrong}`,
+              color: TEXT.primary,
+            }}
+          >
+            <ArrowDown size={16} aria-hidden="true" />
+          </button>
+        ) : null}
       </div>
 
       <div style={chipsStyle}>
@@ -639,72 +838,71 @@ export function CoachChat({
       <form onSubmit={submit} style={inputAreaStyle}>
         <label
           htmlFor="coach-chat-input"
-          style={{
-            position: "absolute",
-            width: 1,
-            height: 1,
-            padding: 0,
-            margin: -1,
-            overflow: "hidden",
-            clip: "rect(0, 0, 0, 0)",
-            whiteSpace: "nowrap",
-            border: 0,
-          }}
+          className="sr-only"
         >
-          {T.chatPlaceholder}
+          Pregunta lo que quieras a Cronos
         </label>
-        <textarea
-          id="coach-chat-input"
-          ref={inputRef}
-          value={draft}
-          onChange={(event) => setDraft(event.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              send(draft);
-            }
-          }}
-          rows={2}
-          maxLength={MAX_USER_MESSAGE_CHARS + 1}
-          placeholder={T.chatPlaceholder}
-          aria-describedby="coach-chat-disclaimer"
-          style={inputStyle}
-        />
-
         <div
+          className="flex items-end gap-2 rounded-full px-4 py-2"
           style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: SPACE.sm,
-            marginTop: SPACE.sm,
+            backgroundColor: SOLID.card,
+            border: `1px solid ${tooLong ? STATUS.warning.text : focused ? ACCENT.border : GLASS.borderStrong}`,
           }}
         >
-          <span style={{ fontSize: TYPE.label.size, color: TEXT.tertiary }}>
-            {tooLong
-              ? `${draft.length} / ${MAX_USER_MESSAGE_CHARS}`
-              : !persisted && T.chatNotSaved}
-          </span>
+          <textarea
+            id="coach-chat-input"
+            ref={inputRef}
+            value={draft}
+            onChange={(event) => setDraft(event.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={() => setFocused(false)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                send(draft);
+              }
+            }}
+            rows={1}
+            maxLength={MAX_USER_MESSAGE_CHARS + 1}
+            placeholder="Pregunta lo que quieras a Cronos"
+            aria-describedby="coach-chat-disclaimer"
+            className="flex-1 bg-transparent resize-none outline-none text-sm py-1.5"
+            style={{ color: TEXT.primary }}
+          />
 
           {busy ? (
-            <GlassButton type="button" variant="ghost" onClick={stop}>
-              <Square size={13} aria-hidden="true" />
-              {T.chatStop}
-            </GlassButton>
-          ) : (
-            <GlassButton
-              type="submit"
-              variant="primary"
-              disabled={draft.trim() === "" || tooLong}
-              style={{ opacity: draft.trim() === "" || tooLong ? 0.5 : 1 }}
+            <button
+              type="button"
+              onClick={stop}
+              aria-label={T.chatStop}
+              className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: GLASS.fillRaised,
+                color: TEXT.primary,
+              }}
             >
-              <Send size={13} aria-hidden="true" />
-              {T.chatSend}
-            </GlassButton>
+              <Square size={14} aria-hidden="true" />
+            </button>
+          ) : (
+            <button
+              type="submit"
+              disabled={draft.trim() === "" || tooLong}
+              aria-label={T.chatSend}
+              className="h-9 w-9 shrink-0 rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: draft.trim() === "" || tooLong ? GLASS.fillRaised : ACCENT.base,
+                color: draft.trim() === "" || tooLong ? TEXT.tertiary : TEXT.onAccent,
+              }}
+            >
+              <ArrowUp size={16} aria-hidden="true" />
+            </button>
           )}
         </div>
+        {(tooLong || !persisted) && (
+          <p className="text-[11px] mt-1 px-2" style={{ color: TEXT.tertiary }}>
+            {tooLong ? `${draft.length} / ${MAX_USER_MESSAGE_CHARS}` : T.chatNotSaved}
+          </p>
+        )}
       </form>
 
       <p
@@ -767,7 +965,17 @@ export function CoachChat({
 
 // --------------------------------------------------------------- bubble
 
-function Bubble({ message }: { message: ChatMessage }) {
+function Bubble({
+  message,
+  recommended = [],
+  feedback = null,
+  onFeedback,
+}: {
+  message: ChatMessage;
+  recommended?: ReturnType<typeof resolveRecommendedExercisesFromAIResponse>;
+  feedback?: "up" | "down" | null;
+  onFeedback?: (vote: "up" | "down") => void;
+}) {
   const authModal = useAuthModal();
 
   if (message.role === "error") {
@@ -778,8 +986,8 @@ function Bubble({ message }: { message: ChatMessage }) {
         style={{
           alignSelf: "stretch",
           borderRadius: RADIUS.control,
-          border: `1px solid #f871712e`,
-          backgroundColor: "#f8717112",
+          border: `1px solid ${STATUS.warning.border}`,
+          backgroundColor: STATUS.warning.muted,
           padding: "9px 12px",
           fontSize: TYPE.caption.size,
           color: TEXT.primary,
@@ -798,63 +1006,118 @@ function Bubble({ message }: { message: ChatMessage }) {
   }
 
   const mine = message.role === "user";
+  const displayText = mine ? message.content : stripExerciseTags(message.content);
+
+  if (mine) {
+    return (
+      <div
+        className="self-end max-w-[85%] rounded-2xl rounded-br-sm px-3.5 py-2.5"
+        style={{
+          backgroundColor: ACCENT.subtle,
+          border: `1px solid ${ACCENT.border}`,
+          color: TEXT.primary,
+        }}
+      >
+        <p style={{ margin: 0, fontSize: TYPE.subhead.size, lineHeight: 1.5, whiteSpace: "pre-wrap" }}>
+          {displayText}
+        </p>
+      </div>
+    );
+  }
 
   return (
-    <div
-      style={{
-        alignSelf: mine ? "flex-end" : "flex-start",
-        maxWidth: "85%",
-        borderRadius: RADIUS.control,
-        borderBottomLeftRadius: mine ? RADIUS.control : 2,
-        borderBottomRightRadius: mine ? 2 : RADIUS.control,
-        border: `1px solid ${mine ? `${ACCENT.base}44` : `${TEXT.tertiary}22`}`,
-        backgroundColor: mine ? `${ACCENT.base}14` : SCRIM.recessed,
-        padding: "9px 12px",
-      }}
-    >
-      <p style={{ margin: 0, fontSize: TYPE.subhead.size, lineHeight: 1.55, whiteSpace: "pre-wrap" }}>
-        {message.content}
-        {message.isStreaming && (
-          <span
-            aria-hidden="true"
-            className="cronos-chat--caret"
-            style={{
-              display: "inline-block",
-              width: 6,
-              height: 13,
-              marginLeft: 2,
-              verticalAlign: "-2px",
-              backgroundColor: ACCENT.text,
-              animation: `cronos-caret ${MOTION.loop.caret} steps(2, start) infinite`,
-            }}
-          />
-        )}
-      </p>
+    <div className="self-start w-full max-w-[96%] space-y-2.5 py-1">
+      {recommended.length > 0 ? (
+        <div className="space-y-2">
+          {recommended.map((match) => (
+            <RecommendedExerciseCard key={match.id} match={match} />
+          ))}
+        </div>
+      ) : null}
 
-      {message.action && message.action.type !== "routine_proposal" && (
-        <div
-          style={{
-            marginTop: 8,
-            paddingTop: 8,
-            borderTop: `1px solid ${TEXT.tertiary}22`,
-          }}
-        >
-          <p
+      <div
+        className="rounded-2xl rounded-bl-sm px-3.5 py-3"
+        style={{
+          backgroundColor: SCRIM.recessed,
+          border: `1px solid ${GLASS.border}`,
+          color: TEXT.primary,
+        }}
+      >
+        <p style={{ margin: 0, fontSize: TYPE.subhead.size, lineHeight: 1.6, whiteSpace: "pre-wrap" }}>
+          {displayText}
+          {message.isStreaming && (
+            <span
+              aria-hidden="true"
+              className="cronos-chat--caret"
+              style={{
+                display: "inline-block",
+                width: 6,
+                height: 13,
+                marginLeft: 2,
+                verticalAlign: "-2px",
+                backgroundColor: ACCENT.text,
+                animation: `cronos-caret ${MOTION.loop.caret} steps(2, start) infinite`,
+              }}
+            />
+          )}
+        </p>
+
+        {message.action && message.action.type !== "routine_proposal" && (
+          <div
             style={{
-              margin: 0,
-              fontSize: TYPE.label.size,
-              textTransform: "uppercase",
-              letterSpacing: TYPE.label.tracking,
-              color: ACCENT.text,
+              marginTop: 8,
+              paddingTop: 8,
+              borderTop: `1px solid ${GLASS.border}`,
             }}
           >
-            {T.chatActions[message.action.type] ?? message.action.type}
-          </p>
-          <p style={{ margin: "4px 0 0", fontSize: TYPE.caption.size, color: TEXT.secondary }}>
-            {describeAction(message.action)}
-          </p>
-        </div>
-      )}
+            <p
+              style={{
+                margin: 0,
+                fontSize: TYPE.label.size,
+                textTransform: "uppercase",
+                letterSpacing: TYPE.label.tracking,
+                color: ACCENT.text,
+              }}
+            >
+              {T.chatActions[message.action.type] ?? message.action.type}
+            </p>
+            <p style={{ margin: "4px 0 0", fontSize: TYPE.caption.size, color: TEXT.secondary }}>
+              {describeAction(message.action)}
+            </p>
+          </div>
+        )}
+
+        {!message.isStreaming && onFeedback ? (
+          <div className="flex items-center gap-2 mt-2 pt-2" style={{ borderTop: `1px solid ${GLASS.border}` }}>
+            <button
+              type="button"
+              onClick={() => onFeedback("up")}
+              aria-label="Respuesta útil"
+              aria-pressed={feedback === "up"}
+              className="h-7 w-7 rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: feedback === "up" ? ACCENT.subtle : "transparent",
+                color: feedback === "up" ? ACCENT.text : TEXT.tertiary,
+              }}
+            >
+              <ThumbsUp size={13} aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              onClick={() => onFeedback("down")}
+              aria-label="Respuesta poco útil"
+              aria-pressed={feedback === "down"}
+              className="h-7 w-7 rounded-full flex items-center justify-center"
+              style={{
+                backgroundColor: feedback === "down" ? STATUS.warning.muted : "transparent",
+                color: feedback === "down" ? STATUS.warning.text : TEXT.tertiary,
+              }}
+            >
+              <ThumbsDown size={13} aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
+      </div>
     </div>
   );
 }
