@@ -84,11 +84,10 @@ export function TrainingHeroSection({
         }}
       />
 
-      {/* On a phone the muscle map goes *below* the title, not beside it: side by
-          side the title column is ~150px wide at 390px and the routine name
-          breaks into four lines before the athlete reads the CTA. */}
-      <div className="relative grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_165px] lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-8 lg:items-end">
-        <div className="min-w-0 p-3 px-4 md:p-4 lg:p-6">
+      {/* Grid de 2 columnas proporcionales desde móvil (390px): texto a la izquierda
+          y mapa anatómico de cuerpo entero a la derecha sin recortar piernas. */}
+      <div className="relative grid grid-cols-[minmax(0,1fr)_126px] sm:grid-cols-[minmax(0,1fr)_160px] md:grid-cols-[minmax(0,1fr)_165px] lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] items-center gap-2 lg:gap-8 px-3 pt-3 sm:px-4 md:px-4 lg:px-6">
+        <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             {!isCompleted ? <span
               style={{
@@ -97,7 +96,7 @@ export function TrainingHeroSection({
                 gap: 6,
                 padding: `${SPACE.xs} ${SPACE.sm}`,
                 borderRadius: RADIUS.pill,
-                background: "rgba(255,255,255,0.04)",
+                background: GLASS.fillSubtle,
                 border: `1px solid ${GLASS.border}`,
                 ...TYPE.label,
                 color: TEXT.secondary,
@@ -115,30 +114,26 @@ export function TrainingHeroSection({
             ) : null}
           </div>
 
-          <p style={{ ...TYPE.callout, color: TEXT.secondary, margin: `${SPACE.md} 0 0` }}>{greeting}</p>
+          <p style={{ ...TYPE.callout, color: TEXT.secondary, margin: `${SPACE.sm} 0 0` }}>{greeting}</p>
 
           {isCompleted && completedSummary ? (
             <>
-              <span className="mt-4 inline-flex rounded-full border border-[#30D158]/30 bg-[#30D158]/15 px-3 py-1 text-xs font-semibold text-[#30D158]">
+              <span className="mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold" style={{ border: `1px solid ${ACCENT.border}`, backgroundColor: GLASS.fillSubtle, color: TEXT.primary }}>
                 ✓ COMPLETADO HOY
               </span>
-              <h1 className="mt-3 max-w-[14ch] text-[clamp(1.9rem,6vw,2.6rem)] font-bold leading-tight tracking-tight text-white">
+              <h1 className="mt-2 text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-white break-words">
                 {completedSummary.title}
               </h1>
-              <p className="mt-3 font-mono text-xs text-zinc-400">
+              <p className="mt-2 font-mono text-xs text-zinc-400">
                 {completedSummary.durationMin} min · {completedSummary.exerciseCount} ejercicios
               </p>
             </>
           ) : hasRoutine ? (
             <>
               <h1
+                className="mt-2 text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-white break-words"
                 style={{
-                  ...TYPE.hero,
-                  fontSize: "clamp(1.9rem, 6vw, 2.6rem)",
-                  lineHeight: 1.04,
                   color: TEXT.primary,
-                  margin: `${SPACE.sm} 0 0`,
-                  wordBreak: "break-word",
                   letterSpacing: "-0.025em",
                   maxWidth: "20ch",
                 }}
@@ -146,12 +141,12 @@ export function TrainingHeroSection({
                 {routineTitle}
               </h1>
               {coachAssigned ? (
-                <span className="mt-2 inline-flex rounded-full border border-[#FF3B30]/30 bg-[#FF3B30]/15 px-3 py-1 text-xs font-semibold text-[#FF3B30]">
+                <span className="mt-2 inline-flex rounded-full px-3 py-1 text-xs font-semibold" style={{ border: `1px solid ${ACCENT.border}`, backgroundColor: ACCENT.subtle, color: ACCENT.base }}>
                   Asignada por tu Coach
                 </span>
               ) : null}
               {meta ? (
-                <div style={{ marginTop: SPACE.md }}>
+                <div style={{ marginTop: SPACE.sm }}>
                   <span
                     style={{
                       ...TYPE.mono,
@@ -168,38 +163,65 @@ export function TrainingHeroSection({
           ) : (
             <>
               <h1
+                className="mt-2 text-2xl sm:text-3xl font-bold leading-tight tracking-tight text-white"
                 style={{
-                  ...TYPE.hero,
-                  fontSize: "clamp(1.9rem, 6vw, 2.6rem)",
-                  lineHeight: 1.04,
                   color: TEXT.primary,
-                  margin: `${SPACE.sm} 0 0`,
                   letterSpacing: "-0.025em",
                 }}
               >
                 Rutina del día
               </h1>
-              <p style={{ ...TYPE.subhead, color: TEXT.secondary, margin: `${SPACE.md} 0 0`, maxWidth: "42ch" }}>
+              <p style={{ ...TYPE.subhead, color: TEXT.secondary, margin: `${SPACE.sm} 0 0`, maxWidth: "42ch" }}>
                 Crea tu primera rutina para empezar
               </p>
             </>
           )}
+        </div>
 
+        <div
+          className="flex flex-col items-center justify-center self-center"
+          style={{ backgroundColor: "transparent", overflow: "visible" }}
+        >
           <div
-            className="w-full lg:w-auto"
+            data-testid="today-hero-muscle-map"
+            aria-hidden="true"
+            className="h-[205px] w-[126px] sm:h-[230px] sm:w-[155px]"
             style={{
-              marginTop: SPACE.xl,
-              maxWidth: "100%",
-              transition: reduce ? undefined : "transform 150ms ease",
+              backgroundColor: "transparent",
+              overflow: "visible",
+              height: isCompact ? 205 : 230,
+              width: isCompact ? 126 : 155,
             }}
           >
-            <div className={isCompleted ? "flex items-center gap-2" : ""}>
-              <GlassButton
-                variant="primary"
-                icon={ctaIcon}
-                onClick={onPrimary}
-                disabled={ctaDisabled}
-                className="h-11 whitespace-nowrap rounded-xl px-5 font-semibold active:scale-[0.98] transition-transform w-full lg:w-auto"
+            <MuscleReadonlyMap
+              counts={muscleCounts ?? new Map()}
+              label="Torso anatómico"
+              aspectRatio={126 / 205}
+              backgroundColor="transparent"
+              inertFill={GLASS.borderStrong}
+              litFill={ACCENT.base}
+              mostLitFill={ACCENT.base}
+              caption={null}
+              overflow="visible"
+            />
+          </div>
+        </div>
+
+        <div
+          className="col-span-2 w-full pb-3 lg:w-auto"
+          style={{
+            marginTop: SPACE.sm,
+            maxWidth: "100%",
+            transition: reduce ? undefined : `transform ${MOTION.fast} ${MOTION.easeOut}`,
+          }}
+        >
+          <div className={isCompleted ? "flex items-center gap-2" : ""}>
+            <GlassButton
+              variant="primary"
+              icon={isCompleted ? undefined : ctaIcon}
+              onClick={onPrimary}
+              disabled={ctaDisabled}
+              className="h-11 whitespace-nowrap rounded-xl px-5 font-semibold active:scale-[0.98] transition-transform w-full lg:w-auto"
               style={{
                 minHeight: 52,
                 fontSize: TYPE.subhead.size,
@@ -208,74 +230,51 @@ export function TrainingHeroSection({
                 color: ctaInverse ? TEXT.primary : undefined,
                 boxShadow: ctaDisabled ? "none" : `0 12px 30px ${ACCENT.glow}`,
               }}
+            >
+              {isCompleted ? (
+                <span className="inline-flex items-center justify-center gap-2 whitespace-nowrap">
+                  <span>Ver progreso</span>
+                  <ArrowRight size={18} aria-hidden="true" />
+                </span>
+              ) : (
+                resolvedLabel
+              )}
+            </GlassButton>
+            {isCompleted && onExtra ? (
+              <button
+                type="button"
+                aria-label="Iniciar sesión extra"
+                onClick={onExtra}
+                className="inline-flex h-11 min-w-11 shrink-0 items-center justify-center rounded-xl px-3 text-white active:scale-[0.98] transition-transform"
+                style={{ backgroundColor: GLASS.fillRaised, border: `1px solid ${GLASS.border}` }}
               >
-                {isCompleted ? "Ver progreso" : resolvedLabel}
-              </GlassButton>
-              {isCompleted && onExtra ? (
-                <button type="button" aria-label="Iniciar sesión extra" onClick={onExtra}
-                  className="inline-flex h-11 min-w-11 items-center justify-center rounded-xl bg-[#2C2C2E] px-3 text-white active:scale-[0.98] transition-transform">
-                  <Plus size={18} aria-hidden="true" />
-                  <span className="sr-only">Extra</span>
-                </button>
-              ) : null}
-            </div>
-            {ctaDisabled && (
-              <p
-                style={{
-                  ...TYPE.caption,
-                  color: TEXT.tertiary,
-                  margin: `${SPACE.xs} 0 0`,
-                  display: "flex",
-                  alignItems: "center",
-                  gap: SPACE.xs,
-                }}
-              >
-                <span
-                  aria-hidden="true"
-                  className="w-3 h-3 rounded-full"
-                  style={{
-                    backgroundColor: ACCENT.base,
-                    animation: !reduce ? `cronos-pulse ${MOTION.loop.session} infinite` : "none",
-                  }}
-                />
-                {`${resolvedLabel}…`}
-              </p>
-            )}
+                <Plus size={18} aria-hidden="true" />
+                <span className="sr-only">Extra</span>
+              </button>
+            ) : null}
           </div>
-        </div>
-
-        <div
-          className="flex w-full flex-col items-start gap-2 self-stretch md:w-auto md:self-start lg:self-start"
-          style={{ backgroundColor: "transparent" }}
-        >
-          <div
-            data-testid="today-hero-muscle-map"
-            aria-hidden="true"
-            className="w-full max-w-[220px] md:max-w-none"
-            style={{ backgroundColor: "transparent" }}
-          >
-            <div
+          {ctaDisabled && (
+            <p
               style={{
-                width: "100%",
-                margin: "0 auto",
-                backgroundColor: "transparent",
-                overflow: "visible",
-                height: isCompact ? 160 : 240,
+                ...TYPE.caption,
+                color: TEXT.tertiary,
+                margin: `${SPACE.xs} 0 0`,
+                display: "flex",
+                alignItems: "center",
+                gap: SPACE.xs,
               }}
             >
-              <MuscleReadonlyMap
-                counts={muscleCounts ?? new Map()}
-                label="Torso anatómico"
-                aspectRatio={isCompact ? 10 / 13 : 168 / 236}
-                backgroundColor="transparent"
-                inertFill="rgba(255, 255, 255, 0.1)"
-                litFill={ACCENT.base}
-                mostLitFill={ACCENT.base}
-                caption={null}
-                overflow="visible"
+              <span
+                aria-hidden="true"
+                className="w-3 h-3 rounded-full"
+                style={{
+                  backgroundColor: ACCENT.base,
+                  animation: !reduce ? `cronos-pulse ${MOTION.loop.session} infinite` : "none",
+                }}
               />
-            </div>
-          </div>
+              {`${resolvedLabel}…`}
+            </p>
+          )}
         </div>
       </div>
     </section>

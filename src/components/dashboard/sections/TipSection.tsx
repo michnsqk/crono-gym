@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, ChevronRight, RotateCcw } from "lucide-react";
+import { AlertCircle, ChevronLeft, ChevronRight, Megaphone, RotateCcw, Trophy, Zap } from "lucide-react";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { useRole } from "@/hooks/useRole";
 import type { Announcement, AnnouncementCategory } from "@/hooks/useAnnouncements";
+import { ACCENT, GLASS, SOLID, TEXT } from "@/design/tokens";
 
 export interface Tip {
   id: string;
@@ -22,10 +23,16 @@ export interface TipSectionProps {
 }
 
 const categoryLabel: Record<AnnouncementCategory, string> = {
-  urgent: "🔴 URGENTE",
-  event: "🏆 EVENTO",
-  info: "📢 AVISO OFICIAL",
+  urgent: "URGENTE",
+  event: "EVENTO",
+  info: "AVISO OFICIAL",
 };
+
+function CategoryIcon({ category }: { category: AnnouncementCategory }) {
+  if (category === "urgent") return <AlertCircle size={13} aria-hidden="true" />;
+  if (category === "event") return <Trophy size={13} aria-hidden="true" />;
+  return <Megaphone size={13} aria-hidden="true" />;
+}
 
 function text(value: Tip | string) { return typeof value === "string" ? value : value.text; }
 
@@ -69,40 +76,95 @@ export function TipSection({ tip, tips, onNext, announcements = [], onPublish, o
   }
 
   return (
-    <section className="rounded-2xl border border-white/10 bg-[#1C1C1E] p-4" aria-label="Avisos del Gym y Tips IA">
+    <section
+      className="rounded-2xl p-4"
+      style={{ backgroundColor: SOLID.card, border: `1px solid ${GLASS.border}` }}
+      aria-label="Avisos del Gym y Tips IA"
+    >
       <header className="flex items-center justify-between gap-3">
-        <div className="flex rounded-xl bg-[#2C2C2E] p-1" role="tablist">
-          <button type="button" role="tab" aria-selected={tab === "announcements"} onClick={() => setTab("announcements")}
-            className="h-11 rounded-lg px-3 text-xs font-semibold text-white">
-            📢 Avisos {announcements.length > 0 ? `(${announcements.length})` : ""}
+        <div className="flex rounded-xl p-1" style={{ backgroundColor: SOLID.popover }} role="tablist">
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "announcements"}
+            onClick={() => setTab("announcements")}
+            className="inline-flex h-11 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-semibold text-white"
+            style={{
+              backgroundColor: tab === "announcements" ? GLASS.fillRaised : "transparent",
+              color: tab === "announcements" ? TEXT.primary : TEXT.secondary,
+            }}
+          >
+            <Megaphone size={14} aria-hidden="true" style={{ color: ACCENT.base }} />
+            <span>Avisos {announcements.length > 0 ? `(${announcements.length})` : ""}</span>
           </button>
-          <button type="button" role="tab" aria-selected={tab === "tips"} onClick={() => setTab("tips")}
-            className="h-11 rounded-lg px-3 text-xs font-semibold text-zinc-400">⚡ Tips IA</button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "tips"}
+            onClick={() => setTab("tips")}
+            className="inline-flex h-11 items-center gap-1.5 whitespace-nowrap rounded-lg px-3 text-xs font-semibold text-zinc-400"
+            style={{
+              backgroundColor: tab === "tips" ? GLASS.fillRaised : "transparent",
+              color: tab === "tips" ? TEXT.primary : TEXT.secondary,
+            }}
+          >
+            <Zap size={14} aria-hidden="true" />
+            <span>Tips IA</span>
+          </button>
         </div>
         {(role === "admin" || role === "developer" || import.meta.env.DEV) && onPublish ? (
-          <button type="button" onClick={() => setComposerOpen(true)} className="text-xs font-semibold text-[#FF3B30]">+ Nuevo aviso</button>
+          <button
+            type="button"
+            onClick={() => setComposerOpen(true)}
+            className="whitespace-nowrap text-xs font-semibold"
+            style={{ color: ACCENT.base }}
+          >
+            + Nuevo aviso
+          </button>
         ) : null}
       </header>
 
       {tab === "announcements" && currentAnnouncement ? (
         <article className="mt-4">
           <div className="flex items-center justify-between gap-2">
-            <span className="text-xs font-semibold text-[#FF3B30]">{categoryLabel[currentAnnouncement.category]}</span>
-            <time className="font-mono text-[11px] text-zinc-400">{new Date(currentAnnouncement.createdAt).toLocaleDateString("es-MX")}</time>
+            <span className="inline-flex items-center gap-1.5 text-xs font-semibold" style={{ color: ACCENT.base }}>
+              <CategoryIcon category={currentAnnouncement.category} />
+              <span>{categoryLabel[currentAnnouncement.category]}</span>
+            </span>
+            <time className="font-mono text-xs text-zinc-400">{new Date(currentAnnouncement.createdAt).toLocaleDateString("es-MX")}</time>
           </div>
           <h3 className="mt-2 text-base font-bold text-white">{currentAnnouncement.title}</h3>
           {announcementImage(currentAnnouncement) ? (
             <img
               src={announcementImage(currentAnnouncement)}
               alt={`Foto del aviso: ${currentAnnouncement.title}`}
-              className="mt-2 mb-3 h-48 w-full rounded-xl border border-white/10 object-cover"
+              className="mt-2 mb-3 max-h-44 w-full object-contain rounded-2xl bg-neutral-950 p-2"
+              style={{ border: `1px solid ${GLASS.border}` }}
             />
           ) : null}
           <p className="mt-1 text-sm text-zinc-300">{currentAnnouncement.body}</p>
-          {announcements.length > 1 ? <div className="mt-4 flex gap-2">
-            <button type="button" className="h-11 rounded-xl bg-[#2C2C2E] px-3 text-xs text-white" onClick={() => setAnnouncementIndex((announcementIndex - 1 + announcements.length) % announcements.length)}><ChevronLeft size={14} /> Anterior</button>
-            <button type="button" className="h-11 rounded-xl bg-[#2C2C2E] px-3 text-xs text-white" onClick={() => setAnnouncementIndex((announcementIndex + 1) % announcements.length)}>Siguiente <ChevronRight size={14} /></button>
-          </div> : null}
+          {announcements.length > 1 ? (
+            <div className="mt-4 flex items-center gap-2">
+              <button
+                type="button"
+                className="h-11 rounded-xl whitespace-nowrap px-3.5 py-2 flex items-center gap-1.5 text-xs font-medium text-white"
+                style={{ backgroundColor: SOLID.popover, border: `1px solid ${GLASS.border}` }}
+                onClick={() => setAnnouncementIndex((announcementIndex - 1 + announcements.length) % announcements.length)}
+              >
+                <ChevronLeft size={14} aria-hidden="true" />
+                <span>Anterior</span>
+              </button>
+              <button
+                type="button"
+                className="h-11 rounded-xl whitespace-nowrap px-3.5 py-2 flex items-center gap-1.5 text-xs font-medium text-white"
+                style={{ backgroundColor: SOLID.popover, border: `1px solid ${GLASS.border}` }}
+                onClick={() => setAnnouncementIndex((announcementIndex + 1) % announcements.length)}
+              >
+                <span>Siguiente</span>
+                <ChevronRight size={14} aria-hidden="true" />
+              </button>
+            </div>
+          ) : null}
           {(role === "admin" || role === "developer" || import.meta.env.DEV) && onDelete ? <button type="button" onClick={() => void onDelete(currentAnnouncement.id)} className="mt-3 text-xs text-zinc-500">Eliminar aviso</button> : null}
         </article>
       ) : (

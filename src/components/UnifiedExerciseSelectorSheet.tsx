@@ -10,12 +10,18 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Activity, Check, ChevronDown, Dumbbell, Minus, Search, Sparkles, X } from "lucide-react";
+import { Activity, Check, CheckCircle2, ChevronDown, Dumbbell, Flame, Minus, Search, Sparkles, X } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { Slug } from "react-muscle-highlighter";
-import { translateMuscle, translateEquipment } from "@/lib/i18n";
+import { translateBodyPart, translateMuscle, translateEquipment } from "@/lib/i18n";
 import type { Exercise } from "@/types/supabase";
 import { useExerciseCatalog, normaliseExerciseName } from "@/hooks/useExerciseCatalog";
+import {
+  isWarmupCatalogExercise,
+  matchesSemanticExerciseSearch,
+  matchesWarmupMuscleFilter,
+  type WarmupMuscleFilter,
+} from "@/lib/catalog/machinerySeedExercises";
 import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useFrequentExercises } from "@/hooks/useFrequentExercises";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -38,12 +44,14 @@ const MOBILE_MAX_WIDTH = 767;
 const ENABLED_MUSCLE_SLUGS = getEnabledSlugs();
 
 export type UnifiedExerciseSelectorSheetMode = "single" | "multiple";
+export type SelectorTab = "all" | "frequent" | "warmup";
 
 interface UnifiedExerciseSelectorSheetBase {
   isOpen: boolean;
   onClose: () => void;
   excludeIds?: readonly string[];
   initialMuscle?: Slug;
+  initialTab?: SelectorTab;
   title?: string;
   dayContext?: {
     dayIndex: number;
@@ -64,7 +72,54 @@ export type UnifiedExerciseSelectorSheetProps =
       onSelectSingle?: never;
     });
 
-type Tab = "all" | "frequent";
+type Tab = SelectorTab;
+
+const SELECTOR_BODY_PART_ES: Record<string, string> = {
+  waist: "ABDOMEN",
+  "upper legs": "PIERNA",
+  "lower legs": "PANTORRILLA",
+  "upper arms": "BRAZO",
+  "lower arms": "ANTEBRAZO",
+  chest: "PECHO",
+  back: "ESPALDA",
+  shoulders: "HOMBROS",
+  neck: "CUELLO",
+  cardio: "CARDIO",
+};
+
+function formatSelectorBodyPart(bodyPart: string): string {
+  const key = bodyPart.trim().toLowerCase();
+  if (SELECTOR_BODY_PART_ES[key]) return SELECTOR_BODY_PART_ES[key];
+  const byBodyPart = translateBodyPart(bodyPart);
+  if (byBodyPart && byBodyPart.toLowerCase() !== key) return byBodyPart.toUpperCase();
+  return translateMuscle(bodyPart).toUpperCase();
+}
+
+const WARMUP_MUSCLE_CHIPS: readonly { id: WarmupMuscleFilter; label: string }[] = [
+  { id: "all", label: "Todo" },
+  { id: "chest", label: "Pecho" },
+  { id: "back", label: "Espalda" },
+  { id: "shoulders", label: "Hombro" },
+  { id: "arms", label: "Brazo" },
+  { id: "legs", label: "Pierna" },
+  { id: "core", label: "Core" },
+];
+
+function inferWarmupMuscleFromContext(
+  dayLabel?: string,
+  dayExercises?: readonly Exercise[],
+): WarmupMuscleFilter {
+  const text = normaliseExerciseName(
+    `${dayLabel ?? ""} ${(dayExercises ?? []).map((e) => `${e.body_part} ${e.target}`).join(" ")}`,
+  );
+  if (text.includes("pecho") || text.includes("push") || text.includes("chest") || text.includes("pectoral")) return "chest";
+  if (text.includes("espalda") || text.includes("pull") || text.includes("back") || text.includes("lats") || text.includes("dorsal")) return "back";
+  if (text.includes("hombro") || text.includes("shoulder") || text.includes("delts")) return "shoulders";
+  if (text.includes("brazo") || text.includes("bicep") || text.includes("tricep") || text.includes("upper arms")) return "arms";
+  if (text.includes("pierna") || text.includes("leg") || text.includes("glute") || text.includes("femoral") || text.includes("quad")) return "legs";
+  if (text.includes("core") || text.includes("abdomen") || text.includes("waist") || text.includes("abs")) return "core";
+  return "all";
+}
 
 function normaliseTokens(value: string): string[] {
   return normaliseExerciseName(value).split(/\s+/).filter(Boolean);
@@ -130,6 +185,7 @@ export function UnifiedExerciseSelectorSheet({
   onSelectSingle,
   onSelectMultiple,
   title = "Seleccionar ejercicio",
+  initialTab = "all",
   dayContext,
 }: UnifiedExerciseSelectorSheetProps) {
   const excluded = useMemo(() => new Set(excludeIds), [excludeIds.join(",")]);
@@ -144,7 +200,10 @@ export function UnifiedExerciseSelectorSheet({
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, DEBOUNCE_MS);
   const [page, setPage] = useState(1);
-  const [tab, setTab] = useState<Tab>("all");
+  const [tab, setTab] = useState<Tab>(initialTab);
+  const [warmupMuscleFilter, setWarmupMuscleFilter] = useState<WarmupMuscleFilter>(() =>
+    inferWarmupMuscleFromContext(dayContext?.dayLabel, dayContext?.dayExercises),
+  );
   const [selectedEquipmentCategory, setSelectedEquipmentCategory] = useState<string | null>(null);
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [selectedMuscles, setSelectedMuscles] = useState<Slug[]>([]);
@@ -185,6 +244,8 @@ export function UnifiedExerciseSelectorSheet({
 
   useEffect(() => {
     if (!isOpen) return;
+    setTab(initialTab);
+    setWarmupMuscleFilter(inferWarmupMuscleFromContext(dayContext?.dayLabel, dayContext?.dayExercises));
     setPreviouslyFocused(document.activeElement as HTMLElement);
     const input = document.querySelector('[data-testid="selector-search-input"]') as HTMLInputElement | null;
     if (isFinePointer && input) input.focus();
@@ -201,7 +262,7 @@ export function UnifiedExerciseSelectorSheet({
       setPreviouslyFocused(null);
       focusIndexRef.current = -1;
     };
-  }, [isOpen, isFinePointer]);
+  }, [isOpen, isFinePointer, initialTab, dayContext?.dayLabel, dayContext?.dayExercises]);
 
   const handleConfirm = useCallback(() => {
     if (mode === "single") return;
@@ -242,8 +303,13 @@ export function UnifiedExerciseSelectorSheet({
       const frequentSet = new Set(frequentIds);
       return rows.filter((ex) => frequentSet.has(ex.id));
     }
+    if (tab === "warmup") {
+      return rows.filter(
+        (ex) => isWarmupCatalogExercise(ex) && matchesWarmupMuscleFilter(ex, warmupMuscleFilter),
+      );
+    }
     return rows;
-  }, [localExercises, tab, frequentIds, excluded]);
+  }, [localExercises, tab, frequentIds, excluded, warmupMuscleFilter]);
 
   useEffect(() => { if (exercises.length === 0) return; setLocalExercises(exercises); }, [exercises]);
 
@@ -263,14 +329,17 @@ export function UnifiedExerciseSelectorSheet({
       }
     }
     const attributeFiltered = baseRows.filter((ex) => {
-      if (ids && !ids.has(ex.id)) return false;
+      if (q) {
+        const exactTokenMatch = ids ? ids.has(ex.id) : false;
+        if (!exactTokenMatch && !matchesSemanticExerciseSearch(ex, debouncedQuery)) return false;
+      }
       if (selectedEquipmentCategory && getEquipmentCategory(ex.equipment) !== selectedEquipmentCategory) return false;
-      if (onlyAvailable && !(ex as Exercise & { availableInCronosGym?: boolean }).availableInCronosGym) return false;
+      if (onlyAvailable && (ex as Exercise & { availableInCronosGym?: boolean }).availableInCronosGym === false) return false;
       return true;
     });
-    if (selectedMuscles.length === 0) return attributeFiltered;
+    if (tab === "warmup" || selectedMuscles.length === 0) return attributeFiltered;
     return filterByMuscles(attributeFiltered, selectedMuscles).results;
-  }, [baseRows, debouncedQuery, selectedEquipmentCategory, selectedMuscles, onlyAvailable, ensureIndex]);
+  }, [baseRows, debouncedQuery, selectedEquipmentCategory, selectedMuscles, onlyAvailable, ensureIndex, tab]);
 
   const visibleCount = page * PAGE_SIZE;
   const displayed = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
@@ -573,8 +642,8 @@ export function UnifiedExerciseSelectorSheet({
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: SPACE.xs, marginBottom: SPACE.sm, padding: 2, borderRadius: RADIUS.control, border: `1px solid ${GLASS.border}`, background: "rgba(28,28,30,0.6)" }}>
-            {(["all", "frequent"] as const).map((t) => (
+          <div style={{ display: "flex", gap: SPACE.xs, marginBottom: SPACE.sm, padding: 2, borderRadius: RADIUS.control, border: `1px solid ${GLASS.border}`, background: GLASS.fill }}>
+            {(["all", "frequent", "warmup"] as const).map((t) => (
               <button
                 key={t}
                 type="button"
@@ -587,20 +656,68 @@ export function UnifiedExerciseSelectorSheet({
                   border: "none",
                   background: tab === t ? ACCENT.subtle : "transparent",
                   color: tab === t ? TEXT.primary : TEXT.secondary,
-                  fontSize: TYPE.subhead.size,
+                  fontSize: TYPE.caption.size,
                   fontWeight: tab === t ? 600 : 500,
                   cursor: "pointer",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  gap: SPACE.xs,
+                  gap: 4,
+                  padding: `0 ${SPACE.xs}px`,
+                  whiteSpace: "nowrap",
                 }}
               >
-                {t === "frequent" && <Sparkles size={14} aria-hidden="true" />}
-                {t === "all" ? "Todos" : `Frecuentes (${frequentIds.length})`}
+                {t === "frequent" && <Sparkles size={13} aria-hidden="true" />}
+                {t === "warmup" && <Flame size={13} aria-hidden="true" style={{ color: tab === t ? ACCENT.base : TEXT.secondary }} />}
+                {t === "all" ? "Todos" : t === "frequent" ? `Frecuentes (${frequentIds.length})` : "Calentamiento"}
               </button>
             ))}
           </div>
+
+          {tab === "warmup" && (
+            <div
+              data-testid="warmup-muscle-chips"
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: 6,
+                marginBottom: SPACE.sm,
+                padding: `${SPACE.xs}px`,
+                borderRadius: RADIUS.control,
+                border: `1px solid ${GLASS.border}`,
+                background: GLASS.fillSubtle,
+              }}
+            >
+              {WARMUP_MUSCLE_CHIPS.map((chip) => {
+                const active = warmupMuscleFilter === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => {
+                      setWarmupMuscleFilter(chip.id);
+                      setPage(1);
+                    }}
+                    style={{
+                      minHeight: 32,
+                      padding: `0 ${SPACE.sm}px`,
+                      borderRadius: RADIUS.pill,
+                      border: `1px solid ${active ? ACCENT.base : GLASS.border}`,
+                      background: active ? ACCENT.base : SOLID.popover,
+                      color: active ? TEXT.onAccent : TEXT.secondary,
+                      fontSize: TYPE.caption.size,
+                      fontWeight: active ? 700 : 600,
+                      cursor: "pointer",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {chip.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
 
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: SPACE.xs, marginBottom: SPACE.xs }}>
             <button
@@ -704,9 +821,13 @@ export function UnifiedExerciseSelectorSheet({
             </div>
           )}
 
-          <label className="mb-3 flex min-h-11 items-center gap-2 rounded-xl bg-[#1C1C1E] px-3 text-xs font-semibold text-zinc-300">
+          <label
+            className="mb-3 flex min-h-11 items-center gap-2 rounded-xl px-3 text-xs font-semibold text-zinc-300"
+            style={{ backgroundColor: SOLID.card }}
+          >
             <input type="checkbox" checked={onlyAvailable} onChange={(event) => { setOnlyAvailable(event.target.checked); setPage(1); }} />
-            🏋️ Disponibles en Cronos Gym
+            <CheckCircle2 size={14} aria-hidden="true" style={{ color: ACCENT.base }} />
+            <span>Disponibles en Cronos Gym</span>
           </label>
 
           {activeFilterCount > 0 && (
@@ -876,7 +997,7 @@ function SelectorCard({ exercise, order, selected, multiSelect, expanded, alread
   const active = selected && !alreadyInDay;
   const reducedMotion = useReducedMotion();
 
-  const muscleLabel = translateMuscle(primaryMuscle).toUpperCase();
+  const muscleLabel = formatSelectorBodyPart(primaryMuscle);
   const equipmentLabel = translateEquipment(equipment).toUpperCase();
 
   const handleMouseDown = useCallback((e: React.MouseEvent<HTMLDivElement>) => {
@@ -971,8 +1092,8 @@ function SelectorCard({ exercise, order, selected, multiSelect, expanded, alread
           </div>
           <div style={{ minWidth: 0, paddingTop: SPACE.sm }}>
             <p style={{ margin: 0, fontSize: TYPE.caption.size, fontWeight: 600, color: TEXT.secondary, textTransform: "uppercase", letterSpacing: TYPE.label.tracking }}>Detalle</p>
-            <p style={{ margin: `${SPACE.xs}px 0 0`, fontSize: TYPE.subhead.size, color: TEXT.primary }}>{primaryMuscle}</p>
-            <p style={{ margin: `2px 0 0`, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>{equipment}</p>
+            <p style={{ margin: `${SPACE.xs}px 0 0`, fontSize: TYPE.subhead.size, color: TEXT.primary }}>{formatSelectorBodyPart(primaryMuscle)}</p>
+            <p style={{ margin: `2px 0 0`, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>{translateEquipment(equipment)}</p>
             {exercise.instructions && exercise.instructions.length > 0 && (
               <div style={{ marginTop: SPACE.sm, display: "flex", flexDirection: "column", gap: 2 }}>
                 {exercise.instructions.slice(0, 2).map((step, i) => <p key={i} style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.secondary, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{i + 1}. {step}</p>)}

@@ -25,6 +25,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadCatalog } from "@/lib/catalog/catalogLoader";
 import { toExercises } from "@/lib/catalog/exerciseAdapter";
+import { mergeMachineryExercises } from "@/lib/catalog/machinerySeedExercises";
 import {
   CATALOG_UPDATED_EVENT,
   filterDeletedExercises,
@@ -79,7 +80,8 @@ export function useExerciseCatalog(): ExerciseCatalogState {
       loadedRef.current = true;
       // The catalog an athlete trains from: a row the coach removed is not a
       // movement this hook can offer, in the picker or in the import wizard.
-      setExercises(filterDeletedExercises([...toExercises(rows), ...readCustomExercises()]));
+      const mergedRows = mergeMachineryExercises(rows);
+      setExercises(filterDeletedExercises([...toExercises(mergedRows), ...readCustomExercises()]));
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "No se pudo cargar el catálogo de ejercicios",

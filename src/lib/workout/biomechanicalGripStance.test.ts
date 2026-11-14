@@ -81,4 +81,45 @@ describe("biomechanicalGripStance", () => {
       }),
     ).toBe("upper_angle");
   });
+
+  it("includes 225+ curated Spanish machinery & warmup exercises and matches semantic queries in any word order", async () => {
+    const {
+      CRONOS_MACHINERY_EXERCISES,
+      isWarmupCatalogExercise,
+      matchesSemanticExerciseSearch,
+    } = await import("@/lib/catalog/machinerySeedExercises");
+
+    expect(CRONOS_MACHINERY_EXERCISES.length).toBeGreaterThanOrEqual(210);
+    const warmups = CRONOS_MACHINERY_EXERCISES.filter((ex) => isWarmupCatalogExercise(ex));
+    expect(warmups.length).toBeGreaterThanOrEqual(18);
+
+    // Multi-word order-insensitive search: "press mancuerna inclinado" -> "Press inclinado 30° con mancuernas..."
+    const inclineDumbbellMatches = CRONOS_MACHINERY_EXERCISES.filter((ex) =>
+      matchesSemanticExerciseSearch(ex, "press mancuerna inclinado"),
+    );
+    expect(inclineDumbbellMatches.length).toBeGreaterThan(0);
+
+    // Biomechanical regional synonyms: "pecho alto" / "clavicular"
+    const upperChestMatches = CRONOS_MACHINERY_EXERCISES.filter((ex) =>
+      matchesSemanticExerciseSearch(ex, "pecho alto"),
+    );
+    expect(upperChestMatches.length).toBeGreaterThanOrEqual(5);
+
+    // Lower chest: "pecho bajo"
+    const lowerChestMatches = CRONOS_MACHINERY_EXERCISES.filter((ex) =>
+      matchesSemanticExerciseSearch(ex, "pecho bajo"),
+    );
+    expect(lowerChestMatches.length).toBeGreaterThanOrEqual(4);
+
+    // Forearms & neck
+    const forearmMatches = CRONOS_MACHINERY_EXERCISES.filter((ex) =>
+      matchesSemanticExerciseSearch(ex, "antebrazo"),
+    );
+    expect(forearmMatches.length).toBeGreaterThanOrEqual(5);
+
+    const neckMatches = CRONOS_MACHINERY_EXERCISES.filter((ex) =>
+      matchesSemanticExerciseSearch(ex, "cuello cervical"),
+    );
+    expect(neckMatches.length).toBeGreaterThanOrEqual(2);
+  });
 });

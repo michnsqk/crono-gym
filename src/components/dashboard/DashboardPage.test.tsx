@@ -538,7 +538,7 @@ describe("DashboardPage", () => {
 
     expect(screen.getByText("Mantenimiento del gimnasio")).toBeTruthy();
     expect(screen.getByText("El gimnasio cierra a las 22 h.")).toBeTruthy();
-    expect(screen.getByText("📢 AVISO OFICIAL")).toBeTruthy();
+    expect(screen.getByText("AVISO OFICIAL")).toBeTruthy();
     // NingÃºn anuncio vÃ­a de mojibake.
     expect(document.body.textContent).not.toMatch(/Ã|\uFFFD/);
   });

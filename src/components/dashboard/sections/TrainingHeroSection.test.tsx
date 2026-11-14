@@ -58,19 +58,19 @@ describe("TrainingHeroSection", () => {
     expect(screen.getByText("Hola")).toBeTruthy();
   });
 
-  it("en 390px apila el mapa debajo del título en vez de partirlo en cuatro líneas", () => {
+  it("en 390px coloca el mapa anatómico completo a la derecha del título sin recortar piernas", () => {
     render(<TrainingHeroSection {...baseProps} routineTitle="Empuje de pecho con barra" />);
 
-    // Una sola columna en móvil: el título ocupa el ancho completo, así que el
-    // nombre de la rutina cabe en dos líneas y no en cuatro. En escritorio el
-    // mapa tiene una columna fija: "auto" dejaba que el título se comiera el
-    // ancho del mapa y el nombre volviera a partirse.
     const grid = screen.getByTestId("training-hero-command").querySelector("div.grid");
-    expect(grid?.className).toContain("grid-cols-1");
+    expect(grid?.className).toContain("grid-cols-[minmax(0,1fr)_126px]");
     expect(grid?.className).toContain("md:grid-cols-[minmax(0,1fr)_165px]");
 
     const title = screen.getByText("Empuje de pecho con barra");
     expect(title.style.maxWidth).toBe("20ch");
+
+    const mapContainer = screen.getByTestId("today-hero-muscle-map");
+    expect(mapContainer.className).toContain("h-[205px]");
+    expect(mapContainer.className).toContain("w-[126px]");
   });
 
   it("deja el botón Ver progreso en una sola línea", () => {

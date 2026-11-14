@@ -104,7 +104,8 @@ export function toExercise(row: CatalogExercise): Exercise {
     instructions: resolved.instruction_steps?.es ?? [],
     is_active: true,
     is_hidden: false,
-  };
+    availableInCronosGym: resolved.availableInCronosGym,
+  } as Exercise;
 }
 
 /** The whole catalog as exercise rows, resolved with a single read of the overrides. */
@@ -123,7 +124,8 @@ export function toExercises(rows: CatalogExercise[]): Exercise[] {
       instructions: resolved.instruction_steps?.es ?? [],
       is_active: true,
       is_hidden: false,
-    };
+      availableInCronosGym: resolved.availableInCronosGym,
+    } as Exercise;
   });
 }
 

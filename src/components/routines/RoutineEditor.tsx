@@ -6,7 +6,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Moon, ChevronLeft, ChevronRight, Dumbbell } from "lucide-react";
+import { Plus, Trash2, Moon, ChevronLeft, ChevronRight, Dumbbell, Flame } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import type { WorkspaceOutletContext } from "@/App";
 import type { RoutineWithExercises } from "@/hooks/useGymData";
@@ -20,7 +20,7 @@ import {
   getRepLabel,
 } from "@/lib/routines/routineDraftModel";
 import { countMuscleSets } from "@/components/MuscleReadonlyMap";
-import { UnifiedExerciseSelectorSheet } from "@/components/UnifiedExerciseSelectorSheet";
+import { UnifiedExerciseSelectorSheet, type SelectorTab } from "@/components/UnifiedExerciseSelectorSheet";
 import { MuscleReadonlyMap } from "@/components/MuscleReadonlyMap";
 import type { Slug } from "react-muscle-highlighter";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -28,6 +28,7 @@ import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { translateBodyPart } from "@/lib/i18n";
 import { loadCatalog } from "@/lib/catalog/catalogLoader";
 import { resolveMediaUrl } from "@/lib/media/mediaResolver";
+import { ACCENT, GLASS, MOTION, SOLID, SURFACE, TEXT } from "@/design/tokens";
 
 const WEEKDAYS_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const WEEKDAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -205,6 +206,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
   const [title, setTitle] = useState(routine?.title ?? "");
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [selectorOpen, setSelectorOpen] = useState(false);
+  const [selectorInitialTab, setSelectorInitialTab] = useState<SelectorTab>("all");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "dirty" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -564,20 +566,60 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
       </div>
 
       {/* Bottom Row: Metrics + Rest Toggle (left) | Dual Muscle Map (right) */}
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 16 }}>
-        {/* Left Column: Metrics & Rest Toggle */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 12 }}>
-          {/* Metrics Line */}
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: "11px", fontWeight: 500, color: "#71717A" }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+        {/* Left Column: Clean Horizontal Metric Pills & Rest Toggle */}
+        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+          {/* Metrics Pills */}
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                background: SOLID.popover,
+                border: `1px solid ${GLASS.border}`,
+                fontFamily: "ui-monospace, SFMono-Regular, monospace",
+                fontSize: "11px",
+                fontWeight: 600,
+                color: TEXT.secondary,
+                whiteSpace: "nowrap",
+              }}
+            >
               ~{activeTelemetry.minutes} min
             </span>
-            <span style={{ color: "#3F3F46" }}>•</span>
-            <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: "11px", fontWeight: 500, color: "#71717A" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                background: SOLID.popover,
+                border: `1px solid ${GLASS.border}`,
+                fontFamily: "ui-monospace, SFMono-Regular, monospace",
+                fontSize: "11px",
+                fontWeight: 600,
+                color: TEXT.secondary,
+                whiteSpace: "nowrap",
+              }}
+            >
               {activeDayExercises.length} ejerc.
             </span>
-            <span style={{ color: "#3F3F46" }}>•</span>
-            <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: "11px", fontWeight: 600, color: "#FF3B30" }}>
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "4px 8px",
+                borderRadius: "10px",
+                background: ACCENT.subtle,
+                border: `1px solid ${ACCENT.border}`,
+                fontFamily: "ui-monospace, SFMono-Regular, monospace",
+                fontSize: "11px",
+                fontWeight: 700,
+                color: ACCENT.base,
+                whiteSpace: "nowrap",
+              }}
+            >
               {dayTotalSets(activeDay)} series
             </span>
           </div>
@@ -594,7 +636,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
                 paddingTop: 2,
               }}
             >
-              <span style={{ fontSize: "13px", fontWeight: 500, color: "#A3A3A3" }}>Día de descanso</span>
+              <span style={{ fontSize: "13px", fontWeight: 500, color: TEXT.secondary }}>Día de descanso</span>
               <div style={{ position: "relative", width: 44, height: 26, flexShrink: 0 }}>
                 <input
                   type="checkbox"
@@ -605,12 +647,12 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
                     width: "100%",
                     height: "100%",
                     borderRadius: "9999px",
-                    background: activeDay?.kind === "rest" ? "#FF3B30" : "#3F3F46",
+                    background: activeDay?.kind === "rest" ? ACCENT.base : SOLID.popover,
                     border: "none",
                     outline: "none",
                     cursor: "pointer",
                     position: "relative",
-                    transition: reducedMotion ? "none" : "background 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+                    transition: reducedMotion ? "none" : `background ${MOTION.fast} ${MOTION.easeOut}`,
                   }}
                 />
                 <span
@@ -621,9 +663,9 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
                     width: 22,
                     height: 22,
                     borderRadius: "50%",
-                    background: "#FFFFFF",
-                    boxShadow: "0 2px 4px rgba(0,0,0,0.3), 0 1px 2px rgba(0,0,0,0.2)",
-                    transition: reducedMotion ? "none" : "left 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+                    background: TEXT.primary,
+                    boxShadow: GLASS.shadow,
+                    transition: reducedMotion ? "none" : `left ${MOTION.fast} ${MOTION.easeOut}`,
                     pointerEvents: "none",
                   }}
                 />
@@ -779,18 +821,21 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
       {/* "Añadir ejercicios a la sesión" action card - ALWAYS VISIBLE at the end */}
       <button
         type="button"
-        onClick={() => setSelectorOpen(true)}
+        onClick={() => {
+          setSelectorInitialTab("all");
+          setSelectorOpen(true);
+        }}
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           width: "100%",
-          padding: 20,
+          padding: 16,
           borderRadius: "20px",
-          border: "1px dashed rgba(255,255,255,0.1)",
-          background: "rgba(28,28,30,0.7)",
+          border: `1px dashed ${GLASS.borderStrong}`,
+          background: GLASS.fill,
           cursor: "pointer",
-          transition: reducedMotion ? "none" : "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+          transition: reducedMotion ? "none" : `all ${MOTION.fast} ${MOTION.easeOut}`,
         }}
       >
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -802,18 +847,65 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
               width: 40,
               height: 40,
               borderRadius: "12px",
-              background: "rgba(255,59,48,0.1)",
-              color: "#FF3B30",
+              background: ACCENT.subtle,
+              color: ACCENT.base,
             }}
           >
             <Plus size={20} aria-hidden="true" />
           </div>
           <div style={{ textAlign: "left", flex: 1 }}>
-            <p style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: "#FFFFFF" }}>Añadir ejercicios a la sesión</p>
-            <p style={{ margin: "2px 0 0", fontSize: "12px", color: "#71717A" }}>Toca para abrir el catálogo y seleccionar</p>
+            <p style={{ margin: 0, fontSize: "15px", fontWeight: 600, color: TEXT.primary }}>Añadir ejercicios a la sesión</p>
+            <p style={{ margin: "2px 0 0", fontSize: "12px", color: TEXT.tertiary }}>Toca para abrir el catálogo y seleccionar</p>
           </div>
         </div>
-        <ChevronRight size={20} style={{ color: "#3F3F46", flexShrink: 0 }} aria-hidden="true" />
+        <ChevronRight size={20} style={{ color: TEXT.tertiary, flexShrink: 0 }} aria-hidden="true" />
+      </button>
+
+      {/* Quick Warmup Button for this Day */}
+      <button
+        type="button"
+        onClick={() => {
+          setSelectorInitialTab("warmup");
+          setSelectorOpen(true);
+        }}
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          width: "100%",
+          padding: "12px 16px",
+          borderRadius: "16px",
+          border: `1px solid ${GLASS.border}`,
+          background: SOLID.card,
+          cursor: "pointer",
+          transition: reducedMotion ? "none" : `all ${MOTION.fast} ${MOTION.easeOut}`,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 34,
+              height: 34,
+              borderRadius: "10px",
+              background: ACCENT.subtle,
+              color: ACCENT.base,
+            }}
+          >
+            <Flame size={17} aria-hidden="true" />
+          </div>
+          <div style={{ textAlign: "left", flex: 1 }}>
+            <p style={{ margin: 0, fontSize: "13px", fontWeight: 600, color: TEXT.primary }}>
+              + Añadir calentamiento para este día
+            </p>
+            <p style={{ margin: "1px 0 0", fontSize: "11px", color: TEXT.tertiary }}>
+              Movilidad articular y activación para los músculos del día
+            </p>
+          </div>
+        </div>
+        <ChevronRight size={18} style={{ color: TEXT.tertiary, flexShrink: 0 }} aria-hidden="true" />
       </button>
     </div>
   );
@@ -824,8 +916,8 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         display: "flex",
         flexDirection: "column",
         minHeight: "100vh",
-        background: "#000000",
-        color: "#FFFFFF",
+        background: SURFACE.sunken,
+        color: TEXT.primary,
         paddingBottom: 128,
       }}
     >
@@ -833,9 +925,9 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         <div
           style={{
             padding: "8px 16px",
-            background: "rgba(255,59,48,0.15)",
-            border: "1px solid rgba(255,59,48,0.4)",
-            color: "#FFFFFF",
+            background: ACCENT.subtle,
+            border: `1px solid ${ACCENT.border}`,
+            color: TEXT.primary,
             fontSize: "13px",
             fontWeight: 500,
             textAlign: "center",
@@ -847,52 +939,42 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         </div>
       )}
       <header
+        className="flex items-center justify-between gap-1.5 w-full max-w-full overflow-hidden px-1 sm:px-3"
         style={{
           position: "sticky",
           top: 0,
           zIndex: 30,
           height: 48,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          padding: "0 16px",
-          background: "rgba(0,0,0,0.8)",
+          background: GLASS.fill,
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)",
-          borderBottom: "1px solid rgba(255,255,255,0.08)",
+          borderBottom: `1px solid ${GLASS.border}`,
         }}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Cancelar"
+          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs shrink-0 rounded-full"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 4,
-            height: 32,
-            padding: "0 10px",
-            borderRadius: "9999px",
             border: "none",
             background: "transparent",
-            color: "#A3A3A3",
-            fontSize: "13px",
-            fontWeight: 500,
+            color: TEXT.secondary,
+            fontWeight: 600,
             cursor: "pointer",
-            transition: reducedMotion ? "none" : "color 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+            whiteSpace: "nowrap",
+            transition: reducedMotion ? "none" : `color ${MOTION.fast} ${MOTION.easeOut}`,
           }}
         >
-          <ChevronLeft size={16} aria-hidden="true" /> Cancelar
+          <ChevronLeft size={15} aria-hidden="true" />
+          <span>Cancelar</span>
         </button>
 
         <div
+          className="inline-flex items-center p-0.5 text-xs shrink-0 rounded-xl"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            padding: 2,
-            borderRadius: "14px",
-            border: "1px solid rgba(255,255,255,0.08)",
-            background: "#1C1C1E",
+            border: `1px solid ${GLASS.border}`,
+            background: SOLID.card,
           }}
           role="tablist"
           aria-label="Modo de rutina"
@@ -902,16 +984,14 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
             role="tab"
             aria-selected={mode === "single"}
             onClick={() => { hapticLight(); setMode("single"); }}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg shrink-0"
             style={{
-              padding: "4px 14px",
-              borderRadius: "12px",
               border: "none",
-              background: mode === "single" ? "#FF3B30" : "transparent",
-              color: mode === "single" ? "#FFFFFF" : "#71717A",
-              fontSize: "12px",
-              fontWeight: 600,
+              background: mode === "single" ? ACCENT.base : "transparent",
+              color: mode === "single" ? TEXT.primary : TEXT.tertiary,
               cursor: "pointer",
-              transition: reducedMotion ? "none" : "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+              whiteSpace: "nowrap",
+              transition: reducedMotion ? "none" : `all ${MOTION.fast} ${MOTION.easeOut}`,
             }}
           >
             Individual
@@ -921,16 +1001,14 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
             role="tab"
             aria-selected={mode === "weekly"}
             onClick={() => { hapticLight(); setMode("weekly"); }}
+            className="px-2.5 py-1 text-xs font-semibold rounded-lg shrink-0"
             style={{
-              padding: "4px 14px",
-              borderRadius: "12px",
               border: "none",
-              background: mode === "weekly" ? "#FF3B30" : "transparent",
-              color: mode === "weekly" ? "#FFFFFF" : "#71717A",
-              fontSize: "12px",
-              fontWeight: 600,
+              background: mode === "weekly" ? ACCENT.base : "transparent",
+              color: mode === "weekly" ? TEXT.primary : TEXT.tertiary,
               cursor: "pointer",
-              transition: reducedMotion ? "none" : "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
+              whiteSpace: "nowrap",
+              transition: reducedMotion ? "none" : `all ${MOTION.fast} ${MOTION.easeOut}`,
             }}
           >
             Semanal
@@ -942,23 +1020,16 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
           onClick={handleSave}
           disabled={!canSave || saveStatus === "saving"}
           aria-label={canSave ? "Guardar rutina" : "Guardar rutina (requiere al menos un ejercicio)"}
+          className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold shrink-0 rounded-xl uppercase"
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            justifyContent: "center",
-            padding: "6px 14px",
-            borderRadius: "9999px",
             border: "none",
-            background: canSave ? "#FF3B30" : "#1C1C1E",
-            color: canSave ? "#FFFFFF" : "#71717A",
-            fontSize: "11px",
-            fontWeight: 700,
-            textTransform: "uppercase",
-            letterSpacing: "0.5px",
+            background: canSave ? ACCENT.base : SOLID.card,
+            color: canSave ? TEXT.primary : TEXT.tertiary,
+            letterSpacing: "0.4px",
             cursor: canSave ? "pointer" : "not-allowed",
-            boxShadow: canSave ? "0 2px 10px rgba(255,59,48,0.35)" : "none",
-            transition: reducedMotion ? "none" : "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
-            minWidth: 72,
+            boxShadow: canSave ? `0 2px 10px ${ACCENT.glow}` : "none",
+            whiteSpace: "nowrap",
+            transition: reducedMotion ? "none" : `all ${MOTION.fast} ${MOTION.easeOut}`,
           }}
         >
           {saveStatus === "saving" ? "Guardando…" : "Guardar"}
@@ -975,7 +1046,8 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
           onClose={() => setSelectorOpen(false)}
           mode="multiple"
           onSelectMultiple={addExercisesToDay}
-          title="Seleccionar ejercicios"
+          initialTab={selectorInitialTab}
+          title={selectorInitialTab === "warmup" ? "Seleccionar calentamiento" : "Seleccionar ejercicios"}
           dayContext={{
             dayIndex: activeDayIndex,
             dayLabel: isWeeklyMode ? (activeDay?.label ?? WEEKDAYS_FULL[activeDayIndex]) : title,

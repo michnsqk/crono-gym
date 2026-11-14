@@ -2330,9 +2330,1176 @@ const SPECS: readonly SeedSpec[] = [
     image: "images/0085-wQ2c4XD.jpg",
     cue: "Camina con pasos cortos y firmes manteniendo hombros atrás y el abdomen en máxima rigidez.",
   },
+  // ========================================================================
+  // 1. PECTORAL DIVIDIDO POR REGIÓN ANATÓMICA (ALTO / MEDIO / BAJO)
+  // ========================================================================
+  {
+    id: "cg-mach-0150",
+    nameEs: "Press inclinado convergente en máquina (Pectoral Alto / Clavicular)",
+    equipmentId: "CG-EQP-0006",
+    equipmentText: "leverage machine",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid", "triceps"],
+    stationKey: "chest_press_machine",
+    movementPattern: "horizontal_push",
+    gifUrl: "videos/0576-dcN3h9w.gif",
+    image: "images/0576-dcN3h9w.jpg",
+    cue: "Enfoque Pectoral Alto (Clavicular): ajusta el asiento bajo para empujar en diagonal ascendente a 30°.",
+  },
+  {
+    id: "cg-mach-0151",
+    nameEs: "Press inclinado con mancuernas agarre neutro (Pectoral Alto / Clavicular)",
+    equipmentId: "CG-EQP-0062",
+    equipmentText: "dumbbell",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid", "triceps"],
+    stationKey: "incline_bench",
+    movementPattern: "horizontal_push",
+    gifUrl: "videos/0314-i9C33NM.gif",
+    image: "images/0314-i9C33NM.jpg",
+    cue: "Enfoque Pectoral Alto: palmas enfrentadas (neutro) y banco a 30° para proteger el hombro y aislar fibras claviculares.",
+  },
+  {
+    id: "cg-mach-0152",
+    nameEs: "Cruce de poleas bajas de abajo hacia arriba con estribo (Pectoral Alto)",
+    equipmentId: "CG-EQP-0040",
+    equipmentText: "cable",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid"],
+    stationKey: "cable_low_pulley",
+    movementPattern: "isolation",
+    gifUrl: "videos/0179-vJ86N8p.gif",
+    image: "images/0179-vJ86N8p.jpg",
+    cue: "Enfoque Pectoral Superior (Clavicular): traza un arco ascendente juntando los manerales frente a la clavícula.",
+  },
+  {
+    id: "cg-mach-0153",
+    nameEs: "Aperturas inclinadas 30° con mancuernas (Pectoral Alto / Clavicular)",
+    equipmentId: "CG-EQP-0062",
+    equipmentText: "dumbbell",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid"],
+    stationKey: "incline_bench",
+    movementPattern: "isolation",
+    gifUrl: "videos/0314-i9C33NM.gif",
+    image: "images/0314-i9C33NM.jpg",
+    cue: "Enfoque Pectoral Alto: abre con codos semiflexionados sintiendo el estiramiento clavicular sin bajar más allá del plano del torso.",
+  },
+  {
+    id: "cg-mach-0154",
+    nameEs: "Press de pecho en Landmine de pie o arrodillado (Pectoral Alto)",
+    equipmentId: "CG-EQP-0074",
+    equipmentText: "barbell",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid", "triceps"],
+    stationKey: "free_weight_area",
+    movementPattern: "horizontal_push",
+    gifUrl: "videos/0047-9G6B2d2.gif",
+    image: "images/0047-9G6B2d2.jpg",
+    cue: "Enfoque Pectoral Clavicular: empuja el extremo de la barra en arco ascendente contrayendo la parte alta del pecho.",
+  },
+  {
+    id: "cg-mach-0155",
+    nameEs: "Lagartijas declinadas con pies elevados en banco (Pectoral Alto)",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "body weight",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid", "triceps", "abs"],
+    stationKey: "flat_bench",
+    movementPattern: "horizontal_push",
+    gifUrl: "videos/0251-d2aJ3zR.gif",
+    image: "images/0251-d2aJ3zR.jpg",
+    cue: "Enfoque Pectoral Alto: al elevar los pies sobre el banco el vector de empuje enfatiza el haz clavicular.",
+  },
+  {
+    id: "cg-mach-0156",
+    nameEs: "Press plano con mancuernas con pausa isométrica (Pectoral Medio / Esternal)",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "dumbbell",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["triceps", "anterior deltoid"],
+    stationKey: "flat_bench",
+    movementPattern: "horizontal_push",
+    gifUrl: "videos/0289-c77U5nN.gif",
+    image: "images/0289-c77U5nN.jpg",
+    cue: "Enfoque Pectoral Medio (Esternal): pausa 2 segundos completos en el estiramiento inferior con codos a 45°.",
+  },
+  {
+    id: "cg-mach-0157",
+    nameEs: "Aperturas en polea a altura media sentado en banco (Pectoral Medio)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid"],
+    stationKey: "cable_mid_pulley",
+    movementPattern: "isolation",
+    gifUrl: "videos/0179-vJ86N8p.gif",
+    image: "images/0179-vJ86N8p.jpg",
+    cue: "Enfoque Pectoral Medio (Esternal): el respaldo elimina la compensación y mantiene tensión en todo el arco horizontal.",
+  },
+  {
+    id: "cg-mach-0158",
+    nameEs: "Peck Deck con pausa de 2s en acortamiento (Pectoral Medio / Esternal)",
+    equipmentId: "CG-EQP-0009",
+    equipmentText: "leverage machine",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid"],
+    stationKey: "pec_deck",
+    movementPattern: "isolation",
+    gifUrl: "videos/0596-R0v2b2S.gif",
+    image: "images/0596-R0v2b2S.jpg",
+    cue: "Enfoque Pectoral Medio: junta los brazos al centro y sostén 2 segundos apretando las fibras esternales.",
+  },
+  {
+    id: "cg-mach-0159",
+    nameEs: "Press convergente en polea de pie a altura media (Pectoral Medio)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["triceps", "anterior deltoid"],
+    stationKey: "cable_mid_pulley",
+    movementPattern: "horizontal_push",
+    gifUrl: "videos/0179-vJ86N8p.gif",
+    image: "images/0179-vJ86N8p.jpg",
+    cue: "Enfoque Pectoral Esternal: empuja desde el costado del pecho convergiendo al centro a la altura del esternón.",
+  },
+  {
+    id: "cg-mach-0160",
+    nameEs: "Squeeze Press (Hex Press) plano con mancuernas (Pectoral Medio)",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "dumbbell",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["triceps", "anterior deltoid"],
+    stationKey: "flat_bench",
+    movementPattern: "horizontal_push",
+    gifUrl: "videos/0289-c77U5nN.gif",
+    image: "images/0289-c77U5nN.jpg",
+    cue: "Enfoque Pectoral Medio: presiona ambas mancuernas entre sí durante todo el recorrido vertical.",
+  },
+  {
+    id: "cg-mach-0161",
+    nameEs: "Cruce de poleas altas de arriba hacia abajo (Pectoral Bajo / Costal)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid"],
+    stationKey: "cable_high_pulley",
+    movementPattern: "isolation",
+    gifUrl: "videos/0179-vJ86N8p.gif",
+    image: "images/0179-vJ86N8p.jpg",
+    cue: "Enfoque Pectoral Bajo (Costal/Inferior): empuja de arriba hacia abajo juntando las manos frente al abdomen bajo.",
+  },
+  {
+    id: "cg-mach-0162",
+    nameEs: "Fondos en paralelas con torso inclinado al frente (Pectoral Bajo / Costal)",
+    equipmentId: "CG-EQP-0020",
+    equipmentText: "body weight",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["triceps", "anterior deltoid"],
+    stationKey: "pullup_dip_station",
+    movementPattern: "vertical_push",
+    gifUrl: "videos/0251-d2aJ3zR.gif",
+    image: "images/0251-d2aJ3zR.jpg",
+    cue: "Enfoque Pectoral Bajo (Inferior): inclina el torso 25° hacia adelante y abre ligeramente los codos al bajar.",
+  },
+  {
+    id: "cg-mach-0163",
+    nameEs: "Press declinado en máquina Smith (Pectoral Bajo / Costal)",
+    equipmentId: "CG-EQP-0034",
+    equipmentText: "smith machine",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["triceps", "anterior deltoid"],
+    stationKey: "smith_machine",
+    movementPattern: "horizontal_push",
+    gifUrl: "videos/0025-c82F2bB.gif",
+    image: "images/0025-c82F2bB.jpg",
+    cue: "Enfoque Pectoral Bajo: coloca el banco declinado bajo la barra Smith y baja hacia la línea inferior del esternón.",
+  },
+  {
+    id: "cg-mach-0164",
+    nameEs: "Aperturas declinadas con mancuernas (Pectoral Bajo / Costal)",
+    equipmentId: "CG-EQP-0031",
+    equipmentText: "dumbbell",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid"],
+    stationKey: "decline_bench",
+    movementPattern: "isolation",
+    gifUrl: "videos/0289-c77U5nN.gif",
+    image: "images/0289-c77U5nN.jpg",
+    cue: "Enfoque Pectoral Inferior: traza un arco amplio alineado con las fibras costales bajas del pecho.",
+  },
+  {
+    id: "cg-mach-0165",
+    nameEs: "Pullover con mancuerna cruzado en banco plano (Pectoral Costal y Serrato)",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "dumbbell",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["lats", "serratus anterior", "triceps"],
+    stationKey: "flat_bench",
+    movementPattern: "isolation",
+    gifUrl: "videos/0289-c77U5nN.gif",
+    image: "images/0289-c77U5nN.jpg",
+    cue: "Mantén la cadera baja y lleva la mancuerna detrás de la cabeza estirando la caja torácica y el pectoral costal.",
+  },
+  // ========================================================================
+  // 2. HOMBRO COMPLETO (DELTOIDES LATERAL, POSTERIOR Y ANTERIOR)
+  // ========================================================================
+  {
+    id: "cg-mach-0166",
+    nameEs: "Elevación lateral en polea baja a altura de muñeca (Deltoides Lateral)",
+    equipmentId: "CG-EQP-0040",
+    equipmentText: "cable",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["traps"],
+    stationKey: "cable_low_pulley",
+    movementPattern: "isolation",
+    gifUrl: "videos/0178-tG73H2B.gif",
+    image: "images/0178-tG73H2B.jpg",
+    cue: "Coloca la polea a la altura de la muñeca para máxima tensión a 90° de abducción en el deltoides lateral.",
+  },
+  {
+    id: "cg-mach-0167",
+    nameEs: "Elevación lateral sentado con mancuernas estricto (Deltoides Lateral)",
+    equipmentId: "CG-EQP-0062",
+    equipmentText: "dumbbell",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["traps"],
+    stationKey: "incline_bench",
+    movementPattern: "isolation",
+    gifUrl: "videos/0334-kP7xM1W.gif",
+    image: "images/0334-kP7xM1W.jpg",
+    cue: "Sentado sin impulso lumbar, eleva en el plano escapular (30° al frente) guiando con los codos.",
+  },
+  {
+    id: "cg-mach-0168",
+    nameEs: "Elevación lateral unilateral inclinado en banco (Estiramiento Deltoides Lateral)",
+    equipmentId: "CG-EQP-0062",
+    equipmentText: "dumbbell",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["supraspinatus"],
+    stationKey: "incline_bench",
+    movementPattern: "isolation",
+    gifUrl: "videos/0334-kP7xM1W.gif",
+    image: "images/0334-kP7xM1W.jpg",
+    cue: "Apoya el costado en el banco a 60° para cargar el deltoides lateral desde la fase inicial del recorrido.",
+  },
+  {
+    id: "cg-mach-0169",
+    nameEs: "Elevación lateral en polea doble cruzada (Deltoides Lateral)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["traps"],
+    stationKey: "cable_low_pulley",
+    movementPattern: "isolation",
+    gifUrl: "videos/0178-tG73H2B.gif",
+    image: "images/0178-tG73H2B.jpg",
+    cue: "Cruza los cables frente a la cadera y abre ambos brazos simultáneamente en el plano escapular.",
+  },
+  {
+    id: "cg-mach-0170",
+    nameEs: "Remo al mentón con cuerda en polea baja agarre ancho (Deltoides Lateral)",
+    equipmentId: "CG-EQP-0038",
+    equipmentText: "cable",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["traps", "biceps"],
+    stationKey: "cable_low_pulley",
+    movementPattern: "vertical_pull",
+    gifUrl: "videos/0178-tG73H2B.gif",
+    image: "images/0178-tG73H2B.jpg",
+    cue: "Separa las manos al subir hasta la línea del pecho alto sin superar los 90° de elevación de codo.",
+  },
+  {
+    id: "cg-mach-0171",
+    nameEs: "Remo al mentón con barra Z agarre medio (Hombro y Trapecio)",
+    equipmentId: "CG-EQP-0052",
+    equipmentText: "ez barbell",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["traps", "forearms"],
+    stationKey: "free_weight_area",
+    movementPattern: "vertical_pull",
+    gifUrl: "videos/0334-kP7xM1W.gif",
+    image: "images/0334-kP7xM1W.jpg",
+    cue: "El ángulo de la barra Z libera tensión de las muñecas mientras elevas los codos hacia los lados.",
+  },
+  {
+    id: "cg-mach-0172",
+    nameEs: "Pájaros (vuelos posteriores) sentado con mancuernas (Deltoides Posterior)",
+    equipmentId: "CG-EQP-0062",
+    equipmentText: "dumbbell",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["rhomboids", "traps"],
+    stationKey: "flat_bench",
+    movementPattern: "isolation",
+    gifUrl: "videos/0334-kP7xM1W.gif",
+    image: "images/0334-kP7xM1W.jpg",
+    cue: "Apoya el pecho sobre los muslos y abre los brazos a 45° hacia atrás sin juntar las escápulas al inicio.",
+  },
+  {
+    id: "cg-mach-0173",
+    nameEs: "Deltoides posterior unilateral en polea alta (Cable Rear Delt Fly)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["rhomboids", "infraspinatus"],
+    stationKey: "cable_high_pulley",
+    movementPattern: "isolation",
+    gifUrl: "videos/0178-tG73H2B.gif",
+    image: "images/0178-tG73H2B.jpg",
+    cue: "Toma el tope de goma del cable y tracciona en diagonal descendente a 45° alineado con las fibras posteriores.",
+  },
+  {
+    id: "cg-mach-0174",
+    nameEs: "Face Pull sentado en polea con cuerda y rotación externa (Deltoides Posterior)",
+    equipmentId: "CG-EQP-0038",
+    equipmentText: "cable",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["rotator cuff", "traps"],
+    stationKey: "cable_seated_row",
+    movementPattern: "horizontal_pull",
+    gifUrl: "videos/0178-tG73H2B.gif",
+    image: "images/0178-tG73H2B.jpg",
+    cue: "Lleva las puntas de la cuerda hacia las orejas terminando en postura de doble bíceps con rotación externa.",
+  },
+  {
+    id: "cg-mach-0175",
+    nameEs: "Remo alto a la cara con barra larga en polea (Deltoides Posterior y Trapecio)",
+    equipmentId: "CG-EQP-0041",
+    equipmentText: "cable",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["traps", "rhomboids"],
+    stationKey: "cable_seated_row",
+    movementPattern: "horizontal_pull",
+    gifUrl: "videos/0178-tG73H2B.gif",
+    image: "images/0178-tG73H2B.jpg",
+    cue: "Con codos abiertos a 75°–90°, tracciona hacia la clavícula alta manteniendo pausa de 1s atrás.",
+  },
+  {
+    id: "cg-mach-0176",
+    nameEs: "Peck Deck inverso unilateral para deltoides posterior",
+    equipmentId: "CG-EQP-0009",
+    equipmentText: "leverage machine",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["rhomboids"],
+    stationKey: "pec_deck",
+    movementPattern: "isolation",
+    gifUrl: "videos/0596-R0v2b2S.gif",
+    image: "images/0596-R0v2b2S.jpg",
+    cue: "Siéntate ligeramente de lado para lograr mayor rango de estiramiento inicial en el deltoides posterior.",
+  },
+  {
+    id: "cg-mach-0177",
+    nameEs: "Elevación frontal en polea baja con cuerda (Deltoides Anterior)",
+    equipmentId: "CG-EQP-0038",
+    equipmentText: "cable",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["pectorals"],
+    stationKey: "cable_low_pulley",
+    movementPattern: "isolation",
+    gifUrl: "videos/0178-tG73H2B.gif",
+    image: "images/0178-tG73H2B.jpg",
+    cue: "Pasa la cuerda entre las piernas y eleva al frente en agarre neutro hasta la línea de los ojos.",
+  },
+  {
+    id: "cg-mach-0178",
+    nameEs: "Elevación frontal con barra Z agarre supino (Deltoides Anterior y Clavicular)",
+    equipmentId: "CG-EQP-0052",
+    equipmentText: "ez barbell",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["pectorals", "biceps"],
+    stationKey: "free_weight_area",
+    movementPattern: "isolation",
+    gifUrl: "videos/0334-kP7xM1W.gif",
+    image: "images/0334-kP7xM1W.jpg",
+    cue: "Con palmas hacia arriba, sube la barra Z hasta la altura del mentón sin balancear la cadera.",
+  },
+  {
+    id: "cg-mach-0179",
+    nameEs: "Elevación frontal alternada con mancuernas sentado (Deltoides Anterior)",
+    equipmentId: "CG-EQP-0062",
+    equipmentText: "dumbbell",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["pectorals"],
+    stationKey: "incline_bench",
+    movementPattern: "isolation",
+    gifUrl: "videos/0334-kP7xM1W.gif",
+    image: "images/0334-kP7xM1W.jpg",
+    cue: "Apoya la espalda en banco a 80° y eleva una mancuerna a la vez controlando 2 segundos la bajada.",
+  },
+  {
+    id: "cg-mach-0180",
+    nameEs: "Press Bradford con barra olímpica (Tensión continua de Hombro)",
+    equipmentId: "CG-EQP-0055",
+    equipmentText: "barbell",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["triceps", "traps"],
+    stationKey: "squat_rack",
+    movementPattern: "vertical_push",
+    gifUrl: "videos/0091-yJ6R4xT.gif",
+    image: "images/0091-yJ6R4xT.jpg",
+    cue: "Pasa la barra rozando la coronilla de adelante hacia atrás sin bloquear los codos arriba.",
+  },
+  // ========================================================================
+  // 3. BÍCEPS, BRAQUIAL, TRÍCEPS Y ANTEBRAZO (TODAS LAS CABEZAS Y ÁNGULOS)
+  // ========================================================================
+  {
+    id: "cg-mach-0181",
+    nameEs: "Curl de bíceps concentrado sentado con mancuerna (Pico / Cabeza Corta)",
+    equipmentId: "CG-EQP-0036",
+    equipmentText: "dumbbell",
+    bodyPart: "upper arms",
+    muscleGroup: "biceps",
+    target: "biceps",
+    secondaryMuscles: ["brachialis"],
+    stationKey: "flat_bench",
+    movementPattern: "curl",
+    gifUrl: "videos/0294-x83J1pL.gif",
+    image: "images/0294-x83J1pL.jpg",
+    cue: "Apoya el tríceps contra la cara interna del muslo y supina la muñeca al máximo en la parte alta.",
+  },
+  {
+    id: "cg-mach-0182",
+    nameEs: "Curl Zottman con mancuernas (Bíceps en subida y Antebrazo en bajada)",
+    equipmentId: "CG-EQP-0036",
+    equipmentText: "dumbbell",
+    bodyPart: "upper arms",
+    muscleGroup: "biceps",
+    target: "biceps",
+    secondaryMuscles: ["forearms", "brachioradialis"],
+    stationKey: "free_weight_area",
+    movementPattern: "curl",
+    gifUrl: "videos/0294-x83J1pL.gif",
+    image: "images/0294-x83J1pL.jpg",
+    cue: "Sube con palmas hacia arriba (supino), gira arriba a palmas hacia abajo (prono) y baja en 3 segundos.",
+  },
+  {
+    id: "cg-mach-0183",
+    nameEs: "Curl de bíceps en polea alta doble (Posición Cristo / Cabeza Corta)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "upper arms",
+    muscleGroup: "biceps",
+    target: "biceps",
+    secondaryMuscles: ["forearms"],
+    stationKey: "cable_high_pulley",
+    movementPattern: "curl",
+    gifUrl: "videos/0165-yM4k9pQ.gif",
+    image: "images/0165-yM4k9pQ.jpg",
+    cue: "Con brazos abiertos en cruz a la altura de los hombros, flexiona los codos llevando los puños hacia las sienes.",
+  },
+  {
+    id: "cg-mach-0184",
+    nameEs: "Curl de bíceps acostado en polea alta hacia la frente",
+    equipmentId: "CG-EQP-0037",
+    equipmentText: "cable",
+    bodyPart: "upper arms",
+    muscleGroup: "biceps",
+    target: "biceps",
+    secondaryMuscles: ["brachialis"],
+    stationKey: "cable_high_pulley",
+    movementPattern: "curl",
+    gifUrl: "videos/0165-yM4k9pQ.gif",
+    image: "images/0165-yM4k9pQ.jpg",
+    cue: "Acostado boca arriba, mantén los húmeros verticales y flexiona únicamente los codos sin mover los hombros.",
+  },
+  {
+    id: "cg-mach-0185",
+    nameEs: "Curl de bíceps estricto contra pared con barra olímpica o Z",
+    equipmentId: "CG-EQP-0055",
+    equipmentText: "barbell",
+    bodyPart: "upper arms",
+    muscleGroup: "biceps",
+    target: "biceps",
+    secondaryMuscles: ["forearms"],
+    stationKey: "free_weight_area",
+    movementPattern: "curl",
+    gifUrl: "videos/0031-mP5r2wE.gif",
+    image: "images/0031-mP5r2wE.jpg",
+    cue: "Pega glúteos y escápulas a la pared para eliminar el 100% del balanceo lumbar.",
+  },
+  {
+    id: "cg-mach-0186",
+    nameEs: "Curl martillo cruzado al pecho (Pinwheel Curl para Braquial y Braquiorradial)",
+    equipmentId: "CG-EQP-0036",
+    equipmentText: "dumbbell",
+    bodyPart: "upper arms",
+    muscleGroup: "biceps",
+    target: "biceps",
+    secondaryMuscles: ["forearms", "brachialis"],
+    stationKey: "free_weight_area",
+    movementPattern: "curl",
+    gifUrl: "videos/0294-x83J1pL.gif",
+    image: "images/0294-x83J1pL.jpg",
+    cue: "Sube la mancuerna cruzando frente al abdomen hacia el hombro opuesto para engrosar el braquial anterior.",
+  },
+  {
+    id: "cg-mach-0187",
+    nameEs: "Curl de bíceps invertido (agarre prono) en polea baja con barra recta",
+    equipmentId: "CG-EQP-0037",
+    equipmentText: "cable",
+    bodyPart: "upper arms",
+    muscleGroup: "biceps",
+    target: "biceps",
+    secondaryMuscles: ["forearms"],
+    stationKey: "cable_low_pulley",
+    movementPattern: "curl",
+    gifUrl: "videos/0165-yM4k9pQ.gif",
+    image: "images/0165-yM4k9pQ.jpg",
+    cue: "Con palmas hacia abajo y muñecas firmes, sube la barra para desarrollar braquiorradial y extensores.",
+  },
+  {
+    id: "cg-mach-0188",
+    nameEs: "Extensión de tríceps cruzada en doble polea alta (Crossbody Triceps)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "upper arms",
+    muscleGroup: "triceps",
+    target: "triceps",
+    secondaryMuscles: [],
+    stationKey: "cable_high_pulley",
+    movementPattern: "extension",
+    gifUrl: "videos/0200-bN7x3wK.gif",
+    image: "images/0200-bN7x3wK.jpg",
+    cue: "Toma el cable izquierdo con la mano derecha (y viceversa) y extiende en diagonal alineando las fibras laterales del tríceps.",
+  },
+  {
+    id: "cg-mach-0189",
+    nameEs: "Patada de tríceps (Kickback) unilateral en polea baja (Acortamiento Cabeza Larga)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "upper arms",
+    muscleGroup: "triceps",
+    target: "triceps",
+    secondaryMuscles: ["posterior deltoid"],
+    stationKey: "cable_low_pulley",
+    movementPattern: "extension",
+    gifUrl: "videos/0200-bN7x3wK.gif",
+    image: "images/0200-bN7x3wK.jpg",
+    cue: "Con el húmero elevado detrás de la línea del torso, extiende el codo para lograr contracción máxima de la cabeza larga.",
+  },
+  {
+    id: "cg-mach-0190",
+    nameEs: "Press francés sentado sobre la cabeza con barra Z (Cabeza Larga del Tríceps)",
+    equipmentId: "CG-EQP-0052",
+    equipmentText: "ez barbell",
+    bodyPart: "upper arms",
+    muscleGroup: "triceps",
+    target: "triceps",
+    secondaryMuscles: ["forearms"],
+    stationKey: "incline_bench",
+    movementPattern: "extension",
+    gifUrl: "videos/0060-dF4m8qL.gif",
+    image: "images/0060-dF4m8qL.jpg",
+    cue: "Mantén los codos apuntando arriba y baja la barra Z detrás de la nuca para estirar la cabeza larga.",
+  },
+  {
+    id: "cg-mach-0191",
+    nameEs: "Extensión de tríceps tras nuca unilateral con mancuerna",
+    equipmentId: "CG-EQP-0036",
+    equipmentText: "dumbbell",
+    bodyPart: "upper arms",
+    muscleGroup: "triceps",
+    target: "triceps",
+    secondaryMuscles: [],
+    stationKey: "flat_bench",
+    movementPattern: "extension",
+    gifUrl: "videos/0060-dF4m8qL.gif",
+    image: "images/0060-dF4m8qL.jpg",
+    cue: "Sostén el codo libre con la otra mano y baja la mancuerna detrás de la cabeza en rango completo.",
+  },
+  {
+    id: "cg-mach-0192",
+    nameEs: "Press Tate con mancuernas en banco plano (Cabeza Medial y Lateral del Tríceps)",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "dumbbell",
+    bodyPart: "upper arms",
+    muscleGroup: "triceps",
+    target: "triceps",
+    secondaryMuscles: ["pectorals"],
+    stationKey: "flat_bench",
+    movementPattern: "extension",
+    gifUrl: "videos/0060-dF4m8qL.gif",
+    image: "images/0060-dF4m8qL.jpg",
+    cue: "Con codos abiertos hacia afuera, flexiona llevando los extremos de las mancuernas al centro del pecho y extiende.",
+  },
+  {
+    id: "cg-mach-0193",
+    nameEs: "Fondos entre bancos para tríceps (con o sin disco sobre muslos)",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "body weight",
+    bodyPart: "upper arms",
+    muscleGroup: "triceps",
+    target: "triceps",
+    secondaryMuscles: ["anterior deltoid", "pectorals"],
+    stationKey: "flat_bench",
+    movementPattern: "vertical_push",
+    gifUrl: "videos/0251-d2aJ3zR.gif",
+    image: "images/0251-d2aJ3zR.jpg",
+    cue: "Mantén la espalda pegada al borde del banco y baja hasta 90° de flexión de codo sin adelantar los hombros.",
+  },
+  {
+    id: "cg-mach-0194",
+    nameEs: "Curl de muñeca supino con barra sobre banco (Flexores de Antebrazo)",
+    equipmentId: "CG-EQP-0052",
+    equipmentText: "barbell",
+    bodyPart: "lower arms",
+    muscleGroup: "forearms",
+    target: "forearms",
+    secondaryMuscles: [],
+    stationKey: "flat_bench",
+    movementPattern: "flexion",
+    gifUrl: "videos/0085-wQ2c4XD.gif",
+    image: "images/0085-wQ2c4XD.jpg",
+    cue: "Apoya los antebrazos en el banco con las palmas hacia arriba, deja rodar la barra hasta los dedos y flexiona la muñeca.",
+  },
+  {
+    id: "cg-mach-0195",
+    nameEs: "Extensión de muñeca prono con barra o mancuernas (Extensores de Antebrazo)",
+    equipmentId: "CG-EQP-0036",
+    equipmentText: "dumbbell",
+    bodyPart: "lower arms",
+    muscleGroup: "forearms",
+    target: "forearms",
+    secondaryMuscles: [],
+    stationKey: "flat_bench",
+    movementPattern: "extension",
+    gifUrl: "videos/0085-wQ2c4XD.gif",
+    image: "images/0085-wQ2c4XD.jpg",
+    cue: "Con palmas hacia abajo sobre el banco, eleva el dorso de la mano pausando 1 segundo arriba.",
+  },
+  {
+    id: "cg-mach-0196",
+    nameEs: "Curl de muñeca detrás de la espalda de pie con barra olímpica (Antebrazo)",
+    equipmentId: "CG-EQP-0055",
+    equipmentText: "barbell",
+    bodyPart: "lower arms",
+    muscleGroup: "forearms",
+    target: "forearms",
+    secondaryMuscles: [],
+    stationKey: "free_weight_area",
+    movementPattern: "flexion",
+    gifUrl: "videos/0085-wQ2c4XD.gif",
+    image: "images/0085-wQ2c4XD.jpg",
+    cue: "Sostén la barra detrás de los glúteos y realiza flexión palmar completa sin encoger los hombros.",
+  },
+  {
+    id: "cg-mach-0197",
+    nameEs: "Curl de muñeca en polea baja con barra recta (Antebrazo tensión constante)",
+    equipmentId: "CG-EQP-0037",
+    equipmentText: "cable",
+    bodyPart: "lower arms",
+    muscleGroup: "forearms",
+    target: "forearms",
+    secondaryMuscles: [],
+    stationKey: "cable_low_pulley",
+    movementPattern: "flexion",
+    gifUrl: "videos/0085-wQ2c4XD.gif",
+    image: "images/0085-wQ2c4XD.jpg",
+    cue: "Apoya los antebrazos en los muslos frente a la polea baja y flexiona las muñecas contra la tensión continua del cable.",
+  },
+  {
+    id: "cg-mach-0198",
+    nameEs: "Suspensión pasiva / Dead Hang en barra para fuerza de agarre y descompresión",
+    equipmentId: "CG-EQP-0051",
+    equipmentText: "body weight",
+    bodyPart: "lower arms",
+    muscleGroup: "forearms",
+    target: "forearms",
+    secondaryMuscles: ["lats", "shoulders"],
+    stationKey: "pullup_dip_station",
+    movementPattern: "carry",
+    gifUrl: "videos/0652-fH3v9xN.gif",
+    image: "images/0652-fH3v9xN.jpg",
+    cue: "Envuelve el pulgar alrededor de la barra y sostén el colgado respirando profundamente.",
+  },
+  // ========================================================================
+  // 4. CUELLO Y TRAPECIO SUPERIOR
+  // ========================================================================
+  {
+    id: "cg-mach-0199",
+    nameEs: "Extensión cervical con arnés de cuello y cadena (Musculatura posterior del cuello)",
+    equipmentId: "CG-EQP-0047",
+    equipmentText: "weighted",
+    bodyPart: "neck",
+    muscleGroup: "traps",
+    target: "levator scapulae",
+    secondaryMuscles: ["traps"],
+    stationKey: "flat_bench",
+    movementPattern: "extension",
+    gifUrl: "videos/0095-kL2p7vX.gif",
+    image: "images/0095-kL2p7vX.jpg",
+    cue: "Sentado e inclinado al frente, extiende el cuello de forma lenta y controlada sin tirones bruscos.",
+  },
+  {
+    id: "cg-mach-0200",
+    nameEs: "Flexión cervical acostado en banco con disco (Esternocleidomastoideo / Cuello anterior)",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "weighted",
+    bodyPart: "neck",
+    muscleGroup: "traps",
+    target: "levator scapulae",
+    secondaryMuscles: [],
+    stationKey: "flat_bench",
+    movementPattern: "flexion",
+    gifUrl: "videos/0095-kL2p7vX.gif",
+    image: "images/0095-kL2p7vX.jpg",
+    cue: "Acostado boca arriba con la cabeza fuera del borde, lleva la barbilla al esternón controlando 3 segundos la bajada.",
+  },
+  {
+    id: "cg-mach-0201",
+    nameEs: "Encogimiento de hombros (Shrugs) pesado con barra hexagonal (Trapecio Superior)",
+    equipmentId: "CG-EQP-0054",
+    equipmentText: "trap bar",
+    bodyPart: "back",
+    muscleGroup: "traps",
+    target: "traps",
+    secondaryMuscles: ["forearms", "levator scapulae"],
+    stationKey: "free_weight_area",
+    movementPattern: "isolation",
+    gifUrl: "videos/0095-kL2p7vX.gif",
+    image: "images/0095-kL2p7vX.jpg",
+    cue: "El agarre neutro a los costados del cuerpo alinea perfectamente las fibras superiores del trapecio.",
+  },
+  {
+    id: "cg-mach-0202",
+    nameEs: "Encogimiento de trapecio en máquina Smith por detrás de la espalda",
+    equipmentId: "CG-EQP-0034",
+    equipmentText: "smith machine",
+    bodyPart: "back",
+    muscleGroup: "traps",
+    target: "traps",
+    secondaryMuscles: ["rhomboids"],
+    stationKey: "smith_machine",
+    movementPattern: "isolation",
+    gifUrl: "videos/0095-kL2p7vX.gif",
+    image: "images/0095-kL2p7vX.jpg",
+    cue: "Sostén la barra detrás de los glúteos y eleva las escápulas con 2 segundos de pausa arriba.",
+  },
+  // ========================================================================
+  // 5. PIERNA ADICIONAL (CUÁDRICEPS, ISQUIOS, GLÚTEO, ADUCTORES Y TIBIAL)
+  // ========================================================================
+  {
+    id: "cg-mach-0203",
+    nameEs: "Sentadilla Zercher con barra olímpica en Rack (Cuádriceps y Espalda Alta)",
+    equipmentId: "CG-EQP-0017",
+    equipmentText: "barbell",
+    bodyPart: "upper legs",
+    muscleGroup: "quads",
+    target: "quads",
+    secondaryMuscles: ["glutes", "abs", "upper back"],
+    stationKey: "squat_rack",
+    movementPattern: "squat",
+    gifUrl: "videos/0043-gK5m9tP.gif",
+    image: "images/0043-gK5m9tP.jpg",
+    cue: "Acomoda la barra en el pliegue de los codos, mantén el torso erguido y desciende en sentadilla profunda.",
+  },
+  {
+    id: "cg-mach-0204",
+    nameEs: "Sentadilla cosaca (Cossack Squat) con pesa rusa (Aductores y Movilidad de Cadera)",
+    equipmentId: "CG-EQP-0035",
+    equipmentText: "kettlebell",
+    bodyPart: "upper legs",
+    muscleGroup: "quads",
+    target: "adductors",
+    secondaryMuscles: ["glutes", "quads", "hamstrings"],
+    stationKey: "free_weight_area",
+    movementPattern: "squat",
+    gifUrl: "videos/0043-gK5m9tP.gif",
+    image: "images/0043-gK5m9tP.jpg",
+    cue: "Desplázate lateralmente flexionando una pierna a fondo mientras la otra permanece extendida sobre el talón.",
+  },
+  {
+    id: "cg-mach-0205",
+    nameEs: "Curl nórdico de isquiotibiales (Excéntrico puro de Femoral)",
+    equipmentId: "CG-EQP-0015",
+    equipmentText: "body weight",
+    bodyPart: "upper legs",
+    muscleGroup: "hamstrings",
+    target: "hamstrings",
+    secondaryMuscles: ["glutes", "calves"],
+    stationKey: "floor_mat_area",
+    movementPattern: "hinge",
+    gifUrl: "videos/0586-nQ4v8wE.gif",
+    image: "images/0586-nQ4v8wE.jpg",
+    cue: "Con tobillos fijados y cadera extendida, desciende el cuerpo en bloque frenando durante 4 segundos con los isquios.",
+  },
+  {
+    id: "cg-mach-0206",
+    nameEs: "Elevación de tibial anterior (Tibialis Raise) para espinillas y estabilidad de rodilla",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "body weight",
+    bodyPart: "lower legs",
+    muscleGroup: "calves",
+    target: "calves",
+    secondaryMuscles: [],
+    stationKey: "floor_mat_area",
+    movementPattern: "flexion",
+    gifUrl: "videos/1373-tR8m2pL.gif",
+    image: "images/1373-tR8m2pL.jpg",
+    cue: "Apoya los glúteos en la pared con pies adelantados y levanta las puntas de los pies en dorsiflexión máxima.",
+  },
+  {
+    id: "cg-mach-0207",
+    nameEs: "Frog Pumps con mancuerna sobre pelvis (Bombeo de Glúteo Mayor y Medio)",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "dumbbell",
+    bodyPart: "upper legs",
+    muscleGroup: "glutes",
+    target: "glutes",
+    secondaryMuscles: ["adductors"],
+    stationKey: "floor_mat_area",
+    movementPattern: "hinge",
+    gifUrl: "videos/1409-pK6x3nM.gif",
+    image: "images/1409-pK6x3nM.jpg",
+    cue: "Une las plantas de los pies abriendo las rodillas y empuja la cadera arriba apretando el glúteo 1 segundo.",
+  },
+  // ========================================================================
+  // 6. FAMILIA ESPECIAL: EJERCICIOS DE CALENTAMIENTO Y MOVILIDAD POR MÚSCULO
+  // ========================================================================
+  {
+    id: "cg-mach-0208",
+    nameEs: "Calentamiento: Rotación externa de manguito rotador en polea baja (Pecho y Hombro)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["rotator cuff", "chest"],
+    stationKey: "cable_mid_pulley",
+    movementPattern: "rotation",
+    gifUrl: "videos/0178-tG73H2B.gif",
+    image: "images/0178-tG73H2B.jpg",
+    cue: "Calentamiento articular de empuje: pega una toalla bajo la axila y rota externamente 15 repeticiones suaves por lado.",
+  },
+  {
+    id: "cg-mach-0209",
+    nameEs: "Calentamiento: Rotación interna de hombro en polea (Subescapular y Pectoral)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["shoulders"],
+    stationKey: "cable_mid_pulley",
+    movementPattern: "rotation",
+    gifUrl: "videos/0179-vJ86N8p.gif",
+    image: "images/0179-vJ86N8p.jpg",
+    cue: "Calentamiento previo a press de banca: mantén el codo a 90° pegado al costado y rota hacia el abdomen sin carga excesiva.",
+  },
+  {
+    id: "cg-mach-0210",
+    nameEs: "Calentamiento: Dislocaciones escapulares y apertura torácica (Pecho y Hombro)",
+    equipmentId: "CG-EQP-0055",
+    equipmentText: "body weight",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["pectorals", "upper back"],
+    stationKey: "floor_mat_area",
+    movementPattern: "isolation",
+    gifUrl: "videos/0334-kP7xM1W.gif",
+    image: "images/0334-kP7xM1W.jpg",
+    cue: "Calentamiento de movilidad: lleva los brazos extendidos por encima de la cabeza abriendo la cápsula anterior del hombro.",
+  },
+  {
+    id: "cg-mach-0211",
+    nameEs: "Calentamiento: Aperturas ligeras de activación pectoral en polea (15-20 reps)",
+    equipmentId: "CG-EQP-0022",
+    equipmentText: "cable",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["anterior deltoid"],
+    stationKey: "cable_mid_pulley",
+    movementPattern: "isolation",
+    gifUrl: "videos/0179-vJ86N8p.gif",
+    image: "images/0179-vJ86N8p.jpg",
+    cue: "Calentamiento de pecho: usa peso muy ligero para irrigar el tendón pectoral y establecer conexión mente-músculo.",
+  },
+  {
+    id: "cg-mach-0212",
+    nameEs: "Calentamiento: Lagartijas escapulares (Scapular Push-ups) de activación de serrato",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "body weight",
+    bodyPart: "chest",
+    muscleGroup: "chest",
+    target: "pectorals",
+    secondaryMuscles: ["serratus anterior", "shoulders"],
+    stationKey: "floor_mat_area",
+    movementPattern: "horizontal_push",
+    gifUrl: "videos/0251-d2aJ3zR.gif",
+    image: "images/0251-d2aJ3zR.jpg",
+    cue: "Calentamiento de empuje: con codos rectos, retrae y protrae las escápulas durante 15 repeticiones controladas.",
+  },
+  {
+    id: "cg-mach-0213",
+    nameEs: "Calentamiento: Dominadas escapulares (Scapular Pull-ups) colgado en barra",
+    equipmentId: "CG-EQP-0051",
+    equipmentText: "body weight",
+    bodyPart: "back",
+    muscleGroup: "lats",
+    target: "lats",
+    secondaryMuscles: ["traps", "forearms"],
+    stationKey: "pullup_dip_station",
+    movementPattern: "vertical_pull",
+    gifUrl: "videos/0652-fH3v9xN.gif",
+    image: "images/0652-fH3v9xN.jpg",
+    cue: "Calentamiento de espalda: sin doblar los codos, baja los hombros alejándolos de las orejas y sostén 2 segundos.",
+  },
+  {
+    id: "cg-mach-0214",
+    nameEs: "Calentamiento: Pull-apart y retracción escapular en polea alta con cuerda",
+    equipmentId: "CG-EQP-0038",
+    equipmentText: "cable",
+    bodyPart: "back",
+    muscleGroup: "upper back",
+    target: "upper back",
+    secondaryMuscles: ["delts", "traps"],
+    stationKey: "cable_high_pulley",
+    movementPattern: "horizontal_pull",
+    gifUrl: "videos/0178-tG73H2B.gif",
+    image: "images/0178-tG73H2B.jpg",
+    cue: "Calentamiento de espalda y hombro posterior: abre los brazos juntando escápulas durante 15 repeticiones fluidas.",
+  },
+  {
+    id: "cg-mach-0215",
+    nameEs: "Calentamiento: Pullover ligero de movilidad dorsal y torácica en polea",
+    equipmentId: "CG-EQP-0038",
+    equipmentText: "cable",
+    bodyPart: "back",
+    muscleGroup: "lats",
+    target: "lats",
+    secondaryMuscles: ["serratus anterior"],
+    stationKey: "cable_high_pulley",
+    movementPattern: "isolation",
+    gifUrl: "videos/0198-rT5v8wP.gif",
+    image: "images/0198-rT5v8wP.jpg",
+    cue: "Calentamiento de dorsal: deja que el cable estire los dorsales arriba durante 2 segundos y baja hasta los muslos.",
+  },
+  {
+    id: "cg-mach-0216",
+    nameEs: "Calentamiento: Remo ligero con pausa isométrica escapular (Espalda Media)",
+    equipmentId: "CG-EQP-0012",
+    equipmentText: "cable",
+    bodyPart: "back",
+    muscleGroup: "upper back",
+    target: "upper back",
+    secondaryMuscles: ["lats", "biceps"],
+    stationKey: "cable_seated_row",
+    movementPattern: "horizontal_pull",
+    gifUrl: "videos/0861-pL3k8nM.gif",
+    image: "images/0861-pL3k8nM.jpg",
+    cue: "Calentamiento de tracción: realiza 15 repeticiones al 35% de carga pausando 2s con las escápulas retraídas.",
+  },
+  {
+    id: "cg-mach-0217",
+    nameEs: "Calentamiento: Bombeo articular de tríceps en polea con cuerda (20 reps)",
+    equipmentId: "CG-EQP-0038",
+    equipmentText: "cable",
+    bodyPart: "upper arms",
+    muscleGroup: "triceps",
+    target: "triceps",
+    secondaryMuscles: ["forearms"],
+    stationKey: "cable_triceps_station",
+    movementPattern: "extension",
+    gifUrl: "videos/0200-bN7x3wK.gif",
+    image: "images/0200-bN7x3wK.jpg",
+    cue: "Calentamiento de codo y tríceps: 20 repeticiones continuas sin bloqueo brusco para lubricar el tendón del olécranon.",
+  },
+  {
+    id: "cg-mach-0218",
+    nameEs: "Calentamiento: Curl ligero de irrigación tendinosa para bíceps y codo",
+    equipmentId: "CG-EQP-0039",
+    equipmentText: "cable",
+    bodyPart: "upper arms",
+    muscleGroup: "biceps",
+    target: "biceps",
+    secondaryMuscles: ["forearms"],
+    stationKey: "cable_low_pulley",
+    movementPattern: "curl",
+    gifUrl: "videos/0165-yM4k9pQ.gif",
+    image: "images/0165-yM4k9pQ.jpg",
+    cue: "Calentamiento de bíceps: usa la barra Z en polea baja para preparar el tendón distal del bíceps y braquial.",
+  },
+  {
+    id: "cg-mach-0219",
+    nameEs: "Calentamiento: Sentadilla profunda Goblet con pausa de movilidad de cadera y tobillo",
+    equipmentId: "CG-EQP-0035",
+    equipmentText: "kettlebell",
+    bodyPart: "upper legs",
+    muscleGroup: "quads",
+    target: "quads",
+    secondaryMuscles: ["glutes", "adductors", "calves"],
+    stationKey: "free_weight_area",
+    movementPattern: "squat",
+    gifUrl: "videos/0043-gK5m9tP.gif",
+    image: "images/0043-gK5m9tP.jpg",
+    cue: "Calentamiento de pierna: baja al fondo empujando las rodillas hacia afuera con los codos y movilizando los tobillos.",
+  },
+  {
+    id: "cg-mach-0220",
+    nameEs: "Calentamiento: Extensión de cuádriceps ligera isométrica para tendón rotuliano",
+    equipmentId: "CG-EQP-0005",
+    equipmentText: "leverage machine",
+    bodyPart: "upper legs",
+    muscleGroup: "quads",
+    target: "quads",
+    secondaryMuscles: [],
+    stationKey: "leg_extension",
+    movementPattern: "extension",
+    gifUrl: "videos/0585-sP3m7kL.gif",
+    image: "images/0585-sP3m7kL.jpg",
+    cue: "Calentamiento de rodilla: sostén 3 segundos arriba con carga ligera para analgesiar y activar el tendón rotuliano.",
+  },
+  {
+    id: "cg-mach-0221",
+    nameEs: "Calentamiento: Curl femoral ligero y puente de glúteo de activación posterior",
+    equipmentId: "CG-EQP-0002",
+    equipmentText: "leverage machine",
+    bodyPart: "upper legs",
+    muscleGroup: "hamstrings",
+    target: "hamstrings",
+    secondaryMuscles: ["glutes"],
+    stationKey: "seated_leg_curl",
+    movementPattern: "flexion",
+    gifUrl: "videos/0586-nQ4v8wE.gif",
+    image: "images/0586-nQ4v8wE.jpg",
+    cue: "Calentamiento de isquios y glúteo: 15 repeticiones controladas antes de sentadilla, prensa o peso muerto.",
+  },
+  {
+    id: "cg-mach-0222",
+    nameEs: "Calentamiento: Dead Bug y Bird Dog de activación de core y estabilidad lumbar",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "body weight",
+    bodyPart: "waist",
+    muscleGroup: "abs",
+    target: "abs",
+    secondaryMuscles: ["lower back", "obliques"],
+    stationKey: "floor_mat_area",
+    movementPattern: "anti_extension",
+    gifUrl: "videos/0175-WW95auq.gif",
+    image: "images/0175-WW95auq.jpg",
+    cue: "Calentamiento de core y columna: mantén la zona lumbar neutra mientras extiendes brazo y pierna opuesta.",
+  },
+  {
+    id: "cg-mach-0223",
+    nameEs: "Calentamiento: Puente de glúteo (Glute Bridge) de activación neuromuscular",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "body weight",
+    bodyPart: "upper legs",
+    muscleGroup: "glutes",
+    target: "glutes",
+    secondaryMuscles: ["hamstrings", "abs"],
+    stationKey: "floor_mat_area",
+    movementPattern: "hinge",
+    gifUrl: "videos/1409-pK6x3nM.gif",
+    image: "images/1409-pK6x3nM.jpg",
+    cue: "Calentamiento de cadera y glúteo: realiza 15 repeticiones con pausa de 2 segundos arriba antes de sentadilla o peso muerto.",
+  },
+  {
+    id: "cg-mach-0224",
+    nameEs: "Calentamiento: Movilidad 90/90 de rotación de cadera y dorsiflexión de tobillo",
+    equipmentId: "CG-EQP-0075",
+    equipmentText: "body weight",
+    bodyPart: "upper legs",
+    muscleGroup: "quads",
+    target: "adductors",
+    secondaryMuscles: ["glutes", "calves"],
+    stationKey: "floor_mat_area",
+    movementPattern: "rotation",
+    gifUrl: "videos/0043-gK5m9tP.gif",
+    image: "images/0043-gK5m9tP.jpg",
+    cue: "Calentamiento articular de tren inferior: alterna rotaciones internas y externas de cadera para liberar la cápsula articular.",
+  },
+  {
+    id: "cg-mach-0225",
+    nameEs: "Calentamiento: Elevación en Y-T-W sobre banco inclinado para manguito y trapecio inferior",
+    equipmentId: "CG-EQP-0032",
+    equipmentText: "body weight",
+    bodyPart: "shoulders",
+    muscleGroup: "shoulders",
+    target: "delts",
+    secondaryMuscles: ["traps", "upper back"],
+    stationKey: "incline_bench",
+    movementPattern: "isolation",
+    gifUrl: "videos/0334-kP7xM1W.gif",
+    image: "images/0334-kP7xM1W.jpg",
+    cue: "Calentamiento de hombro y escápula: forma las letras Y, T y W con pulgares arriba para blindar el hombro antes de empujar.",
+  },
 ];
 
 export const CRONOS_MACHINERY_EXERCISES: readonly CatalogExercise[] = SPECS.map(makeMachineryRow);
+
+export type WarmupMuscleFilter =
+  | "all"
+  | "chest"
+  | "back"
+  | "shoulders"
+  | "arms"
+  | "legs"
+  | "core";
 
 function normalizeText(value: string | null | undefined): string {
   return (value ?? "")
@@ -2341,6 +3508,232 @@ function normalizeText(value: string | null | undefined): string {
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, " ")
     .trim();
+}
+
+export function isWarmupCatalogExercise(ex: {
+  id?: string | null;
+  name?: string | null;
+  name_es?: string | null;
+  customNameEs?: string | null;
+}): boolean {
+  const label = normalizeText(`${ex.customNameEs ?? ""} ${ex.name_es ?? ""} ${ex.name ?? ""}`);
+  return (
+    label.startsWith("calentamiento ") ||
+    label.includes(" calentamiento ") ||
+    label.startsWith("activacion ") ||
+    label.includes("manguito rotador") ||
+    label.includes("dislocaciones escapulares") ||
+    label.includes("scapular push") ||
+    label.includes("scapular pull") ||
+    label.includes("movilidad 90 90")
+  );
+}
+
+export function matchesWarmupMuscleFilter(
+  ex: {
+    name?: string | null;
+    name_es?: string | null;
+    customNameEs?: string | null;
+    body_part?: string | null;
+    target?: string | null;
+  },
+  filter: WarmupMuscleFilter,
+): boolean {
+  if (filter === "all") return true;
+  const bp = normalizeText(ex.body_part);
+  const target = normalizeText(ex.target);
+  const label = normalizeText(`${ex.customNameEs ?? ""} ${ex.name_es ?? ""} ${ex.name ?? ""}`);
+
+  switch (filter) {
+    case "chest":
+      return bp === "chest" || target === "pectorals" || label.includes("pecho") || label.includes("pectoral") || label.includes("empuje");
+    case "back":
+      return bp === "back" || target === "lats" || target === "upper back" || target === "traps" || label.includes("espalda") || label.includes("dorsal") || label.includes("escapular");
+    case "shoulders":
+      return bp === "shoulders" || target === "delts" || target === "deltoids" || label.includes("hombro") || label.includes("manguito") || label.includes("escapular");
+    case "arms":
+      return bp === "upper arms" || bp === "lower arms" || target === "biceps" || target === "triceps" || target === "forearms" || label.includes("biceps") || label.includes("triceps") || label.includes("codo");
+    case "legs":
+      return bp === "upper legs" || bp === "lower legs" || target === "quads" || target === "quadriceps" || target === "hamstrings" || target === "glutes" || target === "calves" || target === "adductors" || label.includes("pierna") || label.includes("cadera") || label.includes("rodilla") || label.includes("gluteo") || label.includes("femoral");
+    case "core":
+      return bp === "waist" || target === "abs" || label.includes("core") || label.includes("lumbar") || label.includes("dead bug") || label.includes("bird dog");
+    default:
+      return true;
+  }
+}
+
+function buildSemanticHaystack(ex: {
+  id?: string | null;
+  name?: string | null;
+  name_es?: string | null;
+  customNameEs?: string | null;
+  body_part?: string | null;
+  target?: string | null;
+  equipment?: string | null;
+  equipment_name?: string | null;
+  instructions?: readonly string[] | Record<string, string> | null;
+}): string {
+  const rawName = normalizeText(`${ex.customNameEs ?? ""} ${ex.name_es ?? ""} ${ex.name ?? ""}`);
+  const bp = normalizeText(ex.body_part);
+  const target = normalizeText(ex.target);
+  const equip = normalizeText(`${ex.equipment ?? ""} ${ex.equipment_name ?? ""}`);
+  const instrText = Array.isArray(ex.instructions)
+    ? ex.instructions.join(" ")
+    : ex.instructions && typeof ex.instructions === "object"
+      ? Object.values(ex.instructions).join(" ")
+      : "";
+  const instr = normalizeText(instrText);
+
+  const extraTags: string[] = [];
+
+  // Body part & target Spanish/English synonyms
+  if (bp === "chest" || target === "pectorals" || rawName.includes("pecho") || rawName.includes("pectoral")) {
+    extraTags.push("pecho pectoral pectorales chest");
+    if (
+      rawName.includes("inclinad") ||
+      rawName.includes("clavicular") ||
+      rawName.includes("low to high") ||
+      rawName.includes("baja a alta") ||
+      rawName.includes("pectoral alto") ||
+      rawName.includes("guillotina") ||
+      rawName.includes("landmine")
+    ) {
+      extraTags.push("pecho alto clavicular superior inclinado");
+    }
+    if (
+      rawName.includes("declinad") ||
+      rawName.includes("costal") ||
+      rawName.includes("high to low") ||
+      rawName.includes("alta a baja") ||
+      rawName.includes("pectoral bajo") ||
+      rawName.includes("fondos") ||
+      rawName.includes("dips")
+    ) {
+      extraTags.push("pecho bajo inferior costal declinado fondos");
+    }
+    if (
+      rawName.includes("plano") ||
+      rawName.includes("plana") ||
+      rawName.includes("esternal") ||
+      rawName.includes("pectoral medio") ||
+      rawName.includes("pec deck") ||
+      rawName.includes("contractora") ||
+      rawName.includes("press de banca") ||
+      rawName.includes("convergente")
+    ) {
+      extraTags.push("pecho medio esternal plano");
+    }
+  }
+
+  if (bp === "back" || target === "lats" || target === "upper back" || rawName.includes("espalda") || rawName.includes("dorsal") || rawName.includes("remo") || rawName.includes("jalon")) {
+    extraTags.push("espalda dorsal dorsales lats traccion jalon remo pullover");
+  }
+
+  if (bp === "shoulders" || target === "delts" || target === "deltoids" || rawName.includes("hombro") || rawName.includes("deltoide") || rawName.includes("militar")) {
+    extraTags.push("hombro hombros deltoides delts shoulder");
+  }
+
+  if (target === "biceps" || rawName.includes("biceps") || rawName.includes("braquial") || rawName.includes("curl")) {
+    if (!rawName.includes("femoral") && !rawName.includes("nordico") && !rawName.includes("muñeca") && !rawName.includes("muneca") && !rawName.includes("jefferson")) {
+      extraTags.push("biceps brazo brazos pico cabeza larga cabeza corta braquial curl bayesian predicador");
+    }
+  }
+
+  if (target === "triceps" || rawName.includes("triceps") || rawName.includes("frances") || rawName.includes("katana") || rawName.includes("rompecraneos") || rawName.includes("tate")) {
+    extraTags.push("triceps brazo brazos katana frances cuerda copa extension patada kickback");
+  }
+
+  if (bp === "lower arms" || target === "forearms" || rawName.includes("antebrazo") || rawName.includes("muneca") || rawName.includes("granjero") || rawName.includes("dead hang") || rawName.includes("zottman") || rawName.includes("invertido")) {
+    extraTags.push("antebrazo antebrazos muneca agarre forearm forearms");
+  }
+
+  if (bp === "neck" || target === "traps" || target === "levator scapulae" || rawName.includes("cuello") || rawName.includes("cervical") || rawName.includes("trapecio") || rawName.includes("shrug") || rawName.includes("encogimiento")) {
+    extraTags.push("cuello cervical trapecio trapecios traps shrugs encogimientos");
+  }
+
+  if (bp === "upper legs" || bp === "lower legs") {
+    extraTags.push("pierna piernas tren inferior");
+  }
+  if (target === "quads" || target === "quadriceps" || rawName.includes("cuadriceps") || rawName.includes("sentadilla") || rawName.includes("prensa") || rawName.includes("hack") || rawName.includes("sissy")) {
+    extraTags.push("cuadriceps quads pierna sentadilla prensa");
+  }
+  if (target === "hamstrings" || rawName.includes("isquio") || rawName.includes("femoral") || rawName.includes("rumano") || rawName.includes("nordico") || rawName.includes("buenos dias")) {
+    extraTags.push("isquios isquiotibiales femoral femorales cadena posterior pierna");
+  }
+  if (target === "glutes" || rawName.includes("gluteo") || rawName.includes("hip thrust") || rawName.includes("puente") || rawName.includes("patada") || rawName.includes("abduccion") || rawName.includes("frog")) {
+    extraTags.push("gluteo gluteos cadera hip thrust");
+  }
+  if (bp === "lower legs" || target === "calves" || rawName.includes("pantorrilla") || rawName.includes("gemelo") || rawName.includes("soleo") || rawName.includes("talones") || rawName.includes("tibial")) {
+    extraTags.push("gemelos soleo pantorrilla pantorrillas calves tibial");
+  }
+  if (bp === "waist" || target === "abs" || rawName.includes("abdom") || rawName.includes("core") || rawName.includes("crunch") || rawName.includes("plancha") || rawName.includes("dragon") || rawName.includes("pallof")) {
+    extraTags.push("abdomen abdominales core cintura oblicuos");
+  }
+
+  if (isWarmupCatalogExercise(ex)) {
+    extraTags.push("calentamiento movilidad activacion manguito articular");
+  }
+
+  // Equipment Spanish synonyms
+  if (equip.includes("dumbbell") || rawName.includes("mancuerna")) {
+    extraTags.push("mancuerna mancuernas dumbbell");
+  }
+  if (equip.includes("barbell") || rawName.includes("barra")) {
+    extraTags.push("barra barbell olimpica");
+  }
+  if (equip.includes("cable") || rawName.includes("polea")) {
+    extraTags.push("polea cable cuerda");
+  }
+  if (equip.includes("machine") || rawName.includes("maquina") || rawName.includes("prensa") || rawName.includes("smith")) {
+    extraTags.push("maquina palanca aparato");
+  }
+  if (equip.includes("body") || rawName.includes("corporal")) {
+    extraTags.push("peso corporal calistenia");
+  }
+
+  return `${normalizeText(ex.id)} ${rawName} ${bp} ${target} ${equip} ${instr} ${extraTags.join(" ")}`.trim();
+}
+
+function stripPluralToken(token: string): string {
+  if (token.length > 4 && token.endsWith("es") && !token.endsWith("iones")) {
+    return token.slice(0, -2);
+  }
+  if (token.length > 3 && token.endsWith("s") && !token.endsWith("ceps")) {
+    return token.slice(0, -1);
+  }
+  return token;
+}
+
+/**
+ * Semantic, accent-insensitive, word-order-independent search matcher for exercises.
+ */
+export function matchesSemanticExerciseSearch(
+  ex: {
+    id?: string | null;
+    name?: string | null;
+    name_es?: string | null;
+    customNameEs?: string | null;
+    body_part?: string | null;
+    target?: string | null;
+    equipment?: string | null;
+    equipment_name?: string | null;
+    instructions?: readonly string[] | Record<string, string> | null;
+  },
+  rawQuery: string,
+): boolean {
+  const queryNorm = normalizeText(rawQuery);
+  if (!queryNorm) return true;
+
+  const haystack = buildSemanticHaystack(ex);
+  if (haystack.includes(queryNorm)) return true;
+
+  const tokens = queryNorm.split(/\s+/).filter(Boolean);
+  return tokens.every((token) => {
+    if (haystack.includes(token)) return true;
+    const singular = stripPluralToken(token);
+    if (singular !== token && haystack.includes(singular)) return true;
+    return false;
+  });
 }
 
 /**

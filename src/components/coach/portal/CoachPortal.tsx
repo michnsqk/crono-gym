@@ -29,6 +29,7 @@ import { loadCatalog } from "@/lib/catalog/catalogLoader";
 import {
   ANATOMICAL_GIF_PRESETS,
   CRONOS_MACHINERY_EXERCISES,
+  matchesSemanticExerciseSearch,
 } from "@/lib/catalog/machinerySeedExercises";
 import { BODYWEIGHT_EQUIPMENT_NAME } from "@/lib/catalog/types";
 import {
@@ -1502,7 +1503,8 @@ function ExercisesPanel({
       if (query_ === "") return true;
       return (
         normaliseExerciseName(`${row.id} ${row.name} ${row.name_es ?? ""}`).includes(query_) ||
-        translateBodyPart(row.body_part).toLowerCase().includes(query_)
+        translateBodyPart(row.body_part).toLowerCase().includes(query_) ||
+        matchesSemanticExerciseSearch(row, query)
       );
     });
   }, [

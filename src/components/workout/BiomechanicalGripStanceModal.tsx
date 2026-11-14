@@ -1,5 +1,16 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, Compass, Crosshair, Dumbbell, Footprints, Info, ShieldCheck, Sliders, X } from "lucide-react";
+import {
+  ArrowLeft,
+  Check,
+  Compass,
+  Crosshair,
+  Dumbbell,
+  Footprints,
+  Info,
+  ShieldCheck,
+  Sliders,
+  X,
+} from "lucide-react";
 import { MuscleReadonlyMap } from "@/components/MuscleReadonlyMap";
 import { ACCENT, GLASS, RADIUS, SCRIM, SOLID, STATUS, SURFACE, TEXT, Z_INDEX } from "@/design/tokens";
 import {
@@ -10,6 +21,7 @@ import {
   resolveInitialBiomechanicsTab,
   type BiomechanicsAtlasTab,
   type BiomechanicsContextInput,
+  type CronosAttachmentEntry,
   type FootStanceId,
   type UpperBodyTrajectoryId,
 } from "@/lib/workout/biomechanicalGripStance";
@@ -30,6 +42,24 @@ export interface BiomechanicalGripStanceModalProps {
   onApply?: (selection: BiomechanicalSelectionPayload) => void;
 }
 
+const COMPACT_STANCE_CHIPS: readonly { id: FootStanceId; label: string }[] = [
+  { id: "low_narrow", label: "Pies Bajos" },
+  { id: "standard_mid", label: "Media" },
+  { id: "high_neutral", label: "Pies Altos" },
+  { id: "high_wide_sumo", label: "Sumo" },
+  { id: "bottom_edge_calves", label: "Pantorrilla" },
+];
+
+function shortGripBadge(entry: CronosAttachmentEntry): string {
+  const g = entry.gripOrientation.toLowerCase();
+  if (g.includes("tobillera")) return "Tobillera";
+  if (entry.equipmentId === "CG-EQP-0040") return "Unilateral";
+  if (entry.equipmentId === "CG-EQP-0038") return "Rotación Externa";
+  if (g.includes("neutro")) return "Agarre Neutro";
+  if (g.includes("semisupinado")) return "Semisupinado Z";
+  return "Prono / Supino";
+}
+
 export function BiomechanicalGripStanceModal({
   open,
   onClose,
@@ -41,14 +71,19 @@ export function BiomechanicalGripStanceModal({
     resolveInitialBiomechanicsTab(context),
   );
   const [selectedStanceId, setSelectedStanceId] = useState<FootStanceId>("high_neutral");
+  const [stanceMapSide, setStanceMapSide] = useState<"front" | "back">("back");
   const [selectedAttachmentId, setSelectedAttachmentId] = useState<string>("CG-EQP-0038");
+  const [selectedAttachmentDetailOpen, setSelectedAttachmentDetailOpen] = useState<boolean>(false);
   const [selectedTrajectoryId, setSelectedTrajectoryId] =
     useState<UpperBodyTrajectoryId>("bench_incline_30");
-  const [attachmentFilter, setAttachmentFilter] = useState<"all" | "pull_back" | "arms_isolation" | "legs_glutes">("all");
+  const [attachmentFilter, setAttachmentFilter] = useState<
+    "all" | "pull_back" | "arms_isolation" | "legs_glutes"
+  >("all");
 
   useEffect(() => {
     if (!open) return;
     setActiveTab(resolveInitialBiomechanicsTab(context));
+    setSelectedAttachmentDetailOpen(false);
     if (
       context?.equipmentId &&
       CRONOS_ATTACHMENTS_GUIDE.some((item) => item.equipmentId === context.equipmentId)
@@ -61,6 +96,10 @@ export function BiomechanicalGripStanceModal({
     () => FOOT_STANCE_MATRIX.find((item) => item.id === selectedStanceId) ?? FOOT_STANCE_MATRIX[0],
     [selectedStanceId],
   );
+
+  useEffect(() => {
+    setStanceMapSide(currentStance.recommendedSide);
+  }, [currentStance.recommendedSide]);
 
   const filteredAttachments = useMemo(() => {
     if (attachmentFilter === "all") return CRONOS_ATTACHMENTS_GUIDE;
@@ -138,7 +177,7 @@ export function BiomechanicalGripStanceModal({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-4 sm:p-6 space-y-4"
+        className="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 space-y-3"
         style={{
           backgroundColor: SURFACE.elevated,
           border: `1px solid ${GLASS.borderStrong}`,
@@ -146,7 +185,7 @@ export function BiomechanicalGripStanceModal({
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start justify-between gap-2.5">
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
               <Compass className="h-3.5 w-3.5 shrink-0" style={{ color: ACCENT.text }} />
@@ -154,21 +193,20 @@ export function BiomechanicalGripStanceModal({
                 className="text-[10px] font-bold uppercase tracking-widest truncate"
                 style={{ color: ACCENT.text }}
               >
-                CRONOS BIOMECHANICS ATLAS · APPLE FITNESS+ GUIDE
+                CRONOS BIOMECHANICS ATLAS
               </span>
             </div>
-            <h2 className="text-base sm:text-lg font-bold tracking-tight mt-0.5" style={{ color: TEXT.primary }}>
-              Mapa Interactivo de Agarres, Manerales y Posturas
+            <h2
+              className="text-sm sm:text-base font-bold tracking-tight mt-0.5"
+              style={{ color: TEXT.primary }}
+            >
+              Atlas de Agarres, Manerales y Posturas
             </h2>
             {exerciseTitle ? (
               <p className="text-xs truncate mt-0.5" style={{ color: TEXT.secondary }}>
                 Ejercicio activo: <span style={{ color: TEXT.primary }}>{exerciseTitle}</span>
               </p>
-            ) : (
-              <p className="text-xs mt-0.5" style={{ color: TEXT.secondary }}>
-                Descubre cómo la posición de los pies, el maneral o el ángulo del codo cambia las fibras reclutadas.
-              </p>
-            )}
+            ) : null}
           </div>
           <button
             type="button"
@@ -185,7 +223,7 @@ export function BiomechanicalGripStanceModal({
           </button>
         </div>
 
-        {/* 3-Tab Segmented Control */}
+        {/* 3-Tab Segmented Control — Short labels that never clip at 390px */}
         <div
           className="grid grid-cols-3 gap-1 p-1 rounded-2xl w-full"
           style={{
@@ -197,19 +235,19 @@ export function BiomechanicalGripStanceModal({
             [
               {
                 id: "foot_stance" as const,
-                label: "Posición de Pies",
-                sub: "Pierna / Prensa",
+                label: "Pies y Prensa",
+                sub: "Pierna",
                 Icon: Footprints,
               },
               {
                 id: "attachments" as const,
-                label: "Manerales & Agarres",
+                label: "Manerales",
                 sub: "Espalda / Brazo",
                 Icon: Dumbbell,
               },
               {
                 id: "upper_angle" as const,
-                label: "Ángulo & Codos",
+                label: "Ángulo y Codos",
                 sub: "Pecho / Hombro",
                 Icon: Sliders,
               },
@@ -220,20 +258,23 @@ export function BiomechanicalGripStanceModal({
               <button
                 key={id}
                 type="button"
-                onClick={() => setActiveTab(id)}
-                className="flex flex-col items-center justify-center rounded-xl py-2 px-1.5 text-center min-w-0"
+                onClick={() => {
+                  setActiveTab(id);
+                  setSelectedAttachmentDetailOpen(false);
+                }}
+                className="flex flex-col items-center justify-center rounded-xl py-2 px-1 text-center min-w-0"
                 style={{
                   backgroundColor: active ? SOLID.popover : "transparent",
                   border: active ? `1px solid ${ACCENT.border}` : "1px solid transparent",
                   color: active ? TEXT.primary : TEXT.secondary,
                 }}
               >
-                <div className="flex items-center gap-1 min-w-0 max-w-full">
+                <div className="flex items-center justify-center gap-1 min-w-0 max-w-full">
                   <Icon
                     className="h-3.5 w-3.5 shrink-0"
                     style={{ color: active ? ACCENT.text : TEXT.tertiary }}
                   />
-                  <span className="text-[11px] font-bold truncate">{label}</span>
+                  <span className="text-[11px] font-bold whitespace-nowrap">{label}</span>
                 </div>
                 <span className="text-[10px] truncate max-w-full" style={{ color: TEXT.tertiary }}>
                   {sub}
@@ -243,107 +284,111 @@ export function BiomechanicalGripStanceModal({
           })}
         </div>
 
-        {/* TAB 1: FOOT STANCE (PRENSA / HACK / SMITH / SENTADILLA) */}
+        {/* TAB 1: PIES Y PRENSA — Side-by-side Platform SVG + Anatomical Body Map */}
         {activeTab === "foot_stance" && (
-          <div className="space-y-3">
-            {/* Quick selector pills */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5">
-              {FOOT_STANCE_MATRIX.map((zone) => {
-                const selected = zone.id === currentStance.id;
+          <div className="space-y-2.5">
+            {/* Compact 5-Chip Horizontal Strip */}
+            <div className="grid grid-cols-5 gap-1">
+              {COMPACT_STANCE_CHIPS.map((chip) => {
+                const selected = chip.id === currentStance.id;
                 return (
                   <button
-                    key={zone.id}
+                    key={chip.id}
                     type="button"
-                    onClick={() => setSelectedStanceId(zone.id)}
-                    className="rounded-xl px-2.5 py-2 text-left min-w-0"
+                    onClick={() => setSelectedStanceId(chip.id)}
+                    className="rounded-xl px-1.5 py-2 text-center min-w-0"
                     style={{
                       backgroundColor: selected ? ACCENT.subtle : GLASS.fill,
                       border: `1px solid ${selected ? ACCENT.border : GLASS.border}`,
                       color: selected ? TEXT.primary : TEXT.secondary,
                     }}
                   >
-                    <p className="text-[11px] font-bold truncate">{zone.shortLabel}</p>
-                    <p className="text-[10px] truncate mt-0.5" style={{ color: TEXT.tertiary }}>
-                      {zone.toeOutAngleDeg}
-                    </p>
+                    <span className="text-[11px] font-bold block truncate">{chip.label}</span>
                   </button>
                 );
               })}
             </div>
 
-            {/* Interactive Platform SVG + Dual Anatomical Body Map */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* Interactive Footplate Vector */}
+            {/* Side-by-Side 2-Column Layout (Works on 390px mobile without scrolling) */}
+            <div className="grid grid-cols-2 gap-2.5 items-stretch">
+              {/* Left Column: Clean Interactive Footplate Vector (Zero overlapping text) */}
               <div
-                className="rounded-2xl p-3 flex flex-col justify-between"
+                className="rounded-2xl p-2.5 flex flex-col justify-between"
                 style={{
                   backgroundColor: SURFACE.base,
                   border: `1px solid ${GLASS.border}`,
                 }}
               >
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: TEXT.secondary }}>
-                    Plataforma de Prensa / Hack (Toca una postura)
-                  </span>
+                <div className="flex items-center justify-between gap-1 mb-1">
                   <span
-                    className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
-                    style={{
-                      backgroundColor: ACCENT.subtle,
-                      color: ACCENT.text,
-                      border: `1px solid ${ACCENT.border}`,
-                    }}
+                    className="text-[10px] font-bold uppercase tracking-wider truncate"
+                    style={{ color: TEXT.secondary }}
                   >
-                    {currentStance.shortLabel}
+                    Plataforma (Toca huella)
                   </span>
                 </div>
 
                 <svg
-                  viewBox="0 0 220 165"
-                  className="w-full h-44 select-none"
+                  viewBox="0 0 200 165"
+                  className="w-full h-40 select-none"
                   role="img"
                   aria-label="Plataforma interactiva de posición de pies"
                 >
                   {/* Platform Outer Frame */}
                   <rect
-                    x="14"
-                    y="8"
-                    width="192"
-                    height="148"
+                    x="10"
+                    y="6"
+                    width="180"
+                    height="152"
                     rx="14"
                     fill={SOLID.card}
                     stroke={GLASS.borderStrong}
                     strokeWidth="1.5"
                   />
-                  {/* Non-slip grid lines */}
-                  <line x1="110" y1="14" x2="110" y2="150" stroke={GLASS.border} strokeDasharray="3 3" />
-                  <line x1="22" y1="54" x2="198" y2="54" stroke={GLASS.border} strokeDasharray="3 3" />
-                  <line x1="22" y1="98" x2="198" y2="98" stroke={GLASS.border} strokeDasharray="3 3" />
-                  <line x1="22" y1="132" x2="198" y2="132" stroke={GLASS.border} strokeDasharray="2 2" />
-
-                  {/* Zone labels inside platform */}
-                  <text x="110" y="22" textAnchor="middle" fill={TEXT.tertiary} className="text-[7px] font-bold">
-                    ZONA SUPERIOR · GLÚTEO / ISQUIOS / SUMO
-                  </text>
-                  <text x="110" y="66" textAnchor="middle" fill={TEXT.tertiary} className="text-[7px] font-bold">
-                    ZONA MEDIA · BALANCEADA
-                  </text>
-                  <text x="110" y="110" textAnchor="middle" fill={TEXT.tertiary} className="text-[7px] font-bold">
-                    ZONA BAJA · ENFOQUE CUÁDRICEPS
-                  </text>
-                  <text x="110" y="151" textAnchor="middle" fill={TEXT.tertiary} className="text-[7px] font-bold">
-                    BORDE INFERIOR · METATARSOS (PANTORRILLA)
-                  </text>
+                  {/* Non-slip subtle grid lines without text colliding with footprints */}
+                  <line
+                    x1="100"
+                    y1="12"
+                    x2="100"
+                    y2="152"
+                    stroke={GLASS.border}
+                    strokeDasharray="3 3"
+                  />
+                  <line
+                    x1="16"
+                    y1="50"
+                    x2="184"
+                    y2="50"
+                    stroke={GLASS.border}
+                    strokeDasharray="3 3"
+                  />
+                  <line
+                    x1="16"
+                    y1="92"
+                    x2="184"
+                    y2="92"
+                    stroke={GLASS.border}
+                    strokeDasharray="3 3"
+                  />
+                  <line
+                    x1="16"
+                    y1="126"
+                    x2="184"
+                    y2="126"
+                    stroke={GLASS.border}
+                    strokeDasharray="2 2"
+                  />
 
                   {/* Render clickable footprints for each stance */}
                   {FOOT_STANCE_MATRIX.map((zone) => {
                     const isSelected = zone.id === currentStance.id;
-                    const lx = 14 + (zone.svgFootprint.leftX / 100) * 192;
-                    const rx = 14 + (zone.svgFootprint.rightX / 100) * 192;
-                    const cy = 8 + (zone.svgFootprint.y / 100) * 148;
+                    const lx = 10 + (zone.svgFootprint.leftX / 100) * 180;
+                    const rx = 10 + (zone.svgFootprint.rightX / 100) * 180;
+                    const cy = 6 + (zone.svgFootprint.y / 100) * 152;
                     const rot = zone.svgFootprint.toeRotationDeg;
                     const fill = isSelected ? ACCENT.base : GLASS.fillRaised;
                     const stroke = isSelected ? TEXT.primary : GLASS.borderStrong;
-                    const opacity = isSelected ? 1 : 0.42;
+                    const opacity = isSelected ? 1 : 0.35;
 
                     return (
                       <g
@@ -352,285 +397,335 @@ export function BiomechanicalGripStanceModal({
                         className="cursor-pointer"
                         opacity={opacity}
                       >
-                        {/* Left Foot */}
                         <g transform={`translate(${lx}, ${cy}) rotate(${-rot})`}>
                           <rect
                             x="-9"
-                            y="-17"
+                            y="-16"
                             width="18"
-                            height="34"
+                            height="32"
                             rx="8"
                             fill={fill}
                             stroke={stroke}
-                            strokeWidth={isSelected ? "1.6" : "1"}
+                            strokeWidth={isSelected ? "1.8" : "1"}
                           />
-                          <circle cx="0" cy="-10" r="3" fill={TEXT.primary} opacity={isSelected ? 0.85 : 0.35} />
+                          <circle
+                            cx="0"
+                            cy="-9"
+                            r="2.8"
+                            fill={TEXT.primary}
+                            opacity={isSelected ? 0.9 : 0.35}
+                          />
                         </g>
-                        {/* Right Foot */}
                         <g transform={`translate(${rx}, ${cy}) rotate(${rot})`}>
                           <rect
                             x="-9"
-                            y="-17"
+                            y="-16"
                             width="18"
-                            height="34"
+                            height="32"
                             rx="8"
                             fill={fill}
                             stroke={stroke}
-                            strokeWidth={isSelected ? "1.6" : "1"}
+                            strokeWidth={isSelected ? "1.8" : "1"}
                           />
-                          <circle cx="0" cy="-10" r="3" fill={TEXT.primary} opacity={isSelected ? 0.85 : 0.35} />
+                          <circle
+                            cx="0"
+                            cy="-9"
+                            r="2.8"
+                            fill={TEXT.primary}
+                            opacity={isSelected ? 0.9 : 0.35}
+                          />
                         </g>
                       </g>
                     );
                   })}
                 </svg>
 
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <div
-                    className="rounded-xl p-2"
-                    style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
-                  >
-                    <p className="text-[10px] uppercase" style={{ color: TEXT.tertiary }}>
-                      Flexión de Rodilla
-                    </p>
-                    <p className="text-xs font-bold mt-0.5" style={{ color: TEXT.primary }}>
-                      {currentStance.kneeFlexionDeg}
-                    </p>
-                  </div>
-                  <div
-                    className="rounded-xl p-2"
-                    style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
-                  >
-                    <p className="text-[10px] uppercase" style={{ color: TEXT.tertiary }}>
-                      Flexión de Cadera
-                    </p>
-                    <p className="text-xs font-bold mt-0.5" style={{ color: TEXT.primary }}>
-                      {currentStance.hipFlexionDeg}
-                    </p>
-                  </div>
-                </div>
+                <span
+                  className="text-[10px] font-semibold px-2 py-0.5 rounded-lg text-center truncate"
+                  style={{
+                    backgroundColor: ACCENT.subtle,
+                    color: ACCENT.text,
+                    border: `1px solid ${ACCENT.border}`,
+                  }}
+                >
+                  {currentStance.shortLabel}
+                </span>
               </div>
 
-              {/* Live Anatomical Activation Map */}
+              {/* Right Column: Live Anatomical Map right next to the Platform */}
               <div
-                className="rounded-2xl p-3 flex flex-col justify-between"
+                className="rounded-2xl p-2.5 flex flex-col justify-between"
                 style={{
                   backgroundColor: SURFACE.base,
                   border: `1px solid ${GLASS.border}`,
                 }}
               >
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: TEXT.secondary }}>
-                    Activación Anatómica
+                <div className="flex items-center justify-between gap-1">
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-wider truncate"
+                    style={{ color: TEXT.secondary }}
+                  >
+                    Activación
                   </span>
-                  <span className="text-[10px]" style={{ color: TEXT.tertiary }}>
-                    Vista {currentStance.recommendedSide === "front" ? "Frontal + Posterior" : "Posterior + Frontal"}
-                  </span>
+                  <div
+                    className="inline-flex rounded-lg p-0.5"
+                    style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
+                  >
+                    {(["front", "back"] as const).map((side) => {
+                      const active = stanceMapSide === side;
+                      return (
+                        <button
+                          key={side}
+                          type="button"
+                          onClick={() => setStanceMapSide(side)}
+                          className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase"
+                          style={{
+                            backgroundColor: active ? SOLID.popover : "transparent",
+                            color: active ? TEXT.primary : TEXT.tertiary,
+                          }}
+                        >
+                          {side === "front" ? "Frente" : "Espalda"}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-2 items-center my-2">
-                  <div className="w-24 mx-auto">
-                    <MuscleReadonlyMap
-                      counts={activeMuscleCounts}
-                      side="front"
-                      label="Activación frontal de pierna"
+                <div className="w-24 mx-auto my-1">
+                  <MuscleReadonlyMap
+                    counts={activeMuscleCounts}
+                    side={stanceMapSide}
+                    label={`Activación anatómica para ${currentStance.label}`}
+                  />
+                </div>
+
+                <div className="flex flex-wrap gap-1 justify-center">
+                  {currentStance.primaryMuscles.slice(0, 2).map((muscle) => (
+                    <span
+                      key={muscle}
+                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md truncate max-w-full"
+                      style={{
+                        backgroundColor: ACCENT.subtle,
+                        color: TEXT.primary,
+                        border: `1px solid ${ACCENT.border}`,
+                      }}
+                    >
+                      {muscle}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Single Compact Card below the 2-column view */}
+            <div
+              className="rounded-2xl p-3 space-y-2"
+              style={{
+                backgroundColor: GLASS.fill,
+                border: `1px solid ${GLASS.border}`,
+              }}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-1.5">
+                <h3 className="text-xs sm:text-sm font-bold" style={{ color: TEXT.primary }}>
+                  {currentStance.label}
+                </h3>
+                <div className="flex items-center gap-1.5 text-[10px]" style={{ color: TEXT.secondary }}>
+                  <span
+                    className="px-2 py-0.5 rounded-md font-semibold"
+                    style={{ backgroundColor: GLASS.fillRaised }}
+                  >
+                    Rodilla: {currentStance.kneeFlexionDeg}
+                  </span>
+                  <span
+                    className="px-2 py-0.5 rounded-md font-semibold"
+                    style={{ backgroundColor: GLASS.fillRaised }}
+                  >
+                    Cadera: {currentStance.hipFlexionDeg}
+                  </span>
+                </div>
+              </div>
+              <p className="text-xs leading-relaxed" style={{ color: TEXT.secondary }}>
+                {currentStance.biomechanicalFocus}
+              </p>
+              <ul className="space-y-1">
+                {currentStance.cues.slice(0, 2).map((cue) => (
+                  <li
+                    key={cue}
+                    className="flex items-start gap-1.5 text-xs"
+                    style={{ color: TEXT.primary }}
+                  >
+                    <Check
+                      className="h-3.5 w-3.5 shrink-0 mt-0.5"
+                      style={{ color: STATUS.success.text }}
                     />
+                    <span>{cue}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={handleApply}
+                className="w-full py-2.5 px-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
+                style={{
+                  backgroundColor: ACCENT.base,
+                  color: TEXT.onAccent,
+                  borderRadius: RADIUS.button,
+                }}
+              >
+                <Check className="h-3.5 w-3.5 shrink-0" />
+                <span>Aplicar esta postura de pies</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 2: MANERALES — Clean Cards + Immediate Popover Detail View on Tap */}
+        {activeTab === "attachments" && (
+          <div className="space-y-3">
+            {selectedAttachmentDetailOpen ? (
+              /* Immediate Apple App Store Detail Sheet (No scrolling required) */
+              <div
+                className="rounded-2xl p-3.5 space-y-3"
+                style={{
+                  backgroundColor: SURFACE.base,
+                  border: `1px solid ${ACCENT.border}`,
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAttachmentDetailOpen(false)}
+                    className="inline-flex items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold"
+                    style={{
+                      backgroundColor: GLASS.fillRaised,
+                      border: `1px solid ${GLASS.border}`,
+                      color: TEXT.primary,
+                    }}
+                  >
+                    <ArrowLeft className="h-3.5 w-3.5 shrink-0" />
+                    <span>Volver a los manerales</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedAttachmentDetailOpen(false)}
+                    aria-label="Cerrar detalle de maneral"
+                    className="h-8 w-8 rounded-full flex items-center justify-center"
+                    style={{
+                      backgroundColor: GLASS.fillRaised,
+                      border: `1px solid ${GLASS.border}`,
+                      color: TEXT.secondary,
+                    }}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                {/* Side-by-Side Photo + Live Anatomical Body Map */}
+                <div className="grid grid-cols-2 gap-3 items-center">
+                  <div
+                    className="rounded-2xl overflow-hidden flex flex-col items-center justify-center p-2"
+                    style={{
+                      backgroundColor: SOLID.card,
+                      border: `1px solid ${GLASS.borderStrong}`,
+                    }}
+                  >
+                    <img
+                      src={currentAttachment.imageUrl}
+                      alt={currentAttachment.name}
+                      className="w-full h-32 object-cover rounded-xl"
+                    />
+                    <span
+                      className="mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                      style={{
+                        backgroundColor: ACCENT.subtle,
+                        color: ACCENT.text,
+                        border: `1px solid ${ACCENT.border}`,
+                      }}
+                    >
+                      {currentAttachment.gripOrientation}
+                    </span>
                   </div>
-                  <div className="w-24 mx-auto">
-                    <MuscleReadonlyMap
-                      counts={activeMuscleCounts}
-                      side="back"
-                      label="Activación posterior de pierna"
-                    />
+
+                  <div
+                    className="rounded-2xl p-2 flex flex-col items-center justify-center"
+                    style={{
+                      backgroundColor: SOLID.card,
+                      border: `1px solid ${GLASS.border}`,
+                    }}
+                  >
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                      style={{ color: TEXT.secondary }}
+                    >
+                      Músculos Reclutados
+                    </span>
+                    <div className="w-24 mx-auto">
+                      <MuscleReadonlyMap
+                        counts={activeMuscleCounts}
+                        side={currentAttachment.recommendedSide}
+                        label={`Mapa muscular para ${currentAttachment.shortName}`}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h3 className="text-sm font-bold" style={{ color: TEXT.primary }}>
+                    {currentAttachment.name}
+                  </h3>
+                  <div
+                    className="mt-1.5 rounded-xl p-2.5 space-y-1"
+                    style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
+                  >
+                    <p
+                      className="text-[11px] font-bold flex items-center gap-1.5"
+                      style={{ color: TEXT.primary }}
+                    >
+                      <Info className="h-3.5 w-3.5 shrink-0" style={{ color: ACCENT.text }} />
+                      ¿Para qué sirve este maneral?
+                    </p>
+                    <p className="text-xs leading-relaxed" style={{ color: TEXT.secondary }}>
+                      {currentAttachment.biomechanicalFocus} {currentAttachment.whyUseIt}
+                    </p>
                   </div>
                 </div>
 
                 <div className="space-y-1">
-                  <p className="text-[10px] font-bold uppercase tracking-wider" style={{ color: ACCENT.text }}>
-                    Músculos Primarios Enfatizados
+                  <p
+                    className="text-[10px] font-bold uppercase tracking-wider"
+                    style={{ color: TEXT.tertiary }}
+                  >
+                    Músculos enfatizados
                   </p>
                   <div className="flex flex-wrap gap-1">
-                    {currentStance.primaryMuscles.map((muscle) => (
+                    {currentAttachment.primaryMuscles.map((m) => (
                       <span
-                        key={muscle}
-                        className="text-[11px] font-semibold px-2 py-0.5 rounded-lg"
+                        key={m}
+                        className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
                         style={{
                           backgroundColor: ACCENT.subtle,
                           color: TEXT.primary,
                           border: `1px solid ${ACCENT.border}`,
                         }}
                       >
-                        {muscle}
+                        {m}
                       </span>
                     ))}
                   </div>
                 </div>
-              </div>
-            </div>
 
-            {/* Biomechanical Explanation & Cues */}
-            <div
-              className="rounded-2xl p-3.5 space-y-2"
-              style={{
-                backgroundColor: GLASS.fill,
-                border: `1px solid ${GLASS.border}`,
-              }}
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <h3 className="text-sm font-bold" style={{ color: TEXT.primary }}>
-                    {currentStance.label}
-                  </h3>
-                  <p className="text-xs" style={{ color: TEXT.secondary }}>
-                    {currentStance.subtitle} · Separación: {currentStance.stanceWidthCm}
-                  </p>
-                </div>
-              </div>
-              <p className="text-xs leading-relaxed" style={{ color: TEXT.secondary }}>
-                {currentStance.biomechanicalFocus}
-              </p>
-              <ul className="space-y-1 pt-1">
-                {currentStance.cues.map((cue) => (
-                  <li key={cue} className="flex items-start gap-2 text-xs" style={{ color: TEXT.primary }}>
-                    <Check className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: STATUS.success.text }} />
-                    <span>{cue}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 2: MANERALES & AGARRES REALES DE CRONOS GYM */}
-        {activeTab === "attachments" && (
-          <div className="space-y-3">
-            {/* Family Filter Chips */}
-            <div className="flex flex-wrap gap-1.5">
-              {(
-                [
-                  { id: "all" as const, label: "Todos los Manerales (10)" },
-                  { id: "pull_back" as const, label: "Espalda / Jalón y Remo" },
-                  { id: "arms_isolation" as const, label: "Bíceps / Tríceps / Hombro" },
-                  { id: "legs_glutes" as const, label: "Glúteo (Tobillera)" },
-                ] as const
-              ).map((chip) => {
-                const active = attachmentFilter === chip.id;
-                return (
-                  <button
-                    key={chip.id}
-                    type="button"
-                    onClick={() => setAttachmentFilter(chip.id)}
-                    className="rounded-full px-3 py-1 text-xs font-semibold"
-                    style={{
-                      backgroundColor: active ? ACCENT.subtle : GLASS.fill,
-                      border: `1px solid ${active ? ACCENT.border : GLASS.border}`,
-                      color: active ? TEXT.primary : TEXT.secondary,
-                    }}
+                <div className="space-y-1">
+                  <p
+                    className="text-[10px] font-bold uppercase tracking-wider"
+                    style={{ color: TEXT.tertiary }}
                   >
-                    {chip.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Horizontal / Grid Gallery of Real Cronos Attachments */}
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-              {filteredAttachments.map((item) => {
-                const selected = item.equipmentId === currentAttachment.equipmentId;
-                return (
-                  <button
-                    key={item.equipmentId}
-                    type="button"
-                    onClick={() => setSelectedAttachmentId(item.equipmentId)}
-                    className="rounded-2xl p-2 text-left flex flex-col gap-1.5 min-w-0 overflow-hidden"
-                    style={{
-                      backgroundColor: selected ? ACCENT.subtle : SURFACE.base,
-                      border: `1px solid ${selected ? ACCENT.border : GLASS.border}`,
-                    }}
-                  >
-                    <div
-                      className="w-full h-16 rounded-xl overflow-hidden flex items-center justify-center"
-                      style={{ backgroundColor: SOLID.card }}
-                    >
-                      <img
-                        src={item.imageUrl}
-                        alt={item.shortName}
-                        className="w-full h-full object-cover"
-                        loading="lazy"
-                      />
-                    </div>
-                    <div className="min-w-0">
-                      <span className="text-[10px] font-mono block truncate" style={{ color: ACCENT.text }}>
-                        {item.equipmentId}
-                      </span>
-                      <p className="text-xs font-bold truncate" style={{ color: TEXT.primary }}>
-                        {item.shortName}
-                      </p>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-
-            {/* Selected Attachment Detail Card + Anatomical Map */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div
-                className="sm:col-span-2 rounded-2xl p-3.5 space-y-2.5"
-                style={{
-                  backgroundColor: SURFACE.base,
-                  border: `1px solid ${GLASS.border}`,
-                }}
-              >
-                <div className="flex items-start gap-3">
-                  <img
-                    src={currentAttachment.imageUrl}
-                    alt={currentAttachment.name}
-                    className="h-16 w-16 rounded-xl object-cover shrink-0"
-                    style={{ border: `1px solid ${GLASS.borderStrong}` }}
-                  />
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      <span
-                        className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-md"
-                        style={{ backgroundColor: GLASS.fillRaised, color: ACCENT.text }}
-                      >
-                        {currentAttachment.equipmentId}
-                      </span>
-                      <span
-                        className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
-                        style={{ backgroundColor: GLASS.fill, color: TEXT.secondary }}
-                      >
-                        Agarre: {currentAttachment.gripOrientation}
-                      </span>
-                    </div>
-                    <h3 className="text-sm font-bold mt-1" style={{ color: TEXT.primary }}>
-                      {currentAttachment.name}
-                    </h3>
-                  </div>
-                </div>
-
-                <div
-                  className="rounded-xl p-2.5 space-y-1"
-                  style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
-                >
-                  <p className="text-[11px] font-bold flex items-center gap-1.5" style={{ color: TEXT.primary }}>
-                    <Info className="h-3.5 w-3.5 shrink-0" style={{ color: ACCENT.text }} />
-                    ¿Para qué sirve este maneral?
+                    Ejercicios recomendados
                   </p>
-                  <p className="text-xs leading-relaxed" style={{ color: TEXT.secondary }}>
-                    {currentAttachment.biomechanicalFocus} {currentAttachment.whyUseIt}
-                  </p>
-                </div>
-
-                <div>
-                  <p className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: TEXT.tertiary }}>
-                    Ejercicios recomendados en Cronos Gym
-                  </p>
-                  <div className="flex flex-wrap gap-1.5">
+                  <div className="flex flex-wrap gap-1">
                     {currentAttachment.recommendedExercises.map((exName) => (
                       <span
                         key={exName}
-                        className="text-[11px] px-2.5 py-1 rounded-lg"
+                        className="text-[11px] px-2 py-0.5 rounded-lg"
                         style={{
                           backgroundColor: GLASS.fillRaised,
                           border: `1px solid ${GLASS.border}`,
@@ -642,50 +737,108 @@ export function BiomechanicalGripStanceModal({
                     ))}
                   </div>
                 </div>
-              </div>
 
-              {/* Anatomical Map for Selected Attachment */}
-              <div
-                className="rounded-2xl p-3 flex flex-col justify-between"
-                style={{
-                  backgroundColor: SURFACE.base,
-                  border: `1px solid ${GLASS.border}`,
-                }}
-              >
-                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: TEXT.secondary }}>
-                  Músculos Diana
-                </span>
-                <div className="w-28 mx-auto my-2">
-                  <MuscleReadonlyMap
-                    counts={activeMuscleCounts}
-                    side={currentAttachment.recommendedSide}
-                    label={`Mapa muscular para ${currentAttachment.shortName}`}
-                  />
-                </div>
-                <div className="flex flex-wrap gap-1">
-                  {currentAttachment.primaryMuscles.map((m) => (
-                    <span
-                      key={m}
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
-                      style={{
-                        backgroundColor: ACCENT.subtle,
-                        color: TEXT.primary,
-                        border: `1px solid ${ACCENT.border}`,
-                      }}
-                    >
-                      {m}
-                    </span>
-                  ))}
-                </div>
+                <button
+                  type="button"
+                  onClick={handleApply}
+                  className="w-full py-2.5 px-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
+                  style={{
+                    backgroundColor: ACCENT.base,
+                    color: TEXT.onAccent,
+                    borderRadius: RADIUS.button,
+                  }}
+                >
+                  <Check className="h-3.5 w-3.5 shrink-0" />
+                  <span>Aplicar este maneral a mi ejercicio</span>
+                </button>
               </div>
-            </div>
+            ) : (
+              /* Attachment Gallery Grid — Tapping any card opens the detail view immediately */
+              <>
+                <div className="flex flex-wrap gap-1.5">
+                  {(
+                    [
+                      { id: "all" as const, label: "Todos (10)" },
+                      { id: "pull_back" as const, label: "Espalda / Jalón y Remo" },
+                      { id: "arms_isolation" as const, label: "Bíceps / Tríceps / Hombro" },
+                      { id: "legs_glutes" as const, label: "Glúteo (Tobillera)" },
+                    ] as const
+                  ).map((chip) => {
+                    const active = attachmentFilter === chip.id;
+                    return (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        onClick={() => setAttachmentFilter(chip.id)}
+                        className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                        style={{
+                          backgroundColor: active ? ACCENT.subtle : GLASS.fill,
+                          border: `1px solid ${active ? ACCENT.border : GLASS.border}`,
+                          color: active ? TEXT.primary : TEXT.secondary,
+                        }}
+                      >
+                        {chip.label}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <p className="text-[11px]" style={{ color: TEXT.secondary }}>
+                  Toca cualquier maneral para abrir su ficha biomecánica y ver los músculos que activa:
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                  {filteredAttachments.map((item) => {
+                    const selected = item.equipmentId === currentAttachment.equipmentId;
+                    return (
+                      <button
+                        key={item.equipmentId}
+                        type="button"
+                        onClick={() => {
+                          setSelectedAttachmentId(item.equipmentId);
+                          setSelectedAttachmentDetailOpen(true);
+                        }}
+                        className="rounded-2xl p-2 text-left flex flex-col gap-1.5 min-w-0 overflow-hidden"
+                        style={{
+                          backgroundColor: selected ? ACCENT.subtle : SURFACE.base,
+                          border: `1px solid ${selected ? ACCENT.border : GLASS.border}`,
+                        }}
+                      >
+                        <div
+                          className="w-full h-20 rounded-xl overflow-hidden flex items-center justify-center"
+                          style={{ backgroundColor: SOLID.card }}
+                        >
+                          <img
+                            src={item.imageUrl}
+                            alt={item.shortName}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <span
+                            className="text-[10px] font-semibold block truncate"
+                            style={{ color: ACCENT.text }}
+                          >
+                            {shortGripBadge(item)}
+                          </span>
+                          <p className="text-xs font-bold truncate" style={{ color: TEXT.primary }}>
+                            {item.shortName}
+                          </p>
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </>
+            )}
           </div>
         )}
 
-        {/* TAB 3: ÁNGULO DE BANCA Y TRAYECTORIA DE CODOS */}
+        {/* TAB 3: ÁNGULO Y CODOS — Compact Selector + Side-by-Side Vector & Anatomical Map */}
         {activeTab === "upper_angle" && (
-          <div className="space-y-3">
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+          <div className="space-y-2.5">
+            <div className="grid grid-cols-3 gap-1.5">
               {UPPER_BODY_GRIP_MATRIX.map((entry) => {
                 const selected = entry.id === currentTrajectory.id;
                 return (
@@ -693,7 +846,7 @@ export function BiomechanicalGripStanceModal({
                     key={entry.id}
                     type="button"
                     onClick={() => setSelectedTrajectoryId(entry.id)}
-                    className="rounded-xl p-2.5 text-left min-w-0"
+                    className="rounded-xl px-2 py-2 text-left min-w-0"
                     style={{
                       backgroundColor: selected ? ACCENT.subtle : GLASS.fill,
                       border: `1px solid ${selected ? ACCENT.border : GLASS.border}`,
@@ -705,7 +858,7 @@ export function BiomechanicalGripStanceModal({
                     >
                       {entry.angleBadge}
                     </span>
-                    <p className="text-xs font-bold truncate mt-0.5" style={{ color: TEXT.primary }}>
+                    <p className="text-[11px] font-bold truncate mt-0.5" style={{ color: TEXT.primary }}>
                       {entry.label}
                     </p>
                   </button>
@@ -713,59 +866,8 @@ export function BiomechanicalGripStanceModal({
               })}
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div
-                className="sm:col-span-2 rounded-2xl p-3.5 space-y-2.5"
-                style={{
-                  backgroundColor: SURFACE.base,
-                  border: `1px solid ${GLASS.border}`,
-                }}
-              >
-                <div className="flex items-center justify-between gap-2">
-                  <div>
-                    <span
-                      className="text-[10px] font-bold uppercase tracking-wider"
-                      style={{ color: ACCENT.text }}
-                    >
-                      {currentTrajectory.angleBadge}
-                    </span>
-                    <h3 className="text-sm font-bold" style={{ color: TEXT.primary }}>
-                      {currentTrajectory.label}
-                    </h3>
-                  </div>
-                  <Crosshair className="h-4 w-4 shrink-0" style={{ color: ACCENT.text }} />
-                </div>
-
-                <p className="text-xs leading-relaxed" style={{ color: TEXT.secondary }}>
-                  {currentTrajectory.biomechanicalFocus}
-                </p>
-
-                <div
-                  className="rounded-xl p-2.5 flex items-start gap-2"
-                  style={{
-                    backgroundColor: GLASS.fillRaised,
-                    border: `1px solid ${GLASS.borderStrong}`,
-                  }}
-                >
-                  <ShieldCheck className="h-4 w-4 shrink-0 mt-0.5" style={{ color: STATUS.success.text }} />
-                  <div className="text-xs">
-                    <span className="font-bold block" style={{ color: TEXT.primary }}>
-                      Protección Articular (Hombro y Codo)
-                    </span>
-                    <span style={{ color: TEXT.secondary }}>{currentTrajectory.jointProtectionNote}</span>
-                  </div>
-                </div>
-
-                <ul className="space-y-1 pt-1">
-                  {currentTrajectory.cues.map((cue) => (
-                    <li key={cue} className="flex items-start gap-2 text-xs" style={{ color: TEXT.primary }}>
-                      <Check className="h-3.5 w-3.5 shrink-0 mt-0.5" style={{ color: STATUS.success.text }} />
-                      <span>{cue}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
+            {/* Side-by-Side Vector Diagram + Anatomical Body Map */}
+            <div className="grid grid-cols-2 gap-2.5 items-stretch">
               <div
                 className="rounded-2xl p-3 flex flex-col justify-between"
                 style={{
@@ -773,21 +875,108 @@ export function BiomechanicalGripStanceModal({
                   border: `1px solid ${GLASS.border}`,
                 }}
               >
-                <span className="text-[11px] font-bold uppercase tracking-wider" style={{ color: TEXT.secondary }}>
+                <div className="flex items-center justify-between gap-1">
+                  <span
+                    className="text-[10px] font-bold uppercase tracking-wider truncate"
+                    style={{ color: ACCENT.text }}
+                  >
+                    {currentTrajectory.angleBadge}
+                  </span>
+                  <Crosshair className="h-3.5 w-3.5 shrink-0" style={{ color: ACCENT.text }} />
+                </div>
+
+                {/* Vector SVG representation of bench/elbow angle */}
+                <svg
+                  viewBox="0 0 180 110"
+                  className="w-full h-28 my-1 select-none"
+                  role="img"
+                  aria-label={`Esquema de ángulo para ${currentTrajectory.label}`}
+                >
+                  <line
+                    x1="20"
+                    y1="92"
+                    x2="160"
+                    y2="92"
+                    stroke={GLASS.borderStrong}
+                    strokeWidth="2"
+                    strokeDasharray="4 3"
+                  />
+                  <circle cx="52" cy="92" r="4" fill={ACCENT.base} />
+                  {(() => {
+                    const degMap: Record<UpperBodyTrajectoryId, number> = {
+                      bench_decline_15: 12,
+                      bench_flat_0: 0,
+                      bench_incline_30: -30,
+                      bench_incline_45: -45,
+                      bench_shoulder_75: -72,
+                      elbows_tucked_lats: -18,
+                      elbows_flared_upper_back: -58,
+                      shoulder_hyperext_bayesian: -35,
+                      shoulder_flexed_preacher: -50,
+                    };
+                    const deg = degMap[currentTrajectory.id] ?? -30;
+                    const rad = (deg * Math.PI) / 180;
+                    const x2 = 52 + Math.cos(rad) * 86;
+                    const y2 = 88 + Math.sin(rad) * 86;
+                    return (
+                      <>
+                        <line
+                          x1="52"
+                          y1="88"
+                          x2={x2}
+                          y2={y2}
+                          stroke={ACCENT.base}
+                          strokeWidth="5"
+                          strokeLinecap="round"
+                        />
+                        <circle cx={x2} cy={y2} r="5" fill={TEXT.primary} />
+                      </>
+                    );
+                  })()}
+                </svg>
+
+                <div
+                  className="rounded-xl p-2 flex items-start gap-1.5"
+                  style={{
+                    backgroundColor: GLASS.fillRaised,
+                    border: `1px solid ${GLASS.border}`,
+                  }}
+                >
+                  <ShieldCheck
+                    className="h-3.5 w-3.5 shrink-0 mt-0.5"
+                    style={{ color: STATUS.success.text }}
+                  />
+                  <span className="text-[10px] leading-snug" style={{ color: TEXT.secondary }}>
+                    {currentTrajectory.jointProtectionNote}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                className="rounded-2xl p-3 flex flex-col justify-between items-center"
+                style={{
+                  backgroundColor: SURFACE.base,
+                  border: `1px solid ${GLASS.border}`,
+                }}
+              >
+                <span
+                  className="text-[10px] font-bold uppercase tracking-wider self-start"
+                  style={{ color: TEXT.secondary }}
+                >
                   Enfoque Muscular
                 </span>
-                <div className="w-28 mx-auto my-2">
+                <div className="w-24 mx-auto my-1">
                   <MuscleReadonlyMap
                     counts={activeMuscleCounts}
                     side={currentTrajectory.recommendedSide}
                     label={`Mapa muscular para ${currentTrajectory.label}`}
                   />
                 </div>
-                <div className="flex flex-wrap gap-1">
+                <div className="flex flex-wrap gap-1 justify-center">
                   {currentTrajectory.primaryMuscles.map((m) => (
                     <span
                       key={m}
-                      className="text-[10px] font-semibold px-2 py-0.5 rounded-md"
+                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md"
                       style={{
                         backgroundColor: ACCENT.subtle,
                         color: TEXT.primary,
@@ -800,38 +989,51 @@ export function BiomechanicalGripStanceModal({
                 </div>
               </div>
             </div>
+
+            <div
+              className="rounded-2xl p-3 space-y-2"
+              style={{
+                backgroundColor: GLASS.fill,
+                border: `1px solid ${GLASS.border}`,
+              }}
+            >
+              <h3 className="text-xs sm:text-sm font-bold" style={{ color: TEXT.primary }}>
+                {currentTrajectory.label}
+              </h3>
+              <p className="text-xs leading-relaxed" style={{ color: TEXT.secondary }}>
+                {currentTrajectory.biomechanicalFocus}
+              </p>
+              <ul className="space-y-1">
+                {currentTrajectory.cues.map((cue) => (
+                  <li
+                    key={cue}
+                    className="flex items-start gap-1.5 text-xs"
+                    style={{ color: TEXT.primary }}
+                  >
+                    <Check
+                      className="h-3.5 w-3.5 shrink-0 mt-0.5"
+                      style={{ color: STATUS.success.text }}
+                    />
+                    <span>{cue}</span>
+                  </li>
+                ))}
+              </ul>
+              <button
+                type="button"
+                onClick={handleApply}
+                className="w-full py-2.5 px-3 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5"
+                style={{
+                  backgroundColor: ACCENT.base,
+                  color: TEXT.onAccent,
+                  borderRadius: RADIUS.button,
+                }}
+              >
+                <Check className="h-3.5 w-3.5 shrink-0" />
+                <span>Aplicar este ángulo / trayectoria</span>
+              </button>
+            </div>
           </div>
         )}
-
-        {/* Footer CTA */}
-        <div className="flex items-center justify-end gap-2 pt-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="px-4 py-2.5 text-xs font-semibold rounded-xl"
-            style={{
-              backgroundColor: GLASS.fillRaised,
-              border: `1px solid ${GLASS.border}`,
-              color: TEXT.secondary,
-              borderRadius: RADIUS.button,
-            }}
-          >
-            Cerrar
-          </button>
-          <button
-            type="button"
-            onClick={handleApply}
-            className="px-4 py-2.5 text-xs font-bold rounded-xl flex items-center gap-1.5"
-            style={{
-              backgroundColor: ACCENT.base,
-              color: TEXT.onAccent,
-              borderRadius: RADIUS.button,
-            }}
-          >
-            <Check className="h-3.5 w-3.5 shrink-0" />
-            <span>Aplicar esta postura/maneral a mi ejercicio</span>
-          </button>
-        </div>
       </div>
     </div>
   );
