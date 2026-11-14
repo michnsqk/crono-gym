@@ -326,8 +326,10 @@ export function estimateSmartLoad(params: SmartLoadParams & {
 export interface WarmupRampInput {
   workingWeightKg: number;
   targetReps?: number;
+  workingReps?: number;
   isBodyweight?: boolean;
   category?: EquipmentCategory;
+  equipmentCategory?: EquipmentCategory;
   musclePreviouslyWorked?: boolean;
 }
 
@@ -341,8 +343,8 @@ export interface WarmupRampInput {
  * climb.
  */
 export function generateWarmupRamp(input: WarmupRampInput): SmartWorkoutSet[] {
-  const reps = Math.max(1, Math.round(finite(input.targetReps, 10)));
-  const category = input.category ?? "machine";
+  const reps = Math.max(1, Math.round(finite(input.workingReps ?? input.targetReps, 10)));
+  const category = input.equipmentCategory ?? input.category ?? "machine";
   const isBodyweight = input.isBodyweight === true || category === "bodyweight";
   const weight = Math.max(0, finite(input.workingWeightKg));
 
@@ -1359,4 +1361,267 @@ function regionOf(bodyPart: string): string | null {
   if (value.includes("cardio")) return "cardio";
   if (value.includes("neck")) return "neck";
   return value;
+}
+
+
+export type MobilityFamily = "push" | "pull" | "legs" | "core";
+
+export interface MobilityWarmupStep {
+  id: string;
+  title: string;
+  focusZone: string;
+  cue: string;
+  doseLabel: string;
+  tempoLabel: string;
+}
+
+export interface MobilityWarmupInput {
+  movementPattern?: string | null;
+  bodyPart?: string | null;
+  equipmentCategory?: EquipmentCategory | null;
+  exerciseName?: string | null;
+  workingWeightKg?: number;
+  isBodyweight?: boolean;
+}
+
+export interface MobilityWarmupProtocol {
+  family: MobilityFamily;
+  familyLabel: string;
+  summary: string;
+  durationBadge: string;
+  steps: readonly MobilityWarmupStep[];
+  activationSet: SmartWorkoutSet & { label: string };
+}
+
+const MOBILITY_TEMPLATES: Record<
+  MobilityFamily,
+  Omit<MobilityWarmupProtocol, "activationSet">
+> = {
+  push: {
+    family: "push",
+    familyLabel: "Patrón de Empuje · Hombro y Escápula",
+    summary: "Lubrica el manguito rotador, estabiliza la escápula y abre la caja torácica antes de empujar carga.",
+    durationBadge: "3 min",
+    steps: [
+      {
+        id: "push-rot",
+        title: "Rotación externa de manguito con banda",
+        focusZone: "Hombro / Supraespinoso",
+        cue: "Codos pegados a las costillas a 90 grados; abre sin arquear la lumbar.",
+        doseLabel: "15 reps/lado",
+        tempoLabel: "2-1-2",
+      },
+      {
+        id: "push-thoracic",
+        title: "Dislocaciones amplias y extensión torácica",
+        focusZone: "Columna torácica / Pectoral",
+        cue: "Lleva el bastón o banda por encima de la cabeza manteniendo escápulas deprimidas.",
+        doseLabel: "45s",
+        tempoLabel: "Controlado",
+      },
+      {
+        id: "push-scap",
+        title: "Flexiones escapulares (scapular push-ups)",
+        focusZone: "Serrato anterior / Estabilidad",
+        cue: "Brazos extendidos en todo momento; junta y separa escápulas suavemente.",
+        doseLabel: "12 reps",
+        tempoLabel: "2-1-1",
+      },
+    ],
+  },
+  pull: {
+    family: "pull",
+    familyLabel: "Patrón de Tirón · Dorsal y Escápula",
+    summary: "Desbloquea la rotación torácica y activa la retracción escapular para traccionar sin compensar con bíceps.",
+    durationBadge: "3 min",
+    steps: [
+      {
+        id: "pull-scap",
+        title: "Colgado activo / depresión escapular en polea",
+        focusZone: "Trapecio inferior / Dorsal",
+        cue: "Aléjate de las orejas bajando hombros sin doblar los codos.",
+        doseLabel: "45s",
+        tempoLabel: "2s pausa",
+      },
+      {
+        id: "pull-tspine",
+        title: "Rotación torácica en cuadrupedia (Open Book)",
+        focusZone: "Columna dorsal / Costillas",
+        cue: "Sigue la mano con la mirada mientras exhalas en el punto máximo.",
+        doseLabel: "10 reps/lado",
+        tempoLabel: "2-1-2",
+      },
+      {
+        id: "pull-facepull",
+        title: "Activación escapular y deltoides posterior",
+        focusZone: "Romboides / Deltoides post.",
+        cue: "Tira suave hacia la frente con pulgares apuntando atrás y pausa de control.",
+        doseLabel: "15 reps",
+        tempoLabel: "2-1-2",
+      },
+    ],
+  },
+  legs: {
+    family: "legs",
+    familyLabel: "Tren Inferior · Tobillo, Cadera y Glúteo",
+    summary: "Amplía la dorsiflexión del tobillo, desbloquea la flexión de cadera y enciende el glúteo medio.",
+    durationBadge: "4 min",
+    steps: [
+      {
+        id: "legs-ankle",
+        title: "Dorsiflexión de tobillo en zancada 90/90",
+        focusZone: "Tobillo / Sóleo",
+        cue: "Lleva la rodilla por delante de los dedos sin levantar el talón del suelo.",
+        doseLabel: "45s",
+        tempoLabel: "2s por repetición",
+      },
+      {
+        id: "legs-hip",
+        title: "Apertura de cadera profunda (Pry Squat)",
+        focusZone: "Cadera / Aductores",
+        cue: "Baja en sentadilla profunda empujando rodillas hacia afuera con los codos.",
+        doseLabel: "45s",
+        tempoLabel: "Respiración nasal",
+      },
+      {
+        id: "legs-glute",
+        title: "Puente de glúteo con pausa unilateral",
+        focusZone: "Glúteo mayor / Medio",
+        cue: "Empuja desde el talón evitando hiperextender la zona lumbar arriba.",
+        doseLabel: "12 reps",
+        tempoLabel: "1-2-1",
+      },
+    ],
+  },
+  core: {
+    family: "core",
+    familyLabel: "Core y Calistenia · Columna y Faja Media",
+    summary: "Sincroniza el diafragma con la musculatura profunda para blindar la zona lumbar y preparar muñecas.",
+    durationBadge: "3 min",
+    steps: [
+      {
+        id: "core-catcamel",
+        title: "Movilidad segmentada gato-camello",
+        focusZone: "Columna torácica y lumbar",
+        cue: "Articula vértebra por vértebra inhalando al extender y exhalando al flexionar.",
+        doseLabel: "45s",
+        tempoLabel: "Fluido",
+      },
+      {
+        id: "core-deadbug",
+        title: "Dead-bug con presión abdominal",
+        focusZone: "Transverso / Oblicuos",
+        cue: "Mantén la zona lumbar pegada al suelo mientras extiendes brazo y pierna contraria.",
+        doseLabel: "12 reps",
+        tempoLabel: "3-1-2",
+      },
+      {
+        id: "core-brace",
+        title: "Activación de muñecas y anti-rotación",
+        focusZone: "Muñecas / Faja lumbar",
+        cue: "Realiza círculos suaves de carga en muñecas y activa abdomen antes de la serie.",
+        doseLabel: "30s",
+        tempoLabel: "Estable",
+      },
+    ],
+  },
+};
+
+function resolveMobilityFamily(input: MobilityWarmupInput): MobilityFamily {
+  const pattern = (input.movementPattern ?? "").trim().toLowerCase();
+  const body = (input.bodyPart ?? "").trim().toLowerCase();
+  const name = (input.exerciseName ?? "").trim().toLowerCase();
+
+  if (pattern === "horizontal_push" || pattern === "vertical_push") return "push";
+  if (pattern === "horizontal_pull" || pattern === "vertical_pull" || pattern === "curl") return "pull";
+  if (pattern === "squat" || pattern === "hinge") return "legs";
+  if (
+    pattern === "anti_extension" ||
+    pattern === "anti_rotation" ||
+    pattern === "rotation" ||
+    pattern === "flexion" ||
+    pattern === "carry"
+  ) {
+    return "core";
+  }
+
+  if (
+    body.includes("leg") ||
+    body.includes("quad") ||
+    body.includes("hamstring") ||
+    body.includes("glute") ||
+    body.includes("piern") ||
+    body.includes("cuadr") ||
+    body.includes("isquio") ||
+    body.includes("glut") ||
+    body.includes("calv") ||
+    body.includes("pantorr") ||
+    /\b(squat|sentadilla|leg press|prensa|lunge|zancada|deadlift|peso muerto|hip thrust|femoral|cuadriceps)\b/.test(
+      name,
+    )
+  ) {
+    return "legs";
+  }
+
+  if (
+    body.includes("back") ||
+    body.includes("espalda") ||
+    body.includes("lat") ||
+    body.includes("dorsal") ||
+    body.includes("bicep") ||
+    /\b(row|remo|pulldown|jalon|jalón|pull-up|dominada|face pull|curl)\b/.test(name)
+  ) {
+    return "pull";
+  }
+
+  if (
+    body.includes("chest") ||
+    body.includes("pecho") ||
+    body.includes("shoulder") ||
+    body.includes("hombro") ||
+    body.includes("tricep") ||
+    /\b(bench|press|banca|militar|fondo|dip|fly|apertura|push|tricep|elevacion)\b/.test(name)
+  ) {
+    return "push";
+  }
+
+  if (
+    body.includes("abs") ||
+    body.includes("abdom") ||
+    body.includes("core") ||
+    body.includes("waist") ||
+    input.isBodyweight === true ||
+    input.equipmentCategory === "bodyweight" ||
+    /\b(plank|plancha|crunch|dead bug|pallof|hang|ab)\b/.test(name)
+  ) {
+    return "core";
+  }
+
+  return "push";
+}
+
+/**
+ * Generates a specific joint-mobility & neuromuscular activation sequence
+ * for the active movement family, plus an ultra-light `W0` priming set.
+ */
+export function generateMobilityWarmupProtocol(
+  input: MobilityWarmupInput,
+): MobilityWarmupProtocol {
+  const family = resolveMobilityFamily(input);
+  const template = MOBILITY_TEMPLATES[family];
+  const isBodyweight = input.isBodyweight === true || input.equipmentCategory === "bodyweight";
+  const weight = Math.max(0, finite(input.workingWeightKg));
+  const activationWeight =
+    isBodyweight || weight <= 0 ? 0 : Math.max(2.5, roundLoad(weight * 0.3));
+
+  return {
+    ...template,
+    activationSet: {
+      weightKg: activationWeight,
+      reps: 12,
+      type: "warmup",
+      completed: false,
+      label: "W0 · Activación articular",
+    },
+  };
 }

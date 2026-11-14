@@ -6,6 +6,7 @@ import {
   computeExerciseRank,
   estimateSmartLoad,
   findStationAlternatives,
+  generateMobilityWarmupProtocol,
   generateSmartWarmupSets,
   generateWarmupRamp,
   getAdaptiveRestSeconds,
@@ -389,5 +390,68 @@ describe("computeExerciseRank por familia", () => {
 
     expect(legPress.family).toBe("compound");
     expect(legPress.category).toBe("machine");
+  });
+
+  it("acepta workingReps y equipmentCategory en generateWarmupRamp", () => {
+    const ramp = generateWarmupRamp({
+      workingWeightKg: 100,
+      workingReps: 8,
+      equipmentCategory: "barbell",
+    });
+    expect(ramp.map((s) => [s.weightKg, s.reps])).toEqual([
+      [50, 8],
+      [70, 5],
+      [85, 2],
+    ]);
+  });
+
+  it("genera protocolos de movilidad específicos para empuje, tirón, pierna y core", () => {
+    const push = generateMobilityWarmupProtocol({
+      movementPattern: "horizontal_push",
+      bodyPart: "chest",
+      equipmentCategory: "barbell",
+      exerciseName: "Press de banca",
+      workingWeightKg: 100,
+    });
+    expect(push.family).toBe("push");
+    expect(push.steps).toHaveLength(3);
+    expect(push.steps[0].doseLabel.length).toBeGreaterThan(0);
+    expect(push.activationSet).toMatchObject({
+      weightKg: 30,
+      reps: 12,
+      type: "warmup",
+    });
+
+    const pull = generateMobilityWarmupProtocol({
+      movementPattern: "vertical_pull",
+      bodyPart: "back",
+      exerciseName: "Jalón al pecho",
+      workingWeightKg: 60,
+    });
+    expect(pull.family).toBe("pull");
+    expect(pull.steps).toHaveLength(3);
+    expect(pull.activationSet.weightKg).toBe(18);
+
+    const legs = generateMobilityWarmupProtocol({
+      movementPattern: "squat",
+      bodyPart: "upper legs",
+      exerciseName: "Sentadilla libre",
+      workingWeightKg: 120,
+    });
+    expect(legs.family).toBe("legs");
+    expect(legs.steps).toHaveLength(3);
+    expect(legs.activationSet.weightKg).toBe(36);
+
+    const core = generateMobilityWarmupProtocol({
+      movementPattern: "anti_extension",
+      bodyPart: "waist",
+      equipmentCategory: "bodyweight",
+      exerciseName: "Plancha abdominal",
+      isBodyweight: true,
+    });
+    expect(core.family).toBe("core");
+    expect(core.steps).toHaveLength(3);
+    expect(core.activationSet.weightKg).toBe(0);
+    expect(core.activationSet.type).toBe("warmup");
   });
 });

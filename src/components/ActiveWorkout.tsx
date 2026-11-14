@@ -2303,10 +2303,22 @@ export function ActiveWorkout({
    * The modal's accept: the load, and -- only if the athlete asked for it --
    * the ramp that gets them there.
    */
-  function applySmartLoadFromModal(next: { weightKg: number; reps: number; includeWarmup?: boolean }) {
+  function applySmartLoadFromModal(next: {
+    weightKg: number;
+    reps: number;
+    includeWarmup?: boolean;
+    customWarmupSets?: readonly { weightKg: number; reps: number }[];
+    onlyInsertWarmup?: boolean;
+  }) {
     if (!selected) return;
-    applyLoad(next.weightKg, next.reps);
-    if (next.includeWarmup) insertWarmupRamp(warmupRamp);
+    if (!next.onlyInsertWarmup) {
+      applyLoad(next.weightKg, next.reps);
+    }
+    if (next.customWarmupSets && next.customWarmupSets.length > 0) {
+      insertWarmupRamp(next.customWarmupSets);
+    } else if (next.includeWarmup) {
+      insertWarmupRamp(warmupRamp);
+    }
   }
 
   function applyCalibration(feedback: "too_light" | "perfect" | "too_heavy") {
@@ -3081,6 +3093,9 @@ export function ActiveWorkout({
             category={smartCategory}
             breakdownHint={loadHint}
             equipmentLabel={smartEquipmentLabel}
+            movementPattern={smartExercise?.movement_pattern ?? null}
+            bodyPart={selected.exercise.body_part}
+            station={smartExercise?.station_key}
             warmupRamp={warmupRamp}
             onCalibrate={calibrateColdStart}
             onApply={applySmartLoadFromModal}

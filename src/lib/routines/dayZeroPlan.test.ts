@@ -8,8 +8,10 @@ import {
   buildDayZeroPlan,
   dayZeroDraft,
   dayZeroRoutineRow,
+  defaultDaysFocusForFrequency,
   groupOf,
   isAvailableForDayZero,
+  muscleSlugsFromDayZeroSelection,
   toPlanExercise,
   type DayZeroGroup,
 } from "./dayZeroPlan";
@@ -319,5 +321,116 @@ describe("toPlanExercise", () => {
 
   it("keeps the raw equipment the smart engine reads", () => {
     expect(toPlanExercise(catalogOf(2)[1]).equipment).toBe("barbell");
+  });
+});
+
+describe("buildDayZeroPlan 2-to-6 days & customDaysFocus", () => {
+  it("supports frequencies 2, 3, 4, 5, and 6 via daysPerWeek", () => {
+    const richCatalog = catalogOf(48);
+    for (const freq of [2, 3, 4, 5, 6] as const) {
+      const plan = buildDayZeroPlan({
+        catalog: richCatalog,
+        daysPerWeek: freq,
+        goal: "hypertrophy",
+        level: "intermediate",
+      });
+      expect(plan.frequency).toBe(freq);
+      expect(plan.days).toHaveLength(freq);
+      expect(plan.title).toBe(`Cronos Day 0 · ${freq} días`);
+    }
+    const sixDay = buildDayZeroPlan({
+      catalog: richCatalog,
+      daysPerWeek: 6,
+      goal: "strength",
+      level: "advanced",
+    });
+    expect(sixDay.days.map((d) => d.label)).toEqual([
+      "Empuje A",
+      "Tirón A",
+      "Pierna A",
+      "Empuje B",
+      "Tirón B",
+      "Pierna B",
+    ]);
+  });
+
+  it("maps anatomical selections to Body slugs and generates balanced default focuses", () => {
+    const defaults6 = defaultDaysFocusForFrequency(6);
+    expect(defaults6).toHaveLength(6);
+    expect(defaults6[0].muscles.length).toBeGreaterThan(0);
+
+    const slugs = muscleSlugsFromDayZeroSelection([
+      "Espalda / Dorsal",
+      "quads",
+      "glutes",
+      "hamstrings",
+    ]);
+    expect(slugs.has("upper-back")).toBe(true);
+    expect(slugs.has("quadriceps")).toBe(true);
+    expect(slugs.has("gluteal")).toBe(true);
+    expect(slugs.has("hamstring")).toBe(true);
+  });
+
+  it("builds customDaysFocus strictly matching each day's muscles with compounds first", () => {
+    const customCatalog: CatalogExercise[] = [
+      row({
+        id: "chest-iso",
+        name: "Pec Fly",
+        muscle_group: "chest",
+        movement_pattern: "isolation",
+        equipment: "cable",
+        equipment_id: "CG-EQP-0010",
+      }),
+      row({
+        id: "chest-comp",
+        name: "Barbell Bench Press",
+        muscle_group: "chest",
+        movement_pattern: "horizontal_push",
+        equipment: "barbell",
+        equipment_id: "NONE",
+      }),
+      row({
+        id: "back-comp",
+        name: "Lat Pulldown",
+        muscle_group: "lats",
+        movement_pattern: "vertical_pull",
+        equipment: "cable",
+        equipment_id: "CG-EQP-0012",
+      }),
+      row({
+        id: "quad-iso",
+        name: "Leg Extension",
+        muscle_group: "quadriceps",
+        movement_pattern: "isolation",
+        equipment: "leverage machine",
+        equipment_id: "CG-EQP-0015",
+      }),
+      row({
+        id: "quad-comp",
+        name: "Back Squat",
+        muscle_group: "quadriceps",
+        movement_pattern: "squat",
+        equipment: "barbell",
+        equipment_id: "NONE",
+      }),
+    ];
+
+    const plan = buildDayZeroPlan({
+      catalog: customCatalog,
+      daysPerWeek: 2,
+      goal: "strength",
+      level: "intermediate",
+      perDay: 2,
+      customDaysFocus: [
+        { dayIndex: 0, label: "Pecho Custom", muscles: ["chest"] },
+        { dayIndex: 1, label: "Pierna y Dorsal", muscles: ["quads", "back"] },
+      ],
+    });
+
+    expect(plan.days).toHaveLength(2);
+    expect(plan.days[0].label).toBe("Pecho Custom");
+    expect(plan.days[0].exercises.map((e) => e.row.id)).toEqual(["chest-comp", "chest-iso"]);
+    expect(plan.days[1].label).toBe("Pierna y Dorsal");
+    expect(plan.days[1].exercises.map((e) => e.row.id)).toEqual(["quad-comp", "back-comp"]);
   });
 });

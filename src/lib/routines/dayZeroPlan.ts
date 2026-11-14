@@ -20,6 +20,7 @@
  * spotter, and one exercise per group is taken before a second.
  */
 
+import type { Slug } from "react-muscle-highlighter";
 import type { Exercise } from "@/types/supabase";
 import type { PlannedExercise, RoutineWithExercises } from "@/hooks/useGymData";
 import { resolveCatalogExercise } from "@/lib/catalog/resolveExercise";
@@ -30,9 +31,42 @@ import type { RoutineDay, RoutineDraftV2 } from "./routineDayModel";
 import { newDraftKey } from "./routineDayModel";
 import { buildRoutineDescription } from "./routineMeta";
 
-export type DayZeroFrequency = 2 | 3 | 4 | 5;
+export type DayZeroFrequency = 2 | 3 | 4 | 5 | 6;
 export type DayZeroGoal = "strength" | "hypertrophy" | "general_fitness";
 export type DayZeroLevel = "beginner" | "intermediate" | "advanced";
+
+export type DayZeroMuscleId =
+  | "chest"
+  | "back"
+  | "shoulders"
+  | "biceps"
+  | "triceps"
+  | "core"
+  | "quads"
+  | "hamstrings"
+  | "glutes"
+  | "calves";
+
+export interface DayZeroMuscleOption {
+  id: DayZeroMuscleId;
+  label: string;
+  side: "front" | "back";
+  slugs: readonly Slug[];
+  group: DayZeroGroup;
+}
+
+export interface DayZeroDayPreset {
+  id: string;
+  label: string;
+  shortLabel: string;
+  muscles: readonly DayZeroMuscleId[];
+}
+
+export interface DayZeroCustomDayFocus {
+  dayIndex: number;
+  label?: string;
+  muscles: string[];
+}
 
 /** Rest between sets, in seconds, for a plan generated without history. */
 export const DAY_ZERO_REST_SECONDS = 90;
@@ -279,7 +313,259 @@ const DAY_TEMPLATES: Record<DayZeroFrequency, DayTemplate[]> = {
       ],
     },
   ],
+  6: [
+    {
+      label: "Empuje A",
+      slots: [
+        { group: "chest", count: 2 },
+        { group: "shoulders", count: 2 },
+        { group: "triceps", count: 1 },
+      ],
+    },
+    {
+      label: "Tirón A",
+      slots: [
+        { group: "back", count: 3 },
+        { group: "biceps", count: 2 },
+        { group: "core", count: 1 },
+      ],
+    },
+    {
+      label: "Pierna A",
+      slots: [
+        { group: "quads", count: 2 },
+        { group: "posterior_leg", count: 2 },
+        { group: "calves", count: 1 },
+      ],
+    },
+    {
+      label: "Empuje B",
+      slots: [
+        { group: "shoulders", count: 2 },
+        { group: "chest", count: 2 },
+        { group: "triceps", count: 1 },
+      ],
+    },
+    {
+      label: "Tirón B",
+      slots: [
+        { group: "back", count: 3 },
+        { group: "biceps", count: 2 },
+        { group: "core", count: 1 },
+      ],
+    },
+    {
+      label: "Pierna B",
+      slots: [
+        { group: "posterior_leg", count: 2 },
+        { group: "quads", count: 2 },
+        { group: "calves", count: 1 },
+        { group: "core", count: 1 },
+      ],
+    },
+  ],
 };
+
+export const DAY_ZERO_MUSCLE_OPTIONS: readonly DayZeroMuscleOption[] = [
+  { id: "chest", label: "Pecho", side: "front", slugs: ["chest"], group: "chest" },
+  {
+    id: "back",
+    label: "Espalda / Dorsal",
+    side: "back",
+    slugs: ["upper-back", "trapezius", "lower-back"],
+    group: "back",
+  },
+  { id: "shoulders", label: "Hombros", side: "front", slugs: ["deltoids"], group: "shoulders" },
+  { id: "biceps", label: "Bíceps", side: "front", slugs: ["biceps"], group: "biceps" },
+  { id: "triceps", label: "Tríceps", side: "back", slugs: ["triceps"], group: "triceps" },
+  { id: "core", label: "Abdomen / Core", side: "front", slugs: ["abs", "obliques"], group: "core" },
+  { id: "quads", label: "Cuádriceps", side: "front", slugs: ["quadriceps"], group: "quads" },
+  { id: "hamstrings", label: "Isquiotibiales", side: "back", slugs: ["hamstring"], group: "posterior_leg" },
+  { id: "glutes", label: "Glúteos", side: "back", slugs: ["gluteal"], group: "posterior_leg" },
+  { id: "calves", label: "Pantorrillas", side: "back", slugs: ["calves"], group: "calves" },
+];
+
+export const DAY_ZERO_DAY_PRESETS: readonly DayZeroDayPreset[] = [
+  { id: "chest_back", label: "Pecho y Espalda", shortLabel: "Pecho/Espalda", muscles: ["chest", "back"] },
+  {
+    id: "push",
+    label: "Empuje (Pecho/Hombro/Tríceps)",
+    shortLabel: "Empuje",
+    muscles: ["chest", "shoulders", "triceps"],
+  },
+  { id: "pull", label: "Tirón (Espalda/Bíceps)", shortLabel: "Tirón", muscles: ["back", "biceps"] },
+  {
+    id: "legs",
+    label: "Pierna Completa",
+    shortLabel: "Pierna",
+    muscles: ["quads", "hamstrings", "glutes", "calves"],
+  },
+  {
+    id: "upper",
+    label: "Torso",
+    shortLabel: "Torso",
+    muscles: ["chest", "back", "shoulders", "biceps", "triceps"],
+  },
+  { id: "arms_delts", label: "Hombro y Brazo", shortLabel: "Hombro/Brazo", muscles: ["shoulders", "biceps", "triceps"] },
+  {
+    id: "full_body",
+    label: "Full Body + Core",
+    shortLabel: "Full Body",
+    muscles: ["chest", "back", "shoulders", "quads", "hamstrings", "core"],
+  },
+];
+
+const MUSCLE_OPTION_BY_ID = new Map<DayZeroMuscleId, DayZeroMuscleOption>(
+  DAY_ZERO_MUSCLE_OPTIONS.map((opt) => [opt.id, opt]),
+);
+
+const MUSCLE_TOKEN_ALIASES: Record<string, DayZeroMuscleId> = {
+  chest: "chest",
+  pecho: "chest",
+  pectoral: "chest",
+  pectorales: "chest",
+  back: "back",
+  espalda: "back",
+  dorsal: "back",
+  dorsales: "back",
+  "espalda / dorsal": "back",
+  lats: "back",
+  "latissimus dorsi": "back",
+  "upper back": "back",
+  "upper-back": "back",
+  "lower back": "back",
+  "lower-back": "back",
+  rhomboids: "back",
+  trapezius: "back",
+  traps: "back",
+  shoulders: "shoulders",
+  hombros: "shoulders",
+  hombro: "shoulders",
+  deltoids: "shoulders",
+  deltoides: "shoulders",
+  biceps: "biceps",
+  "bíceps": "biceps",
+  triceps: "triceps",
+  "tríceps": "triceps",
+  core: "core",
+  abs: "core",
+  abdomen: "core",
+  "abdomen / core": "core",
+  abdominals: "core",
+  obliques: "core",
+  quads: "quads",
+  quadriceps: "quads",
+  cuadriceps: "quads",
+  "cuádriceps": "quads",
+  hamstrings: "hamstrings",
+  hamstring: "hamstrings",
+  isquios: "hamstrings",
+  isquiotibiales: "hamstrings",
+  glutes: "glutes",
+  glute: "glutes",
+  gluteal: "glutes",
+  gluteos: "glutes",
+  "glúteos": "glutes",
+  calves: "calves",
+  pantorrillas: "calves",
+  soleus: "calves",
+};
+
+export function resolveDayZeroMuscleId(token: string): DayZeroMuscleId | null {
+  const normalized = token.trim().toLowerCase();
+  if (!normalized) return null;
+  if (MUSCLE_TOKEN_ALIASES[normalized]) return MUSCLE_TOKEN_ALIASES[normalized];
+  if (normalized.includes("espalda") || normalized.includes("dorsal")) return "back";
+  if (normalized.includes("pecho")) return "chest";
+  if (normalized.includes("hombro") || normalized.includes("deltoid")) return "shoulders";
+  if (normalized.includes("bicep") || normalized.includes("bícep")) return "biceps";
+  if (normalized.includes("tricep") || normalized.includes("trícep")) return "triceps";
+  if (normalized.includes("abdom") || normalized.includes("core")) return "core";
+  if (normalized.includes("cuadr") || normalized.includes("cuádr")) return "quads";
+  if (normalized.includes("isquio") || normalized.includes("hamstr")) return "hamstrings";
+  if (normalized.includes("glut") || normalized.includes("glút")) return "glutes";
+  if (normalized.includes("pantor") || normalized.includes("calv")) return "calves";
+  return null;
+}
+
+export function resolveDayZeroMuscleIds(tokens: readonly string[]): DayZeroMuscleId[] {
+  const seen = new Set<DayZeroMuscleId>();
+  const resolved: DayZeroMuscleId[] = [];
+  for (const token of tokens) {
+    const id = resolveDayZeroMuscleId(token);
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      resolved.push(id);
+    }
+  }
+  return resolved;
+}
+
+export function muscleSlugsFromDayZeroSelection(muscles: readonly string[]): Map<Slug, number> {
+  const counts = new Map<Slug, number>();
+  for (const id of resolveDayZeroMuscleIds(muscles)) {
+    const option = MUSCLE_OPTION_BY_ID.get(id);
+    if (!option) continue;
+    for (const slug of option.slugs) {
+      counts.set(slug, 1);
+    }
+  }
+  return counts;
+}
+
+export function deriveDayFocusLabel(muscles: readonly string[], fallback: string): string {
+  const ids = resolveDayZeroMuscleIds(muscles);
+  if (ids.length === 0) return fallback;
+  for (const preset of DAY_ZERO_DAY_PRESETS) {
+    if (
+      preset.muscles.length === ids.length &&
+      preset.muscles.every((m) => ids.includes(m))
+    ) {
+      return preset.shortLabel;
+    }
+  }
+  const labels = ids
+    .slice(0, 3)
+    .map((id) => MUSCLE_OPTION_BY_ID.get(id)?.label.split(" / ")[0] ?? id);
+  return labels.join(" + ");
+}
+
+export function defaultDaysFocusForFrequency(frequency: DayZeroFrequency): DayZeroCustomDayFocus[] {
+  const clamped = Math.min(Math.max(frequency, 2), 6) as DayZeroFrequency;
+  const presetsByFreq: Record<DayZeroFrequency, DayZeroCustomDayFocus[]> = {
+    2: [
+      { dayIndex: 0, label: "Full Body A", muscles: ["chest", "back", "shoulders", "quads", "core"] },
+      { dayIndex: 1, label: "Full Body B", muscles: ["back", "chest", "hamstrings", "glutes", "biceps", "triceps", "calves"] },
+    ],
+    3: [
+      { dayIndex: 0, label: "Empuje", muscles: ["chest", "shoulders", "triceps"] },
+      { dayIndex: 1, label: "Tirón", muscles: ["back", "biceps"] },
+      { dayIndex: 2, label: "Pierna + Core", muscles: ["quads", "hamstrings", "glutes", "calves", "core"] },
+    ],
+    4: [
+      { dayIndex: 0, label: "Torso A", muscles: ["chest", "back", "shoulders", "biceps", "triceps"] },
+      { dayIndex: 1, label: "Pierna A", muscles: ["quads", "hamstrings", "glutes", "calves", "core"] },
+      { dayIndex: 2, label: "Torso B", muscles: ["shoulders", "back", "chest", "triceps", "biceps"] },
+      { dayIndex: 3, label: "Pierna B", muscles: ["hamstrings", "glutes", "quads", "calves", "core"] },
+    ],
+    5: [
+      { dayIndex: 0, label: "Empuje A", muscles: ["chest", "shoulders", "triceps", "core"] },
+      { dayIndex: 1, label: "Tirón A", muscles: ["back", "biceps", "core"] },
+      { dayIndex: 2, label: "Pierna", muscles: ["quads", "hamstrings", "glutes", "calves"] },
+      { dayIndex: 3, label: "Empuje B", muscles: ["shoulders", "chest", "triceps"] },
+      { dayIndex: 4, label: "Tirón B", muscles: ["back", "biceps", "shoulders"] },
+    ],
+    6: [
+      { dayIndex: 0, label: "Empuje A", muscles: ["chest", "shoulders", "triceps"] },
+      { dayIndex: 1, label: "Tirón A", muscles: ["back", "biceps", "core"] },
+      { dayIndex: 2, label: "Pierna A", muscles: ["quads", "hamstrings", "glutes", "calves"] },
+      { dayIndex: 3, label: "Empuje B", muscles: ["shoulders", "chest", "triceps"] },
+      { dayIndex: 4, label: "Tirón B", muscles: ["back", "biceps", "core"] },
+      { dayIndex: 5, label: "Pierna B", muscles: ["hamstrings", "glutes", "quads", "calves", "core"] },
+    ],
+  };
+  return presetsByFreq[clamped].map((day) => ({ ...day, muscles: [...day.muscles] }));
+}
 
 const SETS_BY_GOAL: Record<DayZeroGoal, number> = {
   strength: 4,
@@ -361,13 +647,130 @@ function pickFromGroup(
   return picked;
 }
 
+const COMPOUND_PATTERNS = new Set([
+  "horizontal_push",
+  "vertical_push",
+  "horizontal_pull",
+  "vertical_pull",
+  "squat",
+  "hinge",
+  "full_body",
+  "carry",
+]);
+
+function isCompoundMovement(row: CatalogExercise): boolean {
+  if (row.movement_pattern) {
+    return COMPOUND_PATTERNS.has(row.movement_pattern);
+  }
+  const label = (row.name_es ?? row.name ?? "").toLowerCase();
+  return /\b(press|bench|squat|deadlift|row|pulldown|pull[- ]?up|chin[- ]?up|lunge|hip thrust|dip|remo|sentadilla|peso muerto|dominada)\b/.test(
+    label,
+  );
+}
+
+export function matchesDayZeroMuscle(row: CatalogExercise, muscleId: DayZeroMuscleId): boolean {
+  const mg = (row.muscle_group ?? "").trim().toLowerCase();
+  switch (muscleId) {
+    case "chest":
+      return mg === "chest";
+    case "back":
+      return (
+        mg === "lats" ||
+        mg === "latissimus dorsi" ||
+        mg === "upper back" ||
+        mg === "lower back" ||
+        mg === "rhomboids" ||
+        mg === "trapezius" ||
+        mg === "traps"
+      );
+    case "shoulders":
+      return mg === "shoulders" || mg === "deltoids" || mg === "rotator cuff";
+    case "biceps":
+      return mg === "biceps";
+    case "triceps":
+      return mg === "triceps";
+    case "core":
+      return groupOf(row) === "core";
+    case "quads":
+      return mg === "quads" || mg === "quadriceps";
+    case "hamstrings":
+      return mg === "hamstrings";
+    case "glutes":
+      return mg === "glute" || mg === "glutes";
+    case "calves":
+      return mg === "calves" || mg === "soleus";
+  }
+}
+
+function sortCustomDayCandidates(rows: readonly CatalogExercise[]): CatalogExercise[] {
+  return [...rows].sort((a, b) => {
+    const compDiff = Number(isCompoundMovement(b)) - Number(isCompoundMovement(a));
+    if (compDiff !== 0) return compDiff;
+    return Number(isMachine(b)) - Number(isMachine(a));
+  });
+}
+
+function pickForCustomDayMuscles(
+  available: readonly CatalogExercise[],
+  used: Set<string>,
+  muscleIds: readonly DayZeroMuscleId[],
+  targetTotal: number,
+): CatalogExercise[] {
+  const picked: CatalogExercise[] = [];
+  const dayPickedIds = new Set<string>();
+  const pools = muscleIds.map((muscleId) =>
+    sortCustomDayCandidates(available.filter((row) => !used.has(row.id) && matchesDayZeroMuscle(row, muscleId))),
+  );
+
+  let progressed = true;
+  while (picked.length < targetTotal && progressed) {
+    progressed = false;
+    for (const pool of pools) {
+      if (picked.length >= targetTotal) break;
+      const next = pool.find((row) => !used.has(row.id) && !dayPickedIds.has(row.id));
+      if (next) {
+        picked.push(next);
+        dayPickedIds.add(next.id);
+        progressed = true;
+      }
+    }
+  }
+
+  return picked;
+}
+
+function toDayZeroPlanExercise(
+  row: CatalogExercise,
+  goal: DayZeroGoal,
+  level: DayZeroLevel,
+  newId: DayZeroIdFactory,
+): DayZeroPlanExercise {
+  const load = estimateSmartLoad({
+    mode: "biometric_day_0",
+    targetStation: row.station_key,
+    movementPattern: row.movement_pattern,
+    experienceLevel: level,
+    targetReps: REPS_BY_GOAL[goal],
+    weightKg: 65,
+  });
+  return {
+    row,
+    rowId: newId(),
+    sets: SETS_BY_GOAL[goal],
+    reps: load.suggestedReps,
+    weightKg: load.weightKg,
+  };
+}
+
 export interface BuildDayZeroPlanParams {
   catalog: readonly CatalogExercise[];
-  frequency: DayZeroFrequency;
+  frequency?: DayZeroFrequency;
+  daysPerWeek?: DayZeroFrequency;
   goal: DayZeroGoal;
   level: DayZeroLevel;
   /** Exercises per training day. Defaults to the template's own total. */
   perDay?: number;
+  customDaysFocus?: readonly DayZeroCustomDayFocus[];
   newId?: DayZeroIdFactory;
 }
 
@@ -379,9 +782,11 @@ export interface BuildDayZeroPlanParams {
 export function buildDayZeroPlan({
   catalog,
   frequency,
+  daysPerWeek,
   goal,
   level,
   perDay,
+  customDaysFocus,
   newId = defaultIdFactory(),
 }: BuildDayZeroPlanParams): DayZeroPlan {
   const available = catalog.filter(isAvailableForDayZero);
@@ -395,32 +800,42 @@ export function buildDayZeroPlan({
 
   const used = new Set<string>();
   const days: DayZeroPlanDay[] = [];
-  const safeFrequency = Math.min(Math.max(frequency, 1), 7) as DayZeroFrequency;
+  const requestedFrequency = daysPerWeek ?? frequency ?? 3;
+  const safeFrequency = Math.min(Math.max(requestedFrequency, 2), 6) as DayZeroFrequency;
   const templates = DAY_TEMPLATES[safeFrequency] ?? DAY_TEMPLATES[3];
+  const usesOneBased =
+    Boolean(customDaysFocus?.length) &&
+    !customDaysFocus!.some((entry) => entry.dayIndex === 0) &&
+    customDaysFocus!.every((entry) => entry.dayIndex >= 1);
 
-  for (const template of templates) {
-    const slots = slotsForDay(template, perDay);
+  for (let idx = 0; idx < templates.length; idx += 1) {
+    const template = templates[idx];
+    const customEntry = customDaysFocus?.length
+      ? customDaysFocus.find((entry) => entry.dayIndex === (usesOneBased ? idx + 1 : idx)) ??
+        customDaysFocus[idx]
+      : undefined;
+    const customMuscleIds = customEntry ? resolveDayZeroMuscleIds(customEntry.muscles) : [];
+
     const exercises: DayZeroPlanExercise[] = [];
+    let dayLabel = template.label;
 
-    for (const slot of slots) {
-      const picked = pickFromGroup(queues.get(slot.group) ?? [], used, slot.count);
+    if (customMuscleIds.length > 0) {
+      const templateTotal = template.slots.reduce((sum, slot) => sum + slot.count, 0);
+      const targetTotal = Math.max(1, perDay ?? Math.max(templateTotal, customMuscleIds.length));
+      const picked = pickForCustomDayMuscles(available, used, customMuscleIds, targetTotal);
       for (const row of picked) {
         used.add(row.id);
-        const load = estimateSmartLoad({
-          mode: "biometric_day_0",
-          targetStation: row.station_key,
-          movementPattern: row.movement_pattern,
-          experienceLevel: level,
-          targetReps: REPS_BY_GOAL[goal],
-          weightKg: 65,
-        });
-        exercises.push({
-          row,
-          rowId: newId(),
-          sets: SETS_BY_GOAL[goal],
-          reps: load.suggestedReps,
-          weightKg: load.weightKg,
-        });
+        exercises.push(toDayZeroPlanExercise(row, goal, level, newId));
+      }
+      dayLabel = customEntry?.label?.trim() || deriveDayFocusLabel(customMuscleIds, template.label);
+    } else {
+      const slots = slotsForDay(template, perDay);
+      for (const slot of slots) {
+        const picked = pickFromGroup(queues.get(slot.group) ?? [], used, slot.count);
+        for (const row of picked) {
+          used.add(row.id);
+          exercises.push(toDayZeroPlanExercise(row, goal, level, newId));
+        }
       }
     }
 
@@ -428,7 +843,7 @@ export function buildDayZeroPlan({
     // card that cannot be started.
     if (exercises.length === 0) break;
 
-    days.push({ id: newId(), label: template.label, exercises });
+    days.push({ id: newId(), label: dayLabel, exercises });
   }
 
   return {
