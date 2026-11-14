@@ -1,5 +1,5 @@
 import { useEffect, useId, useState } from "react";
-import { Minus, Plus, Sparkles, X } from "lucide-react";
+import { Activity, Dumbbell, Minus, Plus, Sparkles, X } from "lucide-react";
 import {
   ACCENT,
   GLASS,
@@ -14,7 +14,10 @@ import {
 } from "@/design/tokens";
 import {
   CALIBRATION_PRESETS,
+  incrementForCategory,
   type CalibrationPresetId,
+  type EquipmentCategory,
+  type SmartWorkoutSet,
 } from "@/lib/workout/cronosSmartEngine";
 
 export interface SmartOverloadModalProps {
@@ -31,16 +34,32 @@ export interface SmartOverloadModalProps {
   coldStartReason?: string | null;
   /** Where the numbers came from, said plainly instead of implied. */
   coldStartSourceLabel?: string | null;
+  /** How the implement is loaded, as the card is written. */
+  category?: EquipmentCategory;
+  /** "Mancuerna 12.5kg por mano · 25kg total", or the bodyweight line. */
+  breakdownHint?: string | null;
+  /** The clean name of the implement, for the badge. */
+  equipmentLabel?: string | null;
+  /** The ramp that prepares this load, as the engine sizes it. */
+  warmupRamp?: readonly SmartWorkoutSet[];
   /**
    * Applies a one-tap calibration. Returns the load the engine chose, so the
    * modal can show what was learned rather than a number the athlete typed.
    */
   onCalibrate?: (preset: CalibrationPresetId) => { weightKg: number; reps: number } | null;
   /** Writes the calibration to the model and fills every pending set. */
-  onApply: (next: { weightKg: number; reps: number }) => void;
+  onApply: (next: { weightKg: number; reps: number; includeWarmup?: boolean }) => void;
   /** 1-based number of the set the load will land on. */
   pendingSetNumber?: number;
 }
+
+const CATEGORY_LABEL: Record<EquipmentCategory, string> = {
+  bodyweight: "Peso corporal",
+  dumbbell: "Mancuernas",
+  barbell: "Barra",
+  cable: "Polea",
+  machine: "Máquina",
+};
 
 /**
  * The load, decided with the athlete instead of for them.
@@ -49,6 +68,11 @@ export interface SmartOverloadModalProps {
  * it shows the recommendation and lets it be edited. Without history there is
  * nothing to recommend from, so it says so and asks -- one tap, because a
  * question that needs typing is a question nobody answers at the rack.
+ *
+ * The numbers are the load; the ramp is the honest part. A 100 kg top set is
+ * three sets, not one, and the modal says which three before the athlete
+ * commits, then leaves the warm-up off by default so a quick session stays
+ * quick.
  */
 export function SmartOverloadModal({
   isOpen,
@@ -60,6 +84,10 @@ export function SmartOverloadModal({
   hasHistory,
   coldStartReason,
   coldStartSourceLabel,
+  category,
+  breakdownHint,
+  equipmentLabel,
+  warmupRamp,
   onCalibrate,
   onApply,
   pendingSetNumber,
@@ -68,6 +96,7 @@ export function SmartOverloadModal({
   const [weight, setWeight] = useState(String(weightKg));
   const [repsValue, setRepsValue] = useState(String(reps));
   const [preset, setPreset] = useState<CalibrationPresetId | null>(null);
+  const [includeWarmup, setIncludeWarmup] = useState(false);
 
   // The sheet is mounted once and reused across exercises, so it has to adopt
   // the new exercise's numbers every time it opens.
@@ -76,6 +105,7 @@ export function SmartOverloadModal({
     setWeight(String(weightKg));
     setRepsValue(String(reps));
     setPreset(null);
+    setIncludeWarmup(false);
   }, [isOpen, weightKg, reps]);
 
   if (!isOpen) return null;
@@ -85,6 +115,12 @@ export function SmartOverloadModal({
   const weightValid = Number.isFinite(weightNumber) && weightNumber >= 0;
   const repsValid = Number.isFinite(repsNumber) && repsNumber > 0;
   const canApply = weightValid && repsValid;
+
+  const resolvedCategory: EquipmentCategory = category ?? (isBodyweight ? "bodyweight" : "machine");
+  const step = incrementForCategory(resolvedCategory);
+  const ramp = warmupRamp ?? [];
+  const showRamp = ramp.length > 0;
+  const CategoryIcon = resolvedCategory === "bodyweight" || resolvedCategory === "cable" ? Activity : Dumbbell;
 
   const nudge = (setter: (value: string) => void, current: string, delta: number, min: number) => {
     const parsed = Number.parseFloat(current);
@@ -98,6 +134,12 @@ export function SmartOverloadModal({
     if (!next) return;
     setWeight(String(next.weightKg));
     setRepsValue(String(next.reps));
+  };
+
+  const apply = () => {
+    if (!canApply) return;
+    onApply({ weightKg: weightNumber, reps: repsNumber, includeWarmup: showRamp && includeWarmup });
+    onClose();
   };
 
   return (
@@ -136,7 +178,7 @@ export function SmartOverloadModal({
         }}
       >
         <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: SPACE.sm }}>
-          <div style={{ minWidth: 0 }}>
+          <div style={{ minWidth: 0, display: "flex", flexDirection: "column", gap: SPACE.xs }}>
             <h3
               id={titleId}
               style={{ margin: 0, fontSize: TYPE.title2.size, fontWeight: TYPE.title2.weight, color: TEXT.primary, display: "flex", alignItems: "center", gap: SPACE.xs }}
@@ -144,7 +186,7 @@ export function SmartOverloadModal({
               <Sparkles size={18} strokeWidth={2} aria-hidden="true" style={{ color: ACCENT.text }} />
               Sobrecarga progresiva
             </h3>
-            <p style={{ margin: `${SPACE.xs}px 0 0`, fontSize: TYPE.caption.size, color: TEXT.tertiary, overflowWrap: "break-word" }}>
+            <p style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary, overflowWrap: "break-word" }}>
               {exerciseName}
               {pendingSetNumber ? ` · serie ${pendingSetNumber}` : ""}
             </p>
@@ -170,12 +212,43 @@ export function SmartOverloadModal({
           </button>
         </div>
 
+        <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: SPACE.xs }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 6,
+              minHeight: 28,
+              padding: `0 ${SPACE.sm}px`,
+              borderRadius: RADIUS.pill,
+              border: `1px solid ${GLASS.border}`,
+              background: SURFACE.sunken,
+              color: TEXT.secondary,
+              fontSize: TYPE.caption.size,
+              fontWeight: 600,
+            }}
+          >
+            <CategoryIcon size={13} strokeWidth={2} aria-hidden="true" />
+            {CATEGORY_LABEL[resolvedCategory]}
+            {equipmentLabel ? ` · ${equipmentLabel}` : ""}
+          </span>
+          {isBodyweight && (
+            <span style={{ fontSize: TYPE.caption.size, color: TEXT.tertiary }}>El peso externo va a cero</span>
+          )}
+        </div>
+
+        {breakdownHint && (
+          <p style={{ margin: 0, fontSize: TYPE.subhead.size, color: TEXT.secondary, overflowWrap: "break-word" }}>
+            {breakdownHint}
+          </p>
+        )}
+
         {!hasHistory && (
           <div
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: SPACE.xs,
+              gap: SPACE.sm,
               padding: SPACE.md,
               borderRadius: RADIUS.control,
               border: `1px solid ${ACCENT.border}`,
@@ -191,7 +264,11 @@ export function SmartOverloadModal({
                 {coldStartSourceLabel ? ` ${coldStartSourceLabel}.` : ""}
               </p>
             )}
-            <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
+            <div
+              role="group"
+              aria-label="Nivel de exigencia"
+              style={{ display: "grid", gridTemplateColumns: "repeat(3, minmax(0, 1fr))", gap: SPACE.xs }}
+            >
               {CALIBRATION_PRESETS.map((option) => {
                 const active = preset === option.id;
                 return (
@@ -200,27 +277,32 @@ export function SmartOverloadModal({
                     type="button"
                     onClick={() => choosePreset(option.id)}
                     aria-pressed={active}
+                    title={option.label}
                     style={{
-                      display: "flex",
-                      flexDirection: "column",
-                      alignItems: "flex-start",
-                      gap: 2,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                       minHeight: MOTION.minTouchTarget,
-                      padding: `${SPACE.sm}px ${SPACE.md}`,
+                      padding: `0 ${SPACE.sm}px`,
                       borderRadius: RADIUS.control,
                       border: `1px solid ${active ? ACCENT.base : GLASS.border}`,
                       background: active ? ACCENT.subtle : SURFACE.sunken,
-                      color: TEXT.primary,
-                      textAlign: "left",
+                      color: active ? TEXT.primary : TEXT.secondary,
+                      fontSize: TYPE.caption.size,
+                      fontWeight: 600,
                       cursor: "pointer",
                     }}
                   >
-                    <span style={{ fontSize: TYPE.subhead.size, fontWeight: 600 }}>{option.label}</span>
-                    <span style={{ fontSize: TYPE.caption.size, color: TEXT.tertiary }}>{option.hint}</span>
+                    {option.short}
                   </button>
                 );
               })}
             </div>
+            {preset && (
+              <p style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                {CALIBRATION_PRESETS.find((option) => option.id === preset)?.hint}
+              </p>
+            )}
           </div>
         )}
 
@@ -233,7 +315,7 @@ export function SmartOverloadModal({
               <button
                 type="button"
                 aria-label="Bajar peso"
-                onClick={() => nudge(setWeight, weight, -2.5, 0)}
+                onClick={() => nudge(setWeight, weight, -step, 0)}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-neutral-900 text-neutral-200"
               >
                 <Minus size={16} aria-hidden="true" />
@@ -246,12 +328,12 @@ export function SmartOverloadModal({
                 value={weight}
                 aria-label={isBodyweight ? "Lastre en kilogramos" : "Peso en kilogramos"}
                 onChange={(event) => setWeight(event.target.value)}
-                className="h-11 min-w-0 flex-1 rounded-xl border border-white/15 bg-neutral-950 text-center font-mono text-lg font-bold text-white outline-none focus-visible:border-white/40"
+                className="h-14 min-w-0 flex-1 rounded-xl border border-white/15 bg-neutral-950 text-center font-mono text-2xl font-extrabold text-white outline-none focus-visible:border-white/40"
               />
               <button
                 type="button"
                 aria-label="Subir peso"
-                onClick={() => nudge(setWeight, weight, 2.5, 0)}
+                onClick={() => nudge(setWeight, weight, step, 0)}
                 className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-neutral-900 text-neutral-200"
               >
                 <Plus size={16} aria-hidden="true" />
@@ -280,7 +362,7 @@ export function SmartOverloadModal({
                 value={repsValue}
                 aria-label="Repeticiones"
                 onChange={(event) => setRepsValue(event.target.value)}
-                className="h-11 min-w-0 flex-1 rounded-xl border border-white/15 bg-neutral-950 text-center font-mono text-lg font-bold text-white outline-none focus-visible:border-white/40"
+                className="h-14 min-w-0 flex-1 rounded-xl border border-white/15 bg-neutral-950 text-center font-mono text-2xl font-extrabold text-white outline-none focus-visible:border-white/40"
               />
               <button
                 type="button"
@@ -294,14 +376,102 @@ export function SmartOverloadModal({
           </label>
         </div>
 
+        {showRamp && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: SPACE.sm,
+              padding: SPACE.md,
+              borderRadius: RADIUS.control,
+              border: `1px solid ${GLASS.border}`,
+              background: SURFACE.sunken,
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: SPACE.sm }}>
+              <span style={{ fontSize: TYPE.subhead.size, fontWeight: 600, color: TEXT.primary }}>
+                Antes de {weight || 0} kg
+              </span>
+              <span style={{ fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                {ramp.length} {ramp.length === 1 ? "serie" : "series"}
+              </span>
+            </div>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: SPACE.xs }}>
+              {ramp.map((set, index) => (
+                <span
+                  key={`${set.weightKg}-${index}`}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 6,
+                    minHeight: 28,
+                    padding: `0 ${SPACE.sm}px`,
+                    borderRadius: RADIUS.pill,
+                    border: `1px solid ${GLASS.border}`,
+                    background: SURFACE.raised,
+                    color: TEXT.secondary,
+                    fontSize: TYPE.caption.size,
+                    fontVariantNumeric: "tabular-nums",
+                  }}
+                >
+                  {set.weightKg > 0 ? `${set.weightKg} kg` : "Peso corporal"} × {set.reps}
+                </span>
+              ))}
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={includeWarmup}
+              onClick={() => setIncludeWarmup((value) => !value)}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                gap: SPACE.sm,
+                minHeight: MOTION.minTouchTarget,
+                padding: 0,
+                border: "none",
+                background: "transparent",
+                color: TEXT.primary,
+                cursor: "pointer",
+              }}
+            >
+              <span style={{ fontSize: TYPE.subhead.size, fontWeight: 600 }}>Incluir Calentamiento</span>
+              <span
+                aria-hidden="true"
+                style={{
+                  position: "relative",
+                  width: 44,
+                  height: 26,
+                  flexShrink: 0,
+                  borderRadius: RADIUS.pill,
+                  border: `1px solid ${GLASS.border}`,
+                  background: includeWarmup ? ACCENT.base : SURFACE.raised,
+                  transition: `background ${MOTION.fast} ${MOTION.easeOut}`,
+                }}
+              >
+                <span
+                  style={{
+                    position: "absolute",
+                    top: 2,
+                    left: 2,
+                    width: 20,
+                    height: 20,
+                    borderRadius: RADIUS.pill,
+                    background: includeWarmup ? TEXT.onAccent : TEXT.tertiary,
+                    transform: `translateX(${includeWarmup ? 18 : 0}px)`,
+                    transition: `transform ${MOTION.fast} ${MOTION.spring}`,
+                  }}
+                />
+              </span>
+            </button>
+          </div>
+        )}
+
         <button
           type="button"
           disabled={!canApply}
-          onClick={() => {
-            if (!canApply) return;
-            onApply({ weightKg: weightNumber, reps: repsNumber });
-            onClose();
-          }}
+          onClick={apply}
           style={{
             minHeight: MOTION.minTouchTarget,
             borderRadius: RADIUS.control,

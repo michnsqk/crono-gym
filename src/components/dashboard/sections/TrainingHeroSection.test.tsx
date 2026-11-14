@@ -62,10 +62,12 @@ describe("TrainingHeroSection", () => {
     render(<TrainingHeroSection {...baseProps} routineTitle="Empuje de pecho con barra" />);
 
     // Una sola columna en móvil: el título ocupa el ancho completo, así que el
-    // nombre de la rutina cabe en dos líneas y no en cuatro.
+    // nombre de la rutina cabe en dos líneas y no en cuatro. En escritorio el
+    // mapa tiene una columna fija: "auto" dejaba que el título se comiera el
+    // ancho del mapa y el nombre volviera a partirse.
     const grid = screen.getByTestId("training-hero-command").querySelector("div.grid");
     expect(grid?.className).toContain("grid-cols-1");
-    expect(grid?.className).toContain("md:grid-cols-[1fr_auto]");
+    expect(grid?.className).toContain("md:grid-cols-[minmax(0,1fr)_165px]");
 
     const title = screen.getByText("Empuje de pecho con barra");
     expect(title.style.maxWidth).toBe("20ch");

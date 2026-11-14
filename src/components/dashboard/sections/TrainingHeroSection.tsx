@@ -87,7 +87,7 @@ export function TrainingHeroSection({
       {/* On a phone the muscle map goes *below* the title, not beside it: side by
           side the title column is ~150px wide at 390px and the routine name
           breaks into four lines before the athlete reads the CTA. */}
-      <div className="relative grid grid-cols-1 gap-4 md:grid-cols-[1fr_auto] lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-8 lg:items-end">
+      <div className="relative grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,1fr)_165px] lg:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] lg:gap-8 lg:items-end">
         <div className="min-w-0 p-3 px-4 md:p-4 lg:p-6">
           <div className="flex items-center gap-2 flex-wrap">
             {!isCompleted ? <span
@@ -106,7 +106,7 @@ export function TrainingHeroSection({
               }}
             >
               <Sparkles size={12} aria-hidden="true" />
-              {isCompleted ? "✓ COMPLETADO HOY" : "⚡ HOY"}
+              {isCompleted ? "COMPLETADO HOY" : "HOY"}
             </span> : null}
             {focusLabel && hasRoutine && focusLabel.trim() !== routineTitle.trim() ? (
               <span style={{ ...TYPE.caption, color: TEXT.tertiary }}>
@@ -209,7 +209,7 @@ export function TrainingHeroSection({
                 boxShadow: ctaDisabled ? "none" : `0 12px 30px ${ACCENT.glow}`,
               }}
               >
-                {isCompleted ? "Ver progreso →" : resolvedLabel}
+                {isCompleted ? "Ver progreso" : resolvedLabel}
               </GlassButton>
               {isCompleted && onExtra ? (
                 <button type="button" aria-label="Iniciar sesión extra" onClick={onExtra}
@@ -259,7 +259,8 @@ export function TrainingHeroSection({
                 width: "100%",
                 margin: "0 auto",
                 backgroundColor: "transparent",
-                height: isCompact ? 140 : 160,
+                overflow: "visible",
+                height: isCompact ? 160 : 240,
               }}
             >
               <MuscleReadonlyMap

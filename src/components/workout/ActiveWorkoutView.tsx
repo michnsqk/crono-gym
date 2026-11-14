@@ -11,9 +11,11 @@
  */
 
 import { useCallback, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import type { PlannedExercise } from "../../hooks/useGymData";
 import type { DraftExercise } from "../../lib/offlineStore";
 import { useActiveSession } from "../../context/ActiveSessionContext";
+import { HOME_PATH } from "../shell/navItems";
 import { ActiveWorkout } from "../ActiveWorkout";
 import { ErrorBoundary } from "../ErrorBoundary";
 import { WorkoutSummaryModal } from "./WorkoutSummaryModal";
@@ -34,6 +36,7 @@ export function ActiveWorkoutView({
   onFinished: onLeftWorkout,
 }: ActiveWorkoutViewProps) {
   const { session, end } = useActiveSession();
+  const navigate = useNavigate();
   const [summaryOpen, setSummaryOpen] = useState(false);
   /**
    * The session exactly as it was finished.
@@ -58,13 +61,17 @@ export function ActiveWorkoutView({
    * The logger no longer ends the session when the last set is logged -- doing
    * so unmounted this screen (and the summary) from `TrainView` before the
    * summary could paint. The session ends here instead: on save, on `LISTO`, or
-   * on dismissal. All three are the athlete leaving the workout for good.
+   * on dismissal. All three are the athlete leaving the workout for good, and
+   * all three land on the home screen rather than on the training route, which
+   * would otherwise render the home view anyway and leave the URL lying about
+   * where the athlete is.
    */
   const handleLeave = useCallback(() => {
     setSummaryOpen(false);
     end();
     onLeftWorkout();
-  }, [end, onLeftWorkout]);
+    navigate(HOME_PATH, { replace: true });
+  }, [end, onLeftWorkout, navigate]);
 
   return (
     <div

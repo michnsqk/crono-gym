@@ -104,11 +104,13 @@ import { getExerciseDisplayName } from "@/utils/exerciseTranslation";
 import {
   BODYWEIGHT_LOAD_HINT,
   calibratePendingSets,
+  classifyEquipmentCategory,
   cleanEquipmentLabel,
   computeExerciseRank,
   estimateSmartLoad,
   findStationAlternatives,
   generateSmartWarmupSets,
+  generateWarmupRamp,
   getAdaptiveRestSeconds,
   getLoadBreakdownHint,
   inferColdStartLoad,
@@ -118,6 +120,7 @@ import {
   recordSetAndTrainEngine,
   SET_TYPE_GUIDES,
   type CalibrationPresetId,
+  type EquipmentCategory,
   type ExerciseRankResult,
   type StationAlternative,
 } from "@/lib/workout/cronosSmartEngine";
@@ -1987,6 +1990,54 @@ export function ActiveWorkout({
     smartExercise?.station_key,
   ]);
 
+  /**
+   * How this implement is written down: per hand on a dumbbell, per side on a
+   * bar, as a pin on a stack.
+   *
+   * One classification, three consumers -- the increment, the breakdown line
+   * and the rank family -- so the card can never say "2.5 kg" on a movement
+   * whose smallest jump is 2, or "Barra 60 kg" for a cable.
+   */
+  const smartCategory = useMemo<EquipmentCategory>(() => classifyEquipmentCategory({
+    equipment_id: smartExercise?.equipment_id ?? smartExercise?.effectiveEquipmentId,
+    equipment: smartExercise?.equipment ?? selected?.exercise.equipment,
+    station: smartExercise?.station_key,
+    isBodyweight: isBodyweightSelected,
+  }), [smartExercise, selected, isBodyweightSelected]);
+
+  const smartEquipmentLabel = useMemo(() => {
+    const label = smartExercise?.effectiveEquipmentName ?? smartExercise?.equipment_name ?? smartExercise?.equipment ?? "";
+    return cleanEquipmentLabel(label) || null;
+  }, [smartExercise]);
+
+  /** "Mancuerna 12.5kg por mano · 25kg total", or the bodyweight line. */
+  const loadHint = useMemo(() => {
+    if (!smartLoad) return null;
+    return getLoadBreakdownHint(
+      smartLoad.weightKg,
+      smartExercise?.station_key ?? "free_weight_area",
+      smartExercise?.equipment,
+      smartCategory,
+    );
+  }, [smartLoad, smartExercise, smartCategory]);
+
+  /**
+   * The ramp that prepares this load.
+   *
+   * Sizing it here, once, is what lets both the offer in the card and the modal
+   * agree on how many touches the lift needs: the athlete is never shown a
+   * warm-up the engine would not have prescribed.
+   */
+  const warmupRamp = useMemo(() => {
+    if (!smartLoad || isBodyweightSelected) return [];
+    return generateWarmupRamp({
+      workingWeightKg: smartLoad.weightKg,
+      targetReps: smartLoad.suggestedReps,
+      category: smartCategory,
+      musclePreviouslyWorked: selected?.sets.some((set) => set.completed) ?? false,
+    });
+  }, [smartLoad, smartCategory, selected, isBodyweightSelected]);
+
   const stationAlternatives = useMemo<StationAlternative[]>(() => {
     if (!selected || !smartExercise || !smartLoad) return [];
     return findStationAlternatives(smartExercise, catalog, smartLoad.weightKg);
@@ -2019,8 +2070,12 @@ export function ActiveWorkout({
       isBodyweight: isBodyweightSelected,
       movementPattern: smartExercise?.movement_pattern ?? null,
       targetReps,
+      equipment: smartExercise?.equipment,
+      equipmentId: smartExercise?.equipment_id ?? smartExercise?.effectiveEquipmentId,
+      station: smartExercise?.station_key,
+      category: smartCategory,
     });
-  }, [selected, performance, smartLoad, profile?.weight_kg, isBodyweightSelected, smartExercise?.movement_pattern, strengthRevision]);
+  }, [selected, performance, smartLoad, profile?.weight_kg, isBodyweightSelected, smartExercise?.movement_pattern, smartExercise?.station_key, smartExercise?.equipment, smartExercise?.equipment_id, smartExercise?.effectiveEquipmentId, smartCategory, strengthRevision]);
 
   /** The first set still waiting for a check mark, as the athlete counts them. */
   const nextPendingSetNumber = useMemo(() => {
@@ -2223,18 +2278,35 @@ export function ActiveWorkout({
 
   function insertSmartWarmups() {
     if (!selected || !smartLoad) return;
-    const warmups = generateSmartWarmupSets(smartLoad.weightKg, selected.sets.some((set) => set.completed));
+    insertWarmupRamp(
+      generateSmartWarmupSets(smartLoad.weightKg, selected.sets.some((set) => set.completed)),
+    );
+  }
+
+  /** Puts a ramp in front of the work sets, renumbering what follows. */
+  function insertWarmupRamp(ramp: readonly { weightKg: number; reps: number }[]) {
+    if (!selected || ramp.length === 0) return;
     setItems((current) => current.map((item) => item.key !== selected.key ? item : {
       ...item,
       sets: [
-        ...warmups.map((set, index) => newSessionSet({
+        ...ramp.map((set, index) => newSessionSet({
           kind: "warmup",
           weight: String(set.weightKg),
           reps: String(set.reps),
         }, index)),
-        ...item.sets.map((set, index) => ({ ...set, set_number: index + warmups.length + 1 })),
+        ...item.sets.map((set, index) => ({ ...set, set_number: index + ramp.length + 1 })),
       ],
     }));
+  }
+
+  /**
+   * The modal's accept: the load, and -- only if the athlete asked for it --
+   * the ramp that gets them there.
+   */
+  function applySmartLoadFromModal(next: { weightKg: number; reps: number; includeWarmup?: boolean }) {
+    if (!selected) return;
+    applyLoad(next.weightKg, next.reps);
+    if (next.includeWarmup) insertWarmupRamp(warmupRamp);
   }
 
   function applyCalibration(feedback: "too_light" | "perfect" | "too_heavy") {
@@ -2835,9 +2907,7 @@ export function ActiveWorkout({
                             {isBodyweightSelected ? `Peso corporal × ${smartLoad.suggestedReps}` : `${smartLoad.weightKg} kg × ${smartLoad.suggestedReps}`}
                           </span>
                           <span className="font-mono text-[11px] text-neutral-400">
-                            {isBodyweightSelected
-                              ? BODYWEIGHT_LOAD_HINT
-                              : getLoadBreakdownHint(smartLoad.weightKg, smartExercise?.station_key ?? "free_weight_area", smartExercise?.equipment)}
+                            {isBodyweightSelected ? BODYWEIGHT_LOAD_HINT : loadHint}
                           </span>
                         </p>
                       </div>
@@ -3008,8 +3078,12 @@ export function ActiveWorkout({
             hasHistory={hasExerciseHistory}
             coldStartReason={coldStartPreview?.reason ?? null}
             coldStartSourceLabel={coldStartPreview?.sourceLabel ?? null}
+            category={smartCategory}
+            breakdownHint={loadHint}
+            equipmentLabel={smartEquipmentLabel}
+            warmupRamp={warmupRamp}
             onCalibrate={calibrateColdStart}
-            onApply={(next) => applyLoad(next.weightKg, next.reps)}
+            onApply={applySmartLoadFromModal}
             pendingSetNumber={nextPendingSetNumber}
           />
           <ExerciseRankSheet

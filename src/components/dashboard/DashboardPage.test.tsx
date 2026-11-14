@@ -434,8 +434,10 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("Ver progreso →")).toBeTruthy();
-    fireEvent.click(screen.getByText("Ver progreso →"));
+    // The arrow lives in the button's icon now: the label used to carry a
+    // second one, so the completed CTA read "Ver progreso → →".
+    expect(screen.getByText("Ver progreso")).toBeTruthy();
+    fireEvent.click(screen.getByText("Ver progreso"));
     expect(mockNavigate).toHaveBeenCalledWith("/progreso");
     expect(mockStart).not.toHaveBeenCalled();
   });

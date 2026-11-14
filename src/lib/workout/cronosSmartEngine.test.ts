@@ -2,9 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   BODYWEIGHT_LOAD_HINT,
   calibratePendingSets,
+  classifyEquipmentCategory,
+  computeExerciseRank,
   estimateSmartLoad,
   findStationAlternatives,
   generateSmartWarmupSets,
+  generateWarmupRamp,
   getAdaptiveRestSeconds,
   getLoadBreakdownHint,
   isBodyweightExercise,
@@ -185,5 +188,206 @@ describe("findStationAlternatives", () => {
 
     expect(alternative.cleanEquipmentName).not.toContain("CG-EQP");
     expect(alternative.cleanEquipmentName).toBe("machine");
+  });
+});
+
+/**
+ * The ramp is the difference between "a warm-up" and "the first set of my
+ * session is a 40 kg jump". These tests are about how many touches a heavy bar
+ * needs, and about the movements that need none.
+ */
+describe("generateWarmupRamp", () => {
+  it("necesita tres aproximaciones cuando la barra pesa", () => {
+    const ramp = generateWarmupRamp({ workingWeightKg: 100, targetReps: 8 });
+
+    expect(ramp).toHaveLength(3);
+    expect(ramp.map((set) => set.weightKg)).toEqual([50, 70, 85]);
+    expect(ramp.every((set) => set.type === "warmup")).toBe(true);
+    // Ascending, or it is not a ramp.
+    expect(ramp[0].weightKg).toBeLessThan(ramp[1].weightKg);
+    expect(ramp[1].weightKg).toBeLessThan(ramp[2].weightKg);
+  });
+
+  it("se conforma con dos toques en cargas medianas y una en ligeras", () => {
+    expect(generateWarmupRamp({ workingWeightKg: 30, targetReps: 10 })).toHaveLength(2);
+    expect(generateWarmupRamp({ workingWeightKg: 12, targetReps: 12 })).toHaveLength(1);
+  });
+
+  it("no inventa una barra para un movimiento de peso corporal", () => {
+    const ramp = generateWarmupRamp({ workingWeightKg: 0, targetReps: 15, isBodyweight: true });
+
+    expect(ramp).toHaveLength(1);
+    expect(ramp[0].weightKg).toBe(0);
+  });
+
+  it("acorta la rampa cuando el músculo ya viene caliente", () => {
+    const cold = generateWarmupRamp({ workingWeightKg: 100, targetReps: 8 });
+    const warm = generateWarmupRamp({ workingWeightKg: 100, targetReps: 8, musclePreviouslyWorked: true });
+
+    expect(warm).toHaveLength(1);
+    expect(warm.length).toBeLessThan(cold.length);
+  });
+
+  it("genera una rampa coherente desde la serie de trabajo", () => {
+    // 80 kg is the heavy end of the old three-step ladder: 40 < 68 must hold.
+    const sets = generateSmartWarmupSets(80, false);
+    expect(sets).toHaveLength(3);
+    expect(sets[0].weightKg).toBeLessThan(sets[2].weightKg);
+  });
+});
+
+describe("classifyEquipmentCategory", () => {
+  it("reconoce el implemento con el que se escribe la carga", () => {
+    expect(classifyEquipmentCategory({ equipment: "Mancuernas" })).toBe("dumbbell");
+    expect(classifyEquipmentCategory({ equipment: "Barra / Discos" })).toBe("barbell");
+    expect(classifyEquipmentCategory({ equipment: "Polea" })).toBe("cable");
+    expect(classifyEquipmentCategory({ equipment: "Máquina Selectorizada" })).toBe("machine");
+    expect(classifyEquipmentCategory({ equipment_id: "NONE" })).toBe("bodyweight");
+  });
+
+  it("usa la estación cuando el nombre del equipo no dice nada", () => {
+    expect(classifyEquipmentCategory({ station: "cable_high_pulley", equipment: "Polea" })).toBe("cable");
+    expect(classifyEquipmentCategory({ station: "squat_rack" })).toBe("barbell");
+    expect(classifyEquipmentCategory({ station: "pullup_dip_station" })).toBe("bodyweight");
+  });
+
+  it("lee un jalón con acento como lo que es", () => {
+    expect(classifyEquipmentCategory({ name: "Jalón al pecho" })).toBe("cable");
+    expect(classifyEquipmentCategory({ name_es: "Jalón agarre abierto" })).toBe("cable");
+    expect(getLoadBreakdownHint(50, "free_weight_area", "polea", classifyEquipmentCategory({ name: "Jalón al pecho" }))).toContain("Torre");
+  });
+
+  it("trata lo que no reconoce como máquina, no como barra", () => {
+    expect(classifyEquipmentCategory(null)).toBe("machine");
+    expect(classifyEquipmentCategory({ equipment: "algo raro" })).toBe("machine");
+  });
+});
+
+describe("desglose de carga por implemento", () => {
+  it("escribe la mancuerna por mano y dice el total", () => {
+    const hint = getLoadBreakdownHint(25, "free_weight_area", "mancuerna", "dumbbell");
+    expect(hint).toContain("por mano");
+    expect(hint).toContain("25kg total");
+  });
+
+  it("no describe una barra cuando el movimiento es de peso corporal", () => {
+    expect(getLoadBreakdownHint(0, "free_weight_area", "body weight", "bodyweight")).toBe(BODYWEIGHT_LOAD_HINT);
+  });
+
+  it("sigue describiendo la barra cuando el implemento no se clasificó", () => {
+    expect(getLoadBreakdownHint(60, "flat_bench", "barbell")).toContain("Barra");
+  });
+});
+
+/**
+ * Ranking 2.0: the tier names are one vocabulary, but the scale has to fit the
+ * movement. A lateral raise at a 0.3 bodyweight ratio used to be Diamante.
+ */
+describe("computeExerciseRank por familia", () => {
+  it("deja el press de banca en su escalera compuesta", () => {
+    const rank = computeExerciseRank({
+      exerciseId: "bench",
+      weightKg: 80,
+      reps: 8,
+      bodyWeightKg: 80,
+      equipment: "Barra / Discos",
+      equipmentId: "CG-EQP-0004",
+    });
+
+    expect(rank.family).toBe("compound");
+    // 80×8 is a 101 kg e1RM on an 80 kg athlete: relative 1.26, mid-ladder.
+    expect(rank.ratio).toBeGreaterThan(1.2);
+    expect(rank.currentRank.tier).not.toBe("Titán Cronos");
+  });
+
+  it("mide con una escalera distinta según el implemento", () => {
+    const cable = computeExerciseRank({
+      exerciseId: "curl",
+      weightKg: 24,
+      reps: 12,
+      bodyWeightKg: 80,
+      equipment: "Polea",
+      equipmentId: "CG-EQP-0022",
+      category: "cable",
+    });
+    const barbell = computeExerciseRank({
+      exerciseId: "curl-barra",
+      weightKg: 24,
+      reps: 12,
+      bodyWeightKg: 80,
+      equipment: "Barra / Discos",
+    });
+
+    // Same athlete, same ratio; the isolation ladder is the one that can price
+    // it, the compound one cannot.
+    expect(cable.ratio).toBe(barbell.ratio);
+    expect(cable.family).toBe("isolation");
+    expect(barbell.family).toBe("compound");
+    expect(cable.currentRank.tier).not.toBe("Sin rango");
+    expect(barbell.currentRank.tier).toBe("Sin rango");
+    // The isolation floor is low enough for this ratio; the compound one is not.
+    expect(cable.ratio).toBeGreaterThan(0.15);
+    expect(barbell.ratio).toBeLessThan(0.6);
+  });
+
+  it("mide el peso corporal en repeticiones, no en barra", () => {
+    const pullUp = computeExerciseRank({
+      exerciseId: "pullup",
+      weightKg: 0,
+      reps: 12,
+      bodyWeightKg: 80,
+      isBodyweight: true,
+    });
+
+    expect(pullUp.family).toBe("bodyweight");
+    expect(pullUp.score).toBe(12);
+    expect(pullUp.nextRank.targetWeightKg).toBe(0);
+    expect(pullUp.nextRank.targetReps).toBeGreaterThan(12);
+  });
+
+  it("pone precio a la mancuerna en incrementos de dos", () => {
+    const rank = computeExerciseRank({
+      exerciseId: "press-mancuerna",
+      weightKg: 20,
+      reps: 10,
+      bodyWeightKg: 80,
+      equipment: "Mancuernas",
+    });
+
+    expect(rank.category).toBe("dumbbell");
+    expect(rank.nextRank.targetWeightKg % 2).toBe(0);
+  });
+
+  it("no cae en la escalera de aislamiento cuando no llega el implemento", () => {
+    // The call site used to pass only id, weight and reps: every movement then
+    // classified as a machine and was priced on the isolation ladder, so a bench
+    // press came back as Titán Cronos with no next rung.
+    const rank = computeExerciseRank({
+      exerciseId: "bench",
+      weightKg: 80,
+      reps: 8,
+      bodyWeightKg: 80,
+      station: "flat_bench",
+      equipment: "Barra / Discos",
+      equipmentId: "CG-EQP-0004",
+    });
+
+    expect(rank.family).toBe("compound");
+    expect(rank.currentRank.tier).not.toBe("Titán Cronos");
+  });
+
+  it("valora una prensa de piernas como compuesto, no como aislamiento", () => {
+    const legPress = computeExerciseRank({
+      exerciseId: "leg-press",
+      weightKg: 160,
+      reps: 10,
+      bodyWeightKg: 80,
+      station: "leg_press_45",
+      equipment: "Máquina Selectorizada",
+      equipmentId: "CG-EQP-0002",
+    });
+
+    expect(legPress.family).toBe("compound");
+    expect(legPress.category).toBe("machine");
   });
 });

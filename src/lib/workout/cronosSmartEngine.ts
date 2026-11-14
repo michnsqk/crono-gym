@@ -20,6 +20,10 @@ export interface SmartLoadParams {
   sourceOneRmKg?: number;
   targetStation?: StationKey;
   experienceLevel?: ExperienceLevel;
+  /** Resolved implement, when the caller already classified it. */
+  category?: EquipmentCategory;
+  equipment?: string;
+  equipmentId?: string;
 }
 
 export interface SmartLoadResult {
@@ -176,6 +180,61 @@ export function isBodyweightExercise(
   return BODYWEIGHT_NAME_HINTS.some((hint) => name.includes(hint));
 }
 
+/* ------------------------------------------------------------------------- *
+ * Equipment categories: how the load is written down                        *
+ * ------------------------------------------------------------------------- */
+
+export type EquipmentCategory = "bodyweight" | "dumbbell" | "barbell" | "cable" | "machine";
+
+export interface EquipmentCategoryInput extends BodyweightCandidate {
+  station?: StationKey | null;
+  /** The caller already decided this one is bodyweight. */
+  isBodyweight?: boolean;
+}
+
+/**
+ * The five ways this gym loads a movement.
+ *
+ * Not the same question as `equipmentKindOf`. That one answers "how much of a
+ * lift survives a change of implement", so it needs an `other` bucket for rows
+ * that match nothing and a transfer factor for each. This one answers "how is
+ * the number written on the card" -- per hand, per side of a bar, or as a pin
+ * in a stack -- and a movement that matches nothing here is on a machine,
+ * because that is what the athlete sees when they walk in.
+ */
+const CATEGORY_HINTS: ReadonlyArray<readonly [EquipmentCategory, RegExp]> = [
+  ["dumbbell", /mancuerna|dumbbell/],
+  ["cable", /polea|cable|pulley|crossover|jabon|jalon|lat\s?pull/],
+  ["barbell", /barra|barbell|olimp|smith/],
+  ["machine", /maquina|machine|selectorizada|leverage|pec\s?deck|hack|glute|press|curl|extension/],
+];
+
+export function classifyEquipmentCategory(
+  input: EquipmentCategoryInput | null | undefined,
+): EquipmentCategory {
+  if (!input) return "machine";
+  if (input.isBodyweight || isBodyweightExercise(input) || input.station === "pullup_dip_station") {
+    return "bodyweight";
+  }
+  if (input.station?.startsWith("cable_")) return "cable";
+  if (input.station === "squat_rack" || input.station === "smith_machine") return "barbell";
+
+  // Accents are decoration on a catalog name: "Jalón" and "Jalon" are the same
+  // movement, and only one of them used to reach the cable pattern.
+  const text = foldName(
+    `${input.equipment ?? ""} ${input.equipment_id ?? ""} ${input.name ?? ""} ${input.name_es ?? ""}`,
+  );
+  for (const [category, pattern] of CATEGORY_HINTS) {
+    if (pattern.test(text)) return category;
+  }
+  return "machine";
+}
+
+/** The smallest load the athlete can actually put on this implement. */
+export function incrementForCategory(category: EquipmentCategory): number {
+  return category === "dumbbell" ? 2 : 2.5;
+}
+
 export function estimateSmartLoad(params: SmartLoadParams & {
   movementPattern?: string;
 }): SmartLoadResult {
@@ -246,29 +305,89 @@ export function estimateSmartLoad(params: SmartLoadParams & {
   }
 
   const achievedTarget = latest.reps >= targetReps;
+  const increment = incrementForCategory(
+    params.category ??
+      classifyEquipmentCategory({
+        station: params.targetStation,
+        equipment: params.equipment,
+        equipment_id: params.equipmentId,
+      }),
+  );
   return {
-    weightKg: roundLoad(latest.weightKg + (achievedTarget ? 2.5 : 0)),
+    weightKg: roundLoad(latest.weightKg + (achievedTarget ? increment : 0)),
     suggestedReps: targetReps,
     reason: achievedTarget
-      ? "Objetivo completado: incremento progresivo recomendado."
+      ? `Objetivo completado: +${increment}kg sobre la última serie.`
       : "Mantener carga hasta completar el rango objetivo.",
     confidence: "high",
   };
+}
+
+export interface WarmupRampInput {
+  workingWeightKg: number;
+  targetReps?: number;
+  isBodyweight?: boolean;
+  category?: EquipmentCategory;
+  musclePreviouslyWorked?: boolean;
+}
+
+/**
+ * The ramp that actually prepares a lift.
+ *
+ * A single "50 %" opener does not prepare a 100 kg squat: the athlete's first
+ * real set is then a 50 kg jump. The ramp is sized by how much bar there is, so
+ * a heavy lift gets three touch-and-go ramps and a light one gets a single
+ * opener, and a bodyweight movement gets one set because there is no load to
+ * climb.
+ */
+export function generateWarmupRamp(input: WarmupRampInput): SmartWorkoutSet[] {
+  const reps = Math.max(1, Math.round(finite(input.targetReps, 10)));
+  const category = input.category ?? "machine";
+  const isBodyweight = input.isBodyweight === true || category === "bodyweight";
+  const weight = Math.max(0, finite(input.workingWeightKg));
+
+  if (input.musclePreviouslyWorked) {
+    // The muscle is already warm from earlier in the session: one short opener.
+    return [
+      {
+        weightKg: isBodyweight ? 0 : roundLoad(weight * 0.5),
+        reps: Math.min(8, reps),
+        type: "warmup",
+        completed: false,
+      },
+    ];
+  }
+
+  if (isBodyweight) {
+    return [{ weightKg: 0, reps: Math.min(8, reps), type: "warmup" }];
+  }
+
+  if (weight <= 15) {
+    return [{ weightKg: roundLoad(weight * 0.5), reps: Math.min(8, reps), type: "warmup" }];
+  }
+
+  if (weight < 40) {
+    return [
+      { weightKg: roundLoad(weight * 0.5), reps: Math.min(8, reps), type: "warmup" },
+      { weightKg: roundLoad(weight * 0.75), reps: Math.min(4, reps), type: "warmup" },
+    ];
+  }
+
+  return [
+    { weightKg: roundLoad(weight * 0.5), reps: Math.min(10, reps), type: "warmup" },
+    { weightKg: roundLoad(weight * 0.7), reps: Math.min(5, reps), type: "warmup" },
+    { weightKg: roundLoad(weight * 0.85), reps: Math.min(2, reps), type: "warmup" },
+  ];
 }
 
 export function generateSmartWarmupSets(
   workingWeightKg: number,
   musclePreviouslyWorked: boolean,
 ): SmartWorkoutSet[] {
-  const weight = Math.max(0, finite(workingWeightKg));
-  if (musclePreviouslyWorked) {
-    return [{ weightKg: roundLoad(weight * 0.5), reps: 8, type: "warmup", completed: false }];
-  }
-  return [
-    { weightKg: roundLoad(weight * 0.4), reps: 12, type: "warmup" },
-    { weightKg: roundLoad(weight * 0.6), reps: 8, type: "warmup" },
-    { weightKg: roundLoad(weight * 0.8), reps: 4, type: "warmup" },
-  ];
+  return generateWarmupRamp({
+    workingWeightKg,
+    musclePreviouslyWorked,
+  });
 }
 
 export function calibratePendingSets<T extends { weightKg: number }>(
@@ -296,14 +415,22 @@ export function getLoadBreakdownHint(
   weightKg: number,
   station: StationKey,
   equipment?: string,
+  category?: EquipmentCategory,
 ): string {
   const weight = roundLoad(weightKg);
   // A bar and a dip station carry the athlete, not a load: there is no bar
   // breakdown to describe, and inventing one is what put "Barra 7kg" on a pull-up.
   if (station === "pullup_dip_station") return BODYWEIGHT_LOAD_HINT;
+  if (category === "bodyweight") return BODYWEIGHT_LOAD_HINT;
+  // A dumbbell is written per hand: "60kg" means two 30s, and the card has to
+  // say so or the athlete loads 60 in each hand and calls it an overload.
+  if (category === "dumbbell") {
+    return `Mancuerna ${roundLoad(weight / 2)}kg por mano · ${weight}kg total`;
+  }
   if (station === "free_weight_area" && equipment?.toLowerCase().includes("dumbbell")) {
     return `Mancuerna ${roundLoad(weight / 2)}kg por mano`;
   }
+  if (category === "cable") return `Torre ${weight}kg · seleccionar pasador`;
   if (station.startsWith("cable_")) return `Torre ${weight}kg · seleccionar pasador`;
   if (weight <= 20) return `Barra ${weight}kg`;
   return `Barra 20kg + [${roundLoad((weight - 20) / 2)}kg]/lado`;
@@ -691,9 +818,9 @@ function roundToIncrement(value: number, increment: number): number {
 
 /** The three one-tap answers to "how do we calibrate this today?". */
 export const CALIBRATION_PRESETS = [
-  { id: "light", label: "🌱 Ligero / Técnica (-15%)", factor: 0.85, hint: "Prioriza el recorrido y la técnica." },
-  { id: "standard", label: "⚡ Estándar para mi peso (Recomendado)", factor: 1, hint: "La estimación por biometría, sin ajustes." },
-  { id: "demanding", label: "🔥 Exigente / Ya lo domino (+15%)", factor: 1.15, hint: "Para un patrón que ya dominas." },
+  { id: "light", label: "Técnica (-15%)", short: "Técnica", factor: 0.85, hint: "Prioriza el recorrido y la técnica." },
+  { id: "standard", label: "Estándar para mi peso (Recomendado)", short: "Estándar", factor: 1, hint: "La estimación por biometría, sin ajustes." },
+  { id: "demanding", label: "Exigente / Ya lo domino (+15%)", short: "Exigente", factor: 1.15, hint: "Para un patrón que ya dominas." },
 ] as const;
 
 export type CalibrationPresetId = (typeof CALIBRATION_PRESETS)[number]["id"];
@@ -725,6 +852,10 @@ export interface ColdStartResult {
   sourceLabel: string;
   reason: string;
   calibrated: boolean;
+  /** How this implement is loaded, so the card can be written per hand. */
+  category: EquipmentCategory;
+  /** "Mancuerna 12.5kg por mano · 25kg total", or the bodyweight line. */
+  breakdownHint: string;
 }
 
 /**
@@ -740,8 +871,30 @@ export function inferColdStartLoad(input: ColdStartInput): ColdStartResult {
   const preset = CALIBRATION_PRESETS.find((item) => item.id === input.preset) ?? CALIBRATION_PRESETS[1];
   const model = input.model ?? loadStrengthModel();
   const kind = equipmentKindOf(input.equipment, input.equipmentId);
-  const increment = gymIncrementFor(kind);
+  const category = classifyEquipmentCategory({
+    equipment: input.equipment ?? undefined,
+    equipment_id: input.equipmentId ?? undefined,
+    station: input.station,
+    isBodyweight: input.isBodyweight,
+  });
+  const increment = incrementForCategory(category);
   const factor = EQUIPMENT_TRANSFER_FACTORS[kind];
+  const isBodyweight = input.isBodyweight === true || category === "bodyweight";
+
+  // A movement that only ever carries the athlete has no load to calibrate, and
+  // asking for one is what makes the first session feel impossible.
+  if (isBodyweight) {
+    return {
+      weightKg: 0,
+      suggestedReps: Math.max(targetReps, 15),
+      source: "biometrics",
+      sourceLabel: "Peso corporal",
+      reason: "Peso corporal: la carga la pone el atleta; el peso externo va a cero.",
+      calibrated: input.preset !== undefined,
+      category,
+      breakdownHint: BODYWEIGHT_LOAD_HINT,
+    };
+  }
 
   const own = Math.max(
     positiveNumber(input.historyByExercise?.[input.exerciseId]),
@@ -756,6 +909,8 @@ export function inferColdStartLoad(input: ColdStartInput): ColdStartResult {
       sourceLabel: "Tu última marca en este ejercicio",
       reason: "Ya tienes una marca propia: se ajusta a las repeticiones de hoy.",
       calibrated: input.preset !== undefined,
+      category,
+      breakdownHint: getLoadBreakdownHint(weight, input.station ?? "free_weight_area", input.equipment ?? undefined, category),
     };
   }
 
@@ -774,6 +929,8 @@ export function inferColdStartLoad(input: ColdStartInput): ColdStartResult {
       sourceLabel: input.movementPattern ? `Transferido desde tu patrón ${input.movementPattern}` : "Transferido desde un ejercicio equivalente",
       reason: `Mismo patrón, otro implemento: se aplica el factor ${factor} de ${kind}.`,
       calibrated: input.preset !== undefined,
+      category,
+      breakdownHint: getLoadBreakdownHint(weight, input.station ?? "free_weight_area", input.equipment ?? undefined, category),
     };
   }
 
@@ -785,16 +942,17 @@ export function inferColdStartLoad(input: ColdStartInput): ColdStartResult {
     movementPattern: input.movementPattern ?? undefined,
     experienceLevel: input.experienceLevel ?? model.calibration,
   });
+  const weight = roundToIncrement(biometric.weightKg * preset.factor, increment);
 
   return {
-    weightKg: roundToIncrement(biometric.weightKg * preset.factor, increment),
+    weightKg: weight,
     suggestedReps: targetReps,
     source: "biometrics",
     sourceLabel: `Estimado por ${preset.id === "light" ? "técnica ligera" : preset.id === "demanding" ? "nivel exigente" : "peso corporal y experiencia"}`,
-    reason: input.isBodyweight
-      ? "Sin marcas previas: se estima con el peso corporal y la experiencia."
-      : "Sin marcas previas: se estima con el peso corporal, la estación y la experiencia.",
+    reason: "Sin marcas previas: se estima con el peso corporal, la estación y la experiencia.",
     calibrated: input.preset !== undefined,
+    category,
+    breakdownHint: getLoadBreakdownHint(weight, input.station ?? "free_weight_area", input.equipment ?? undefined, category),
   };
 }
 
@@ -879,6 +1037,11 @@ export interface ExerciseRankInput {
   /** The reps the athlete is aiming for; the next rank is priced in them. */
   targetReps?: number;
   incrementKg?: number;
+  equipment?: string;
+  equipmentId?: string;
+  category?: EquipmentCategory;
+  /** Which station the movement is performed at, when the caller knows it. */
+  station?: StationKey | null;
 }
 
 export interface ExerciseRankState {
@@ -903,6 +1066,68 @@ export interface ExerciseRankResult {
   score: number;
   /** Relative strength (loaded) or reps (bodyweight). */
   ratio: number;
+  /** Which ladder priced this rank, so the sheet can explain the bar. */
+  family: RankFamily;
+  /** How the implement is loaded, as the card is written. */
+  category: EquipmentCategory;
+}
+
+/** What kind of lift the rank is priced against. */
+export type RankFamily = "compound" | "push_pull" | "isolation" | "bodyweight";
+
+/** The bars the base ladder starts and tops out at; every family scales between them. */
+const BASE_LADDER_MIN = 0.3;
+const BASE_LADDER_MAX = 2.0;
+
+/**
+ * A ladder that spans `from` to `to` but keeps the same fifteen rungs.
+ *
+ * The tier names are the vocabulary and the colours are the badge; what changes
+ * between a squat and a lateral raise is the scale they sit on. A lateral raise
+ * can never reach a 2.0 bodyweight ratio, so one shared scale made half the
+ * catalog unrankable and the other half trivially Diamante.
+ */
+export function buildStrengthLadder(from: number, to: number): readonly RankRung[] {
+  const floor = Math.max(0, finite(from, BASE_LADDER_MIN));
+  const ceiling = Math.max(floor, finite(to, BASE_LADDER_MAX));
+  const span = (ceiling - floor) / (BASE_LADDER_MAX - BASE_LADDER_MIN);
+
+  return [
+    { tier: "Sin rango", min: 0, colorHex: RANK_COLORS.none },
+    ...STRENGTH_LADDER.slice(1).map((rung) => ({
+      tier: rung.tier,
+      min: Math.round((floor + (rung.min - BASE_LADDER_MIN) * span) * 1000) / 1000,
+      colorHex: rung.colorHex,
+    })),
+  ];
+}
+
+const FAMILY_LADDERS: Readonly<Record<Exclude<RankFamily, "bodyweight">, readonly RankRung[]>> = {
+  compound: buildStrengthLadder(0.6, 2.2),
+  push_pull: buildStrengthLadder(0.3, 2.0),
+  isolation: buildStrengthLadder(0.15, 0.65),
+};
+
+const COMPOUND_HINTS = /barra|barbell|squat|sentadilla|peso muerto|deadlift|press\s*banca|bench|leg\s?press|prensa|hip\s?thrust|remo\s*barra/;
+
+/** Stations where the load is a bar or a loaded sled, whatever the machine looks like. */
+const COMPOUND_STATIONS = /squat_rack|smith_machine|leg_press_45|flat_bench|incline_bench/;
+
+/**
+ * Which ladder prices this movement.
+ *
+ * Station first: a leg press is a machine and a compound, and pricing it as an
+ * isolation movement put its top rank where the athlete could reach it by
+ * accident. Then the implement, then the movement's own name.
+ */
+function classifyRankFamily(input: ExerciseRankInput, category: EquipmentCategory): RankFamily {
+  if (input.isBodyweight || category === "bodyweight") return "bodyweight";
+  const station = input.station ?? "";
+  if (COMPOUND_STATIONS.test(station)) return "compound";
+  if (category === "cable") return "isolation";
+  if (COMPOUND_HINTS.test(foldName(`${input.equipment ?? ""} ${station}`))) return "compound";
+  if (category === "machine") return "isolation";
+  return "push_pull";
 }
 
 /**
@@ -919,11 +1144,21 @@ export function computeExerciseRank(input: ExerciseRankInput): ExerciseRankResul
   const weight = Math.max(0, finite(input.weightKg));
   const reps = Math.max(0, Math.round(finite(input.reps)));
   const targetReps = Math.max(1, Math.round(finite(input.targetReps, 8)));
-  const increment = input.incrementKg ?? 2.5;
-  const ladder = input.isBodyweight ? BODYWEIGHT_LADDER : STRENGTH_LADDER;
+  const category =
+    input.category ??
+    classifyEquipmentCategory({
+      equipment: input.equipment,
+      equipment_id: input.equipmentId,
+      station: input.station,
+      isBodyweight: input.isBodyweight,
+    });
+  const family = classifyRankFamily(input, category);
+  const increment = incrementForCategory(category);
+  const step = input.incrementKg ?? increment;
+  const ladder = family === "bodyweight" ? BODYWEIGHT_LADDER : FAMILY_LADDERS[family];
 
   const e1rm = epley(weight, reps);
-  const ratio = input.isBodyweight ? reps : bodyweight > 0 ? e1rm / bodyweight : 0;
+  const ratio = family === "bodyweight" ? reps : bodyweight > 0 ? e1rm / bodyweight : 0;
 
   let index = 0;
   for (let i = 0; i < ladder.length; i += 1) {
@@ -937,11 +1172,12 @@ export function computeExerciseRank(input: ExerciseRankInput): ExerciseRankResul
     ? Math.min(100, Math.max(0, Math.round(((ratio - current.min) / (span || 1)) * 100)))
     : 100;
 
-  const targetWeightKg = input.isBodyweight
-    ? 0
-    : next && bodyweight > 0
-      ? roundToIncrement((next.min * bodyweight) / (1 + targetReps / 30), increment)
-      : roundToIncrement(weight, increment);
+  const targetWeightKg =
+    family === "bodyweight"
+      ? 0
+      : next && bodyweight > 0
+        ? roundToIncrement((next.min * bodyweight) / (1 + targetReps / 30), step)
+        : roundToIncrement(weight, step);
 
   return {
     currentRank: { tier: current.tier, colorHex: current.colorHex, progressPct },
@@ -949,7 +1185,7 @@ export function computeExerciseRank(input: ExerciseRankInput): ExerciseRankResul
       ? {
           tier: next.tier,
           targetWeightKg,
-          targetReps: input.isBodyweight ? next.min : targetReps,
+          targetReps: family === "bodyweight" ? next.min : targetReps,
           colorHex: next.colorHex,
           maxed: false,
         }
@@ -960,8 +1196,10 @@ export function computeExerciseRank(input: ExerciseRankInput): ExerciseRankResul
           colorHex: current.colorHex,
           maxed: true,
         },
-    score: input.isBodyweight ? reps : e1rm,
+    score: family === "bodyweight" ? reps : e1rm,
     ratio,
+    family,
+    category,
   };
 }
 

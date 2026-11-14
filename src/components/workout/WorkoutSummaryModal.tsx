@@ -133,6 +133,18 @@ export function WorkoutSummaryModal({
     [countedExercises],
   );
 
+  /**
+   * A session of nothing.
+   *
+   * Saving an empty payload is worse than refusing: it writes a `workout_logs`
+   * row with zero sets and no volume, which then shows up in history as a
+   * training day that never happened. The athlete has to say what the rows are
+   * first -- include them, or mark the ones they did.
+   */
+  const nothingCounted = completedSets === 0 && totalRows > 0;
+  /** The rows were typed but never checked: that is the decision still open. */
+  const awaitingPendingDecision = nothingCounted && pendingCount > 0 && includePending === null;
+
   const handleSave = useCallback(async () => {
     setSaving(true);
     try {
@@ -213,54 +225,30 @@ export function WorkoutSummaryModal({
         <div
           style={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            flexDirection: "column",
+            gap: SPACE.sm,
             padding: `${SPACE.md} ${SPACE.lg}`,
             borderBottom: `1px solid ${GLASS.border}`,
           }}
         >
-          <h3
+          <div
             style={{
-              margin: 0,
-              fontSize: TYPE.title2.size,
-              fontWeight: TYPE.title2.weight,
-              color: TEXT.primary,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: SPACE.sm,
             }}
           >
-            Resumen
-          </h3>
-          <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs }}>
-            <div role="tablist" aria-label="Secciones del resumen" style={{ display: "flex", gap: SPACE.xs }}>
-              {(["resumen", "compartir"] as const).map((value) => {
-                const selected = tab === value;
-                return (
-                  <button
-                    key={value}
-                    type="button"
-                    role="tab"
-                    aria-selected={selected}
-                    onClick={() => setTab(value)}
-                    style={{
-                      minHeight: 36,
-                      padding: `0 ${SPACE.sm}px`,
-                      borderRadius: RADIUS.pill,
-                      border: `1px solid ${selected ? ACCENT.base : GLASS.border}`,
-                      background: selected ? ACCENT.subtle : "transparent",
-                      color: selected ? TEXT.primary : TEXT.secondary,
-                      fontSize: TYPE.caption.size,
-                      fontWeight: 600,
-                      display: "inline-flex",
-                      alignItems: "center",
-                      gap: SPACE.xs,
-                      cursor: "pointer",
-                    }}
-                  >
-                    {value === "compartir" ? <Share2 size={14} aria-hidden="true" /> : null}
-                    {value === "compartir" ? "Compartir" : "Resumen"}
-                  </button>
-                );
-              })}
-            </div>
+            <h3
+              style={{
+                margin: 0,
+                fontSize: TYPE.title2.size,
+                fontWeight: TYPE.title2.weight,
+                color: TEXT.primary,
+              }}
+            >
+              Workout Completed!
+            </h3>
             <button
               type="button"
               onClick={onClose}
@@ -280,6 +268,39 @@ export function WorkoutSummaryModal({
             >
               <X size={18} aria-hidden="true" />
             </button>
+          </div>
+          <div role="tablist" aria-label="Secciones del resumen" style={{ display: "flex", gap: SPACE.xs }}>
+            {(["resumen", "compartir"] as const).map((value) => {
+              const selected = tab === value;
+              return (
+                <button
+                  key={value}
+                  type="button"
+                  role="tab"
+                  aria-selected={selected}
+                  onClick={() => setTab(value)}
+                  style={{
+                    flex: "1 1 0",
+                    minHeight: 44,
+                    padding: `0 ${SPACE.sm}px`,
+                    borderRadius: RADIUS.pill,
+                    border: `1px solid ${selected ? ACCENT.base : GLASS.border}`,
+                    background: selected ? ACCENT.subtle : "transparent",
+                    color: selected ? TEXT.primary : TEXT.secondary,
+                    fontSize: TYPE.caption.size,
+                    fontWeight: 600,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    gap: SPACE.xs,
+                    cursor: "pointer",
+                  }}
+                >
+                  {value === "compartir" ? <Share2 size={14} aria-hidden="true" /> : null}
+                  {value === "compartir" ? "Compartir" : "Resumen"}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -491,18 +512,18 @@ export function WorkoutSummaryModal({
         >
           <button
             type="button"
-            disabled={saving || saved}
+            disabled={saving || saved || nothingCounted}
             onClick={handleSave}
             style={{
               width: "100%",
               minHeight: 56,
               borderRadius: RADIUS.button,
-              border: `1px solid ${ACCENT.base}`,
-              background: saving || saved ? GLASS.fill : ACCENT.base,
-              color: saving || saved ? TEXT.secondary : TEXT.onAccent,
+              border: `1px solid ${nothingCounted ? GLASS.border : ACCENT.base}`,
+              background: saving || saved || nothingCounted ? GLASS.fill : ACCENT.base,
+              color: saving || saved || nothingCounted ? TEXT.secondary : TEXT.onAccent,
               fontSize: TYPE.headline.size,
               fontWeight: 700,
-              cursor: (saving || saved) ? "default" : "pointer",
+              cursor: (saving || saved || nothingCounted) ? "default" : "pointer",
               transition: `filter ${MOTION.fast} ${MOTION.standard}`,
             }}
           >
@@ -510,7 +531,11 @@ export function WorkoutSummaryModal({
               ? "Guardado"
               : saving
                 ? "Guardando…"
-                : "Guardar sesión"}
+                : awaitingPendingDecision
+                  ? "Decide qué pasa con las series"
+                  : nothingCounted
+                    ? "Marca al menos una serie"
+                    : "Guardar sesión"}
           </button>
           {!saved && (
             <button

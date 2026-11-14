@@ -11,7 +11,15 @@ import {
   TYPE,
   Z_INDEX,
 } from "@/design/tokens";
-import type { ExerciseRankResult } from "@/lib/workout/cronosSmartEngine";
+import type { ExerciseRankResult, RankFamily } from "@/lib/workout/cronosSmartEngine";
+
+/** What the bar is measuring, said the way the athlete would say it. */
+const FAMILY_LABEL: Record<RankFamily, string> = {
+  compound: "Fuerza relativa · movimiento compuesto",
+  push_pull: "Fuerza relativa · empuje o tirón",
+  isolation: "Fuerza relativa · aislamiento",
+  bodyweight: "Repeticiones de peso corporal",
+};
 
 export interface ExerciseRankSheetProps {
   isOpen: boolean;
@@ -152,6 +160,9 @@ export function ExerciseRankSheet({
                 >
                   {nextRank.tier}
                 </p>
+                <p style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                  {FAMILY_LABEL[rank.family]}
+                </p>
               </div>
             </div>
 
@@ -192,9 +203,11 @@ export function ExerciseRankSheet({
                 <div
                   className="h-full rounded-full"
                   style={{
-                    width: `${Math.min(100, Math.max(0, currentRank.progressPct))}%`,
+                    width: "100%",
+                    transformOrigin: "left center",
+                    transform: `scaleX(${Math.min(100, Math.max(0, currentRank.progressPct)) / 100})`,
                     background: currentRank.colorHex,
-                    transition: `width ${MOTION.slow} ${MOTION.easeOut}`,
+                    transition: `transform ${MOTION.slow} ${MOTION.easeOut}`,
                   }}
                 />
               </div>

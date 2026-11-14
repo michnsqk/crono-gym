@@ -99,6 +99,38 @@ describe("WorkoutSummaryModal", () => {
     expect(screen.getByText("Se omitieron")).toBeTruthy();
   });
 
+  it("no deja guardar una sesión en la que no se marcó ninguna serie", () => {
+    // Nothing checked and nothing typed: the payload would be `sets: []`, which
+    // writes a training day that never happened.
+    render(draft([{
+      key: "bench",
+      exercise: exercise("bench"),
+      restSeconds: 90,
+      sets: [
+        { set_number: 1, weight: "", reps: "", rpe: "", kind: "normal", completed: false },
+        { set_number: 2, weight: "", reps: "", rpe: "", kind: "normal", completed: false },
+      ],
+    }]));
+
+    const save = screen.getByRole("button", { name: /Marca al menos una serie/ }) as HTMLButtonElement;
+    expect(save.disabled).toBe(true);
+    expect(screen.queryByRole("button", { name: "Guardar sesión" })).toBeNull();
+  });
+
+  it("pide decidir cuando hay carga escrita pero ninguna serie marcada", () => {
+    render(draft([{
+      key: "bench",
+      exercise: exercise("bench"),
+      restSeconds: 90,
+      sets: [
+        { set_number: 1, weight: "60", reps: "8", rpe: "8", kind: "normal", completed: false },
+        { set_number: 2, weight: "62.5", reps: "6", rpe: "9", kind: "normal", completed: false },
+      ],
+    }]));
+
+    expect(screen.getByRole("button", { name: /Decide qué pasa con las series/ })).toBeTruthy();
+  });
+
   it("abre las cuatro tarjetas y LISTO cierra la sesión", () => {
     render(draft(session()));
 
