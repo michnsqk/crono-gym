@@ -1733,7 +1733,7 @@ function ExercisesPanel({
                       ) : (
                         <RotateCcw size={14} aria-hidden="true" />
                       )}
-                      ↩️ Restaurar
+                      Restaurar
                     </button>
                   ) : confirmDeleteId === row.id ? (
                     <>

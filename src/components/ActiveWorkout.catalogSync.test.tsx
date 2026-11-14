@@ -235,7 +235,7 @@ describe("ActiveWorkout catalog sync", () => {
     expect(screen.queryByText("Flexión")).toBeNull();
   });
 
-  it("shows the coach's name, demonstration and floor area for a reassigned exercise", async () => {
+  it("shows the coach's name and demonstration for a reassigned exercise", async () => {
     renderWorkout();
     fireEvent.click(screen.getByRole("button", { name: /Iniciar Entrenamiento/ }));
 
@@ -260,11 +260,11 @@ describe("ActiveWorkout catalog sync", () => {
     expect(demo).not.toBeNull();
     expect(demo?.getAttribute("src")).toContain("coach.gif");
 
-    // `NONE` is a place, not a missing machine: the pill says where it happens
-    // instead of naming the station the row used to belong to.
-    const pills = screen.getAllByRole("button", { name: /Ubicación: Área de Piso \/ Tapete/ });
-    expect(pills.length).toBeGreaterThan(0);
-    expect(pills[0].textContent).toContain("Peso corporal");
+    // `NONE` is a place, not a missing machine -- and it earns no location
+    // pill: there is no station to inspect, so the pill would be chrome the
+    // athlete reads every set and never acts on. What must never happen is the
+    // id of a machine leaking in to take its place.
+    expect(screen.queryByRole("button", { name: /Ubicación:/ })).toBeNull();
     expect(screen.queryByText(/CG-EQP/)).toBeNull();
   });
 });

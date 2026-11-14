@@ -256,7 +256,7 @@ export function WorkoutSummaryModal({
                     }}
                   >
                     {value === "compartir" ? <Share2 size={14} aria-hidden="true" /> : null}
-                    {value === "compartir" ? "Compartir ✨" : "Resumen"}
+                    {value === "compartir" ? "Compartir" : "Resumen"}
                   </button>
                 );
               })}

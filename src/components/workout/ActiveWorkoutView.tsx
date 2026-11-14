@@ -3,8 +3,10 @@
  * save-first finish flow.
  *
  * Wraps `ActiveWorkout` and adds:
- *  - Top bar: session clock, ⚙️, "Terminar"
+ *  - Top bar: session clock, settings, "Terminar"
  *  - "Terminar" opens `WorkoutSummaryModal` instead of ending outright
+ *  - The session ends only when the summary is saved or dismissed, so the
+ *    summary survives the finish
  *  - Summary modal saves via `queueAndSync` (workout_logs + completed_sets)
  */
 
@@ -50,22 +52,30 @@ export function ActiveWorkoutView({
     setSummaryOpen(true);
   }, []);
 
-  const handleSave = useCallback(() => {
+  /**
+   * Leaves the workout.
+   *
+   * The logger no longer ends the session when the last set is logged -- doing
+   * so unmounted this screen (and the summary) from `TrainView` before the
+   * summary could paint. The session ends here instead: on save, on `LISTO`, or
+   * on dismissal. All three are the athlete leaving the workout for good.
+   */
+  const handleLeave = useCallback(() => {
     setSummaryOpen(false);
     end();
     onLeftWorkout();
   }, [end, onLeftWorkout]);
 
-   return (
-     <div
-       style={{
-         display: "flex",
-         flexDirection: "column",
-         minHeight: "100vh",
-         paddingTop: "env(safe-area-inset-top, 0px)",
-       }}
-     >
-<ErrorBoundary>
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        minHeight: "100vh",
+        paddingTop: "env(safe-area-inset-top, 0px)",
+      }}
+    >
+      <ErrorBoundary>
         <ActiveWorkout
           userId={userId}
           routineId={routineId}
@@ -75,17 +85,17 @@ export function ActiveWorkoutView({
         />
       </ErrorBoundary>
 
-       <WorkoutSummaryModal
+      <WorkoutSummaryModal
         isOpen={summaryOpen}
-        onClose={() => setSummaryOpen(false)}
+        onClose={handleLeave}
         routineTitle={routineTitle}
         startedAt={startedAt}
         completedAt={completedAt}
         exercises={finishedExercises}
         userId={userId}
         routineId={routineId}
-        onSaved={handleSave}
-        onDone={handleSave}
+        onSaved={handleLeave}
+        onDone={handleLeave}
       />
     </div>
   );
