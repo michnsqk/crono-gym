@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, ChevronDown, ChevronUp, CloudUpload, Dumbbell, ImageIcon, Loader2, LogOut, Pencil, Plus, RotateCcw, Search, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CloudUpload, Compass, Dumbbell, ImageIcon, Loader2, LogOut, Pencil, Plus, RotateCcw, Search, Sparkles, Trash2, X } from "lucide-react";
+import { BiomechanicalGripStanceModal } from "@/components/workout/BiomechanicalGripStanceModal";
+import { CRONOS_ATTACHMENTS_GUIDE, FOOT_STANCE_MATRIX } from "@/lib/workout/biomechanicalGripStance";
 import { useOutletContext } from "react-router-dom";
 import type { WorkspaceOutletContext } from "@/App";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -1137,6 +1139,8 @@ function ExercisesPanel({
   const [createStatus, setCreateStatus] = useState<string | null>(null);
   const [catalogSubTab, setCatalogSubTab] = useState<"base" | "machinery">("base");
   const [machineFilter, setMachineFilter] = useState<string>("");
+  const [machineryFamilyFilter, setMachineryFamilyFilter] = useState<"all" | "press" | "legs" | "back" | "arms" | "core">("all");
+  const [biomechanicsModalOpen, setBiomechanicsModalOpen] = useState(false);
   const [newExercise, setNewExercise] = useState({
     name: "",
     muscle: "",
@@ -1481,6 +1485,15 @@ function ExercisesPanel({
       }
       const effectiveEqId = equipmentOverrides[row.id] ?? row.equipment_id ?? "";
       if (machineFilter && effectiveEqId !== machineFilter) return false;
+      if (catalogSubTab === "machinery" && machineryFamilyFilter !== "all") {
+        const bp = (row.body_part ?? "").toLowerCase();
+        const label = normaliseExerciseName(`${row.name} ${row.name_es ?? ""} ${row.target ?? ""}`);
+        if (machineryFamilyFilter === "press" && !bp.includes("chest") && !bp.includes("shoulder") && !label.includes("press") && !label.includes("pecho")) return false;
+        if (machineryFamilyFilter === "legs" && !bp.includes("leg") && !bp.includes("calf") && !bp.includes("calves") && !label.includes("glute") && !label.includes("pierna") && !label.includes("prensa") && !label.includes("sentadilla") && !label.includes("femoral")) return false;
+        if (machineryFamilyFilter === "back" && !bp.includes("back") && !bp.includes("neck") && !label.includes("remo") && !label.includes("jalon") && !label.includes("dorsal") && !label.includes("espalda")) return false;
+        if (machineryFamilyFilter === "arms" && !bp.includes("arm") && !label.includes("bicep") && !label.includes("tricep") && !label.includes("bayesian") && !label.includes("predicador") && !label.includes("curl") && !label.includes("katana")) return false;
+        if (machineryFamilyFilter === "core" && !bp.includes("waist") && !bp.includes("abs") && !label.includes("dragon") && !label.includes("crunch") && !label.includes("abdom") && !label.includes("pallof")) return false;
+      }
       if (filter === "with_machine" && (!effectiveEqId || effectiveEqId === "NONE")) return false;
       if (filter === "free_weight" && effectiveEqId && effectiveEqId !== "NONE") {
         return false;
@@ -1499,6 +1512,8 @@ function ExercisesPanel({
     equipmentOverrides,
     filter,
     machineFilter,
+    machineryFamilyFilter,
+    catalogSubTab,
     query,
   ]);
 
@@ -1507,7 +1522,7 @@ function ExercisesPanel({
   const visible = filtered.slice(0, limit);
   useEffect(() => {
     setLimit(EXERCISES_PAGE_SIZE);
-  }, [catalogSubTab, filter, machineFilter, query]);
+  }, [catalogSubTab, filter, machineFilter, machineryFamilyFilter, query]);
 
   const markEdited = (id: string) =>
     setEdited((current) => {
@@ -1646,30 +1661,49 @@ function ExercisesPanel({
   };
 
   return (
-    <section className="grid min-w-0 gap-4">
-      <div className={card}>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-bold text-white">
-            Gobernanza de ejercicios
-          </h2>
-          <div className="flex flex-wrap gap-2">
+    <section className="grid w-full max-w-full min-w-0 gap-4 overflow-x-hidden">
+      <div className={`${card} w-full max-w-full min-w-0 overflow-hidden`}>
+        <div className="flex flex-col gap-2.5 w-full min-w-0">
+          <div className="flex items-center justify-between gap-2 min-w-0">
+            <h2 className="text-base font-bold text-white truncate">
+              Gobernanza de ejercicios
+            </h2>
+            <button
+              type="button"
+              onClick={() => setBiomechanicsModalOpen(true)}
+              className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-xl px-2.5 py-1.5 text-xs font-semibold truncate"
+              style={{
+                backgroundColor: GLASS.fillRaised,
+                border: `1px solid ${GLASS.border}`,
+                color: TEXT.primary,
+              }}
+            >
+              <Compass size={14} className="shrink-0" style={{ color: ACCENT.text }} />
+              <span className="truncate">Guía de Manerales y Posturas</span>
+            </button>
+          </div>
+          <div className="grid grid-cols-2 gap-2 w-full min-w-0">
             <button
               type="button"
               onClick={() => setRequestOpen(!requestOpen)}
-              className="min-h-11 rounded-xl px-3 text-xs font-bold text-white"
-              style={{ backgroundColor: ACCENT.base }}
+              className="min-h-11 rounded-xl px-3 py-2.5 text-xs font-semibold truncate flex items-center justify-center gap-1"
+              style={{
+                backgroundColor: GLASS.fillRaised,
+                border: `1px solid ${GLASS.border}`,
+                color: TEXT.primary,
+              }}
             >
-              <Plus size={14} className="mr-1 inline" />
-              Solicitar ejercicio
+              <Plus size={14} className="shrink-0" />
+              <span className="truncate">Solicitar ejercicio</span>
             </button>
             <button
               type="button"
               onClick={() => setCreateOpen(!createOpen)}
-              className="min-h-11 rounded-xl px-3 text-xs font-bold"
-              style={{ backgroundColor: STATUS.success.base, color: TEXT.onAccent }}
+              className="min-h-11 rounded-xl px-3 py-2.5 text-xs font-bold truncate flex items-center justify-center gap-1"
+              style={{ backgroundColor: ACCENT.base, color: TEXT.onAccent }}
             >
-              <Plus size={14} className="mr-1 inline" />
-              Crear ejercicio
+              <Plus size={14} className="shrink-0" />
+              <span className="truncate">Crear ejercicio</span>
             </button>
           </div>
         </div>
@@ -1677,7 +1711,7 @@ function ExercisesPanel({
         <div
           role="tablist"
           aria-label="Tipo de catálogo"
-          className="mt-3 flex items-center gap-1 rounded-xl p-1"
+          className="mt-3 grid grid-cols-2 gap-1 w-full rounded-2xl p-1"
           style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
         >
           {(
@@ -1694,7 +1728,7 @@ function ExercisesPanel({
                 role="tab"
                 aria-selected={active}
                 onClick={() => setCatalogSubTab(key)}
-                className="min-h-10 flex-1 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors"
+                className="min-h-10 w-full min-w-0 truncate rounded-xl px-2 text-xs font-semibold"
                 style={{
                   backgroundColor: active ? ACCENT.base : "transparent",
                   color: active ? TEXT.primary : TEXT.secondary,
@@ -1864,6 +1898,31 @@ function ExercisesPanel({
               }
               aria-label="Notas"
             />
+            <select
+              aria-label="Maneral o postura biomecánica recomendada (opcional)"
+              className={`${control} h-11 w-full min-w-0 truncate px-3 text-xs text-white`}
+              defaultValue=""
+              onChange={(e) => {
+                const value = e.target.value;
+                if (!value) return;
+                setNewExercise((current) => ({
+                  ...current,
+                  notes: current.notes ? `${current.notes} · ${value}` : value,
+                }));
+              }}
+            >
+              <option value="">+ Añadir maneral o postura recomendada (opcional)...</option>
+              {CRONOS_ATTACHMENTS_GUIDE.map((att) => (
+                <option key={att.equipmentId} value={att.chipSummary}>
+                  {att.equipmentId} · {att.shortName} ({att.gripOrientation})
+                </option>
+              ))}
+              {FOOT_STANCE_MATRIX.map((stance) => (
+                <option key={stance.id} value={stance.chipSummary}>
+                  {stance.label} ({stance.shortLabel})
+                </option>
+              ))}
+            </select>
             <button
               type="button"
               className="h-11 rounded-xl font-semibold"
@@ -1889,12 +1948,12 @@ function ExercisesPanel({
           />
         </label>
 
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="mt-2 flex flex-col sm:flex-row gap-2 w-full min-w-0">
           <select
             aria-label="Filtrar por máquina CG-EQP"
             value={machineFilter}
             onChange={(event) => setMachineFilter(event.target.value)}
-            className={`${control} h-11 min-w-0 flex-1 px-3 text-xs text-white`}
+            className={`${control} h-11 w-full min-w-0 flex-1 truncate px-3 text-xs text-white`}
           >
             <option value="">
               Todas las {machineOptions.length} máquinas (CG-EQP)
@@ -1916,7 +1975,7 @@ function ExercisesPanel({
               }));
               setCreateOpen(true);
             }}
-            className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-3 text-xs font-semibold text-white"
+            className="inline-flex min-h-11 w-full sm:w-auto shrink-0 items-center justify-center gap-1 rounded-xl px-3 text-xs font-semibold text-white truncate"
             style={{
               backgroundColor: GLASS.fillRaised,
               border: `1px solid ${GLASS.border}`,
@@ -1927,6 +1986,38 @@ function ExercisesPanel({
           </button>
         </div>
 
+        {catalogSubTab === "machinery" && (
+          <div className="mt-2 flex flex-wrap items-center gap-1.5" role="group" aria-label="Filtro rápido por familia muscular">
+            {(
+              [
+                { id: "all" as const, label: "Todos" },
+                { id: "press" as const, label: "Press & Pecho" },
+                { id: "legs" as const, label: "Pierna & Glúteo" },
+                { id: "back" as const, label: "Espalda & Poleas" },
+                { id: "arms" as const, label: "Brazo (Bayesian/Predicador)" },
+                { id: "core" as const, label: "Abdomen & Dragon Flag" },
+              ] as const
+            ).map((chip) => {
+              const active = machineryFamilyFilter === chip.id;
+              return (
+                <button
+                  key={chip.id}
+                  type="button"
+                  aria-pressed={active}
+                  onClick={() => setMachineryFamilyFilter(chip.id)}
+                  className="min-h-8 rounded-full px-2.5 py-1 text-xs font-semibold"
+                  style={{
+                    backgroundColor: active ? ACCENT.subtle : GLASS.fill,
+                    border: `1px solid ${active ? ACCENT.border : GLASS.border}`,
+                    color: active ? TEXT.primary : TEXT.secondary,
+                  }}
+                >
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {EXERCISE_FILTERS.map((option) => {
             const active = filter === option.id;
@@ -2002,9 +2093,9 @@ function ExercisesPanel({
             const pendingRow = Boolean(overrideState) && !synced;
             const removed = deletedIds.has(normaliseExerciseId(row.id));
             return (
-              <div key={row.id} className="space-y-3 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/90 p-3">
+              <div key={row.id} className="w-full max-w-full min-w-0 space-y-3 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/90 p-3">
                 {/* Row 1: the real GIF, the full name, the catalog id and muscle. */}
-                <div className="flex min-w-0 items-start gap-3">
+                <div className="flex w-full min-w-0 items-start gap-3">
                   <ExerciseThumb
                     src={row.gif_url}
                     alt={`Demostración de ${getExerciseDisplayName({ name: row.name, name_es: row.name_es })}`}
@@ -2012,7 +2103,7 @@ function ExercisesPanel({
                     fit="object-contain"
                   />
                   <div className="min-w-0 flex-1">
-                    <strong className="block break-words text-sm font-semibold leading-snug text-white">
+                    <strong className="block break-words line-clamp-2 text-sm font-bold leading-snug text-white">
                       {getExerciseDisplayName({ name: row.name, name_es: row.name_es })}
                     </strong>
                     <span className="mt-1 block break-words font-mono text-xs leading-snug text-zinc-400">
@@ -2054,17 +2145,13 @@ function ExercisesPanel({
                   >
                     {selectedEquipment ? (
                       <>
-                        <img
-                          src={selectedEquipment.views?.[0]?.src}
-                          alt=""
-                          className="h-8 w-8 shrink-0 rounded-lg object-cover"
-                        />
-                        <span className="min-w-0 flex-1 truncate">
+                        <Dumbbell className="h-4 w-4 shrink-0 text-zinc-400" aria-hidden="true" />
+                        <span className="min-w-0 flex-1 truncate text-left">
                           {selectedEquipment.id} · {selectedEquipment.name}
                         </span>
                       </>
                     ) : (
-                      <span className="min-w-0 flex-1 truncate text-zinc-300">
+                      <span className="min-w-0 flex-1 truncate text-left text-zinc-300">
                         NONE · Peso libre / Piso
                       </span>
                     )}
@@ -2254,6 +2341,11 @@ function ExercisesPanel({
           onClose={() => setGifFor(null)}
         />
       )}
+
+      <BiomechanicalGripStanceModal
+        open={biomechanicsModalOpen}
+        onClose={() => setBiomechanicsModalOpen(false)}
+      />
     </section>
   );
 }

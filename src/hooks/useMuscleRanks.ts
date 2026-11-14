@@ -313,7 +313,7 @@ export function useMuscleRanks(
           .select("id,name,target,body_part,equipment")
           .in("target", Object.keys(TARGETS_WITH_STANDARDS)),
       ),
-      supabase.from("profiles").select("weight_kg,sex").eq("user_id", userId).maybeSingle(),
+      supabase.from("profiles").select("*").eq("user_id", userId).maybeSingle(),
     ]);
 
     const logs = logsResult.rows;

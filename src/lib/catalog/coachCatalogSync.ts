@@ -29,12 +29,14 @@ import {
   mergeOverridesFromRemote,
   normaliseExerciseId,
   readCatalogOverride,
+  readCustomExercises,
   readNameOverride,
   saveCatalogOverride,
   type CatalogDefault,
   type CatalogOverride,
   type CatalogOverrides,
 } from "./customExercises";
+import { CRONOS_MACHINERY_EXERCISES } from "./machinerySeedExercises";
 import { NO_EQUIPMENT_ID } from "./resolveExercise";
 import type { CatalogExercise, StationKey } from "./types";
 
@@ -183,7 +185,37 @@ function equipmentTextFor(override: CatalogOverride, source?: CatalogExercise | 
 }
 
 function findLocalRow(exerciseId: string): CatalogExercise | undefined {
-  return peekLoadedCatalog().find((row) => row.id === exerciseId);
+  const variants = new Set(exerciseIdVariants(exerciseId));
+  const fromCatalog = peekLoadedCatalog().find((row) => variants.has(row.id));
+  if (fromCatalog) return fromCatalog;
+
+  const fromMachinery = CRONOS_MACHINERY_EXERCISES.find((row) => variants.has(row.id));
+  if (fromMachinery) return fromMachinery;
+
+  const custom = readCustomExercises().find((row) => variants.has(row.id));
+  if (!custom) return undefined;
+
+  return {
+    id: custom.id,
+    name: custom.name,
+    name_es: custom.name_es ?? custom.name,
+    category: "strength",
+    body_part: custom.body_part || "full body",
+    equipment: custom.equipment || "other",
+    gif_url: custom.gif_url || "",
+    image: custom.gif_url || "",
+    muscle_group: custom.target || custom.body_part || "general",
+    secondary_muscles: [],
+    target: custom.target || custom.body_part || "general",
+    availableInCronosGym: true,
+    equipment_id: custom.equipment_id || NO_EQUIPMENT_ID,
+    equipment_name: custom.equipment_name,
+    instructions: { es: (custom.instructions ?? []).join(" ") },
+    instruction_steps: { es: custom.instructions ?? [] },
+    media_id: custom.id,
+    created_at: new Date().toISOString(),
+    attribution: null,
+  };
 }
 
 /**
@@ -194,13 +226,10 @@ function findLocalRow(exerciseId: string): CatalogExercise | undefined {
  *
  *   - it targets every id form the row may be stored under, so a write that
  *     filtered on `1` never missed a row stored as `0001`;
- *   - it asks for the ids back, so "the request did not fail" and "the row is
- *     saved" are different answers;
+ *   - when no physical row exists in `public.exercises` yet (e.g. a `cg-mach-*`
+ *     seed exercise or custom exercise), it falls back to `UPSERT` with the
+ *     resolved exercise record so the override lands globally;
  *   - only a confirmed write clears `dirty`.
- *
- * `row` is the catalog row the coach is editing; when it is not given the local
- * catalog mirror is consulted for the text columns that have to travel with a
- * machine change.
  */
 export async function persistCoachExerciseChange(
   exerciseId: string,
@@ -256,6 +285,113 @@ export async function persistCoachExerciseChange(
     confirmed = !error && (retry.data?.length ?? 0) > 0;
   }
 
+  // Fallback to UPSERT when UPDATE touched 0 rows (e.g., `cg-mach-*` or custom exercises
+  // that are not yet inserted as physical rows in `public.exercises`).
+  const canUpsertRow = Boolean(
+    source ||
+      override.customNameEs ||
+      exerciseId.startsWith("cg-mach-") ||
+      exerciseId.startsWith("custom-"),
+  );
+  if (!confirmed && !error && canUpsertRow) {
+    const tableClient = supabase.from(TABLE) as unknown as {
+      upsert?: (
+        payload: Record<string, unknown>,
+        options?: { onConflict?: string },
+      ) => { select?: (cols: string) => Promise<{ data?: unknown[] | null; error?: RemoteError | null }> };
+    };
+    if (typeof tableClient.upsert === "function") {
+      const storedOverride = readCatalogOverride(exerciseId) ?? {};
+      const pendingName = readNameOverride(exerciseId);
+      const mergedOverride: CatalogOverride = {
+        ...storedOverride,
+        ...override,
+        ...(pendingName && !override.customNameEs && !storedOverride.customNameEs
+          ? { customNameEs: pendingName }
+          : {}),
+      };
+      const resolvedName =
+        mergedOverride.customNameEs ??
+        source?.name_es ??
+        source?.name ??
+        String(exerciseId).trim();
+      const resolvedBodyPart = source?.body_part || "full body";
+      const resolvedTarget = source?.target || "general";
+      const resolvedEquipmentString = equipmentTextFor(mergedOverride, source);
+      const resolvedGifUrl = (mergedOverride.gif_url ?? source?.gif_url) || null;
+      const resolvedInstructions =
+        source?.instruction_steps?.es && source.instruction_steps.es.length > 0
+          ? [...source.instruction_steps.es]
+          : [];
+
+      const baseUpsertPayload: Record<string, unknown> = {
+        id: String(exerciseId).trim(),
+        name: resolvedName,
+        body_part: resolvedBodyPart,
+        target: resolvedTarget,
+        equipment: resolvedEquipmentString,
+        gif_url: resolvedGifUrl,
+        instructions: resolvedInstructions,
+      };
+
+      const extendedUpsertPayload: Record<string, unknown> = {
+        ...baseUpsertPayload,
+        ...(mergedOverride.equipment_id !== undefined
+          ? { equipment_id: mergedOverride.equipment_id }
+          : source?.equipment_id
+            ? { equipment_id: source.equipment_id }
+            : {}),
+        ...(mergedOverride.equipment_name !== undefined
+          ? { equipment_name: mergedOverride.equipment_name }
+          : source?.equipment_name
+            ? { equipment_name: source.equipment_name }
+            : {}),
+        ...(mergedOverride.station_key !== undefined
+          ? { station_key: mergedOverride.station_key }
+          : source?.station_key
+            ? { station_key: source.station_key }
+            : {}),
+        ...(mergedOverride.movement_pattern !== undefined
+          ? { movement_pattern: mergedOverride.movement_pattern }
+          : source?.movement_pattern
+            ? { movement_pattern: source.movement_pattern }
+            : {}),
+        ...(mergedOverride.availableInCronosGym !== undefined
+          ? { available_in_cronos_gym: mergedOverride.availableInCronosGym }
+          : source?.availableInCronosGym !== undefined
+            ? { available_in_cronos_gym: source.availableInCronosGym }
+            : {}),
+        ...(mergedOverride.image !== undefined
+          ? { image: mergedOverride.image }
+          : source?.image
+            ? { image: source.image }
+            : {}),
+      };
+
+      const runUpsert = async (payload: Record<string, unknown>) => {
+        const call = tableClient.upsert!(payload, { onConflict: "id" });
+        if (call && typeof call.select === "function") {
+          return call.select("id");
+        }
+        return (call as unknown as Promise<{ data?: unknown[] | null; error?: RemoteError | null }>) ?? {
+          data: [{ id: exerciseId }],
+          error: null,
+        };
+      };
+
+      let upsertRes = await runUpsert(extendedUpsertPayload);
+      if (upsertRes?.error && isUndefinedColumn(upsertRes.error)) {
+        upsertRes = await runUpsert(baseUpsertPayload);
+      }
+
+      if (!upsertRes?.error && (upsertRes?.data?.length ?? 0) > 0) {
+        markCatalogOverrideSynced(exerciseId, "synced");
+        return { local: true, remote: "upserted" };
+      }
+      error = (upsertRes?.error ?? null) as typeof error;
+    }
+  }
+
   if (error) {
     markCatalogOverrideSynced(exerciseId, "local_only");
     return { local: true, remote: "unavailable", detail: error.message };
@@ -273,6 +409,8 @@ export async function persistCoachExerciseChange(
   markCatalogOverrideSynced(exerciseId, "synced");
   return { local: true, remote: "updated" };
 }
+
+export const writeOverrideToSupabase = persistCoachExerciseChange;
 
 /** What the server did with a removal: gone, or hidden. */
 export type RemoteRemoval = "marked_deleted" | RemoteOutcome;
@@ -322,6 +460,44 @@ export async function deleteCoachExercise(exerciseId: string): Promise<RemovalRe
     const retry = await write({ equipment: DELETED_EQUIPMENT });
     error = retry.error;
     confirmed = !error && (retry.data?.length ?? 0) > 0;
+  }
+
+  if (!confirmed && !error && (exerciseId.startsWith("cg-mach-") || exerciseId.startsWith("custom-"))) {
+    const source = findLocalRow(exerciseId);
+    const tableClient = supabase.from(TABLE) as unknown as {
+      upsert?: (
+        payload: Record<string, unknown>,
+        options?: { onConflict?: string },
+      ) => { select?: (cols: string) => Promise<{ data?: unknown[] | null; error?: RemoteError | null }> };
+    };
+    if (typeof tableClient.upsert === "function") {
+      const baseDelPayload: Record<string, unknown> = {
+        id: String(exerciseId).trim(),
+        name: source?.name_es ?? source?.name ?? String(exerciseId).trim(),
+        body_part: source?.body_part || "full body",
+        target: source?.target || "general",
+        equipment: DELETED_EQUIPMENT,
+        gif_url: source?.gif_url || null,
+        instructions: [],
+      };
+      const extDelPayload = { ...baseDelPayload, available_in_cronos_gym: false };
+      const runUpsert = async (payload: Record<string, unknown>) => {
+        const call = tableClient.upsert!(payload, { onConflict: "id" });
+        if (call && typeof call.select === "function") return call.select("id");
+        return (call as unknown as Promise<{ data?: unknown[] | null; error?: RemoteError | null }>) ?? {
+          data: [{ id: exerciseId }],
+          error: null,
+        };
+      };
+      let res = await runUpsert(extDelPayload);
+      if (res?.error && isUndefinedColumn(res.error)) {
+        res = await runUpsert(baseDelPayload);
+      }
+      if (!res?.error) {
+        markCatalogOverrideSynced(exerciseId, "synced");
+        return { local: true, remote: "marked_deleted" };
+      }
+    }
   }
 
   if (error) {
@@ -384,6 +560,43 @@ export async function restoreCoachExercise(
     const retry = await write({ equipment });
     error = retry.error;
     confirmed = !error && (retry.data?.length ?? 0) > 0;
+  }
+
+  if (!confirmed && !error && (exerciseId.startsWith("cg-mach-") || exerciseId.startsWith("custom-"))) {
+    const tableClient = supabase.from(TABLE) as unknown as {
+      upsert?: (
+        payload: Record<string, unknown>,
+        options?: { onConflict?: string },
+      ) => { select?: (cols: string) => Promise<{ data?: unknown[] | null; error?: RemoteError | null }> };
+    };
+    if (typeof tableClient.upsert === "function") {
+      const baseResPayload: Record<string, unknown> = {
+        id: String(exerciseId).trim(),
+        name: source?.name_es ?? source?.name ?? String(exerciseId).trim(),
+        body_part: source?.body_part || "full body",
+        target: source?.target || "general",
+        equipment,
+        gif_url: source?.gif_url || null,
+        instructions: [],
+      };
+      const extResPayload = { ...baseResPayload, available_in_cronos_gym: true };
+      const runUpsert = async (payload: Record<string, unknown>) => {
+        const call = tableClient.upsert!(payload, { onConflict: "id" });
+        if (call && typeof call.select === "function") return call.select("id");
+        return (call as unknown as Promise<{ data?: unknown[] | null; error?: RemoteError | null }>) ?? {
+          data: [{ id: exerciseId }],
+          error: null,
+        };
+      };
+      let res = await runUpsert(extResPayload);
+      if (res?.error && isUndefinedColumn(res.error)) {
+        res = await runUpsert(baseResPayload);
+      }
+      if (!res?.error) {
+        markCatalogOverrideSynced(exerciseId, "synced");
+        return { local: true, remote: "upserted" };
+      }
+    }
   }
 
   if (error) {

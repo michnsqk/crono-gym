@@ -80,7 +80,7 @@ export function LiveGymFeed() {
     const athleteIds = [...new Set(logs.map((l) => l.user_id))];
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("user_id,display_name")
+      .select("*")
       .in("user_id", athleteIds);
 
     if (!mounted.current) return;

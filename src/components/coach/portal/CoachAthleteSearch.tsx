@@ -46,11 +46,30 @@ export function CoachAthleteSearch({ onSelect }: CoachAthleteSearchProps) {
 
         const fallback = await (supabase as any)
           .from("profiles")
-          .select("user_id,display_name,avatar_url,goal,experience_level,weight_kg,height_cm")
-          .ilike("display_name", `%${query.trim()}%`)
-          .limit(20);
+          .select("*")
+          .limit(40);
         if (fallback.error) throw fallback.error;
-        if (active) setResults((fallback.data ?? []) as CoachAthlete[]);
+        const needle = query.trim().toLowerCase();
+        const normalized: CoachAthlete[] = ((fallback.data ?? []) as any[])
+          .map((row: any) => {
+            const displayName =
+              row.display_name ||
+              row.full_name ||
+              row.name ||
+              row.username ||
+              (typeof row.email === "string" ? row.email.split("@")[0] : "Atleta Cronos");
+            const email = row.email || row.user_email || "";
+            return {
+              ...row,
+              user_id: String(row.user_id || row.id || ""),
+              display_name: displayName,
+              avatar_url: row.avatar_url || null,
+              _searchText: `${displayName} ${email}`.toLowerCase(),
+            };
+          })
+          .filter((item) => item.user_id && item._searchText.includes(needle))
+          .slice(0, 20);
+        if (active) setResults(normalized);
       } catch (reason) {
         if (active) {
           setResults([]);

@@ -53,6 +53,9 @@ const state = vi.hoisted(() => ({
   /** The ids the server says it touched. Empty means "no row matched". */
   writtenIds: ["0001"] as string[],
   updates: [] as Record<string, unknown>[],
+  upserts: [] as Record<string, unknown>[],
+  upsertError: null as null | { code?: string; message?: string },
+  upsertFailsLeft: 0,
   updateFilters: [] as string[][],
   selects: [] as string[],
   uploads: [] as { path: string; size: number }[],
@@ -74,6 +77,18 @@ vi.mock("@lib/supabase", () => {
       update(payload: Record<string, unknown>) {
         state.updates.push(payload);
         return builder;
+      },
+      upsert(payload: Record<string, unknown>) {
+        state.upserts.push(payload);
+        const error = state.upsertFailsLeft > 0 ? state.upsertError : null;
+        if (state.upsertFailsLeft > 0) state.upsertFailsLeft -= 1;
+        return {
+          select: () =>
+            Promise.resolve({
+              data: error ? null : [{ id: payload.id ?? "upserted" }],
+              error,
+            }),
+        };
       },
       in(_column: string, values: string[]) {
         state.updateFilters.push(values);
@@ -142,6 +157,9 @@ beforeEach(() => {
   state.selectFailsLeft = 0;
   state.writtenIds = ["0001"];
   state.updates = [];
+  state.upserts = [];
+  state.upsertError = null;
+  state.upsertFailsLeft = 0;
   state.updateFilters = [];
   state.selects = [];
   state.uploads = [];
@@ -702,12 +720,37 @@ describe("Coach overrides shield & 77-machine curated seed", () => {
     expect(readOverridesSnapshot().names["0001"]).toBe("Press Cronos");
   });
 
-  it("ships at least 40 unique curated Spanish machinery exercises without duplicates", () => {
-    expect(CRONOS_MACHINERY_EXERCISES.length).toBeGreaterThanOrEqual(40);
+  it("ships at least 95 unique curated Spanish machinery exercises without duplicates", () => {
+    expect(CRONOS_MACHINERY_EXERCISES.length).toBeGreaterThanOrEqual(95);
     const ids = new Set(CRONOS_MACHINERY_EXERCISES.map((ex) => ex.id));
     expect(ids.size).toBe(CRONOS_MACHINERY_EXERCISES.length);
     const mergedOnce = mergeMachineryExercises([], CRONOS_MACHINERY_EXERCISES);
     const mergedTwice = mergeMachineryExercises(mergedOnce, CRONOS_MACHINERY_EXERCISES);
     expect(mergedTwice.length).toBe(mergedOnce.length);
+  });
+
+  it("falls back to UPSERT when UPDATE touches 0 rows for a cg-mach-* exercise and clears dirty state", async () => {
+    state.writtenIds = [];
+    state.upsertError = { code: "42703", message: "column equipment_id does not exist" };
+    state.upsertFailsLeft = 1;
+
+    const result = await persistCoachExerciseChange("cg-mach-0001", {
+      customNameEs: "Extensión de cuádriceps sentada Pro",
+      equipment_id: "CG-EQP-0001",
+    });
+
+    expect(result).toEqual({ local: true, remote: "upserted" });
+    expect(state.upserts.length).toBe(2);
+    expect(state.upserts[1]).toMatchObject({
+      id: "cg-mach-0001",
+      name: "Extensión de cuádriceps sentada Pro",
+      body_part: "upper legs",
+      target: "quads",
+    });
+    expect(readOverridesSnapshot().catalog["cg-mach-0001"]).toMatchObject({
+      syncStatus: "synced",
+      dirty: false,
+    });
+    expect(countPendingOverrides()).toBe(0);
   });
 });

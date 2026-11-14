@@ -408,12 +408,12 @@ describe("CoachPortal · gobernanza de ejercicios", () => {
     expect(screen.getByText("2 de 2 ejercicios del catálogo local")).toBeTruthy();
 
     fireEvent.click(screen.getByRole("tab", { name: /Nuevos & Maquinaria/i }));
-    expect(await screen.findByText("48 de 48 ejercicios del catálogo local")).toBeTruthy();
+    expect(await screen.findByText("149 de 149 ejercicios del catálogo local")).toBeTruthy();
 
     const machineSelect = screen.getByLabelText("Filtrar por máquina CG-EQP");
     fireEvent.change(machineSelect, { target: { value: "CG-EQP-0001" } });
 
-    expect(await screen.findByText("2 de 48 ejercicios del catálogo local")).toBeTruthy();
+    expect(await screen.findByText("3 de 149 ejercicios del catálogo local")).toBeTruthy();
     expect(screen.getByText("Extensión de cuádriceps en máquina sentada")).toBeTruthy();
     expect(screen.getByText("Extensión de cuádriceps unilateral en máquina")).toBeTruthy();
   });

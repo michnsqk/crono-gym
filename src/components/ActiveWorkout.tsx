@@ -34,6 +34,7 @@ import {
   FastForward,
   Award,
   Minus,
+  Compass,
 } from "lucide-react";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { loadRestSeconds } from "../lib/workout/restPreferences";
@@ -60,6 +61,7 @@ import { DemoSheet } from "./workout/DemoSheet";
 import { AvanceSheet } from "./workout/AvanceSheet";
 import { AjustarSheet } from "./workout/AjustarSheet";
 import { CambiarSheet } from "./workout/CambiarSheet";
+import { BiomechanicalGripStanceModal } from "./workout/BiomechanicalGripStanceModal";
 import type { Exercise } from "@/types/supabase";
 import {
   EMPTY_PERFORMANCE,
@@ -877,6 +879,8 @@ interface ExerciseStageProps {
   onAdjustRest: () => void;
   onAddWarmup: () => void;
   prBadge?: { e1rmKg: number; weightKg: number; reps: number } | null;
+  onOpenBiomechanics?: () => void;
+  biomechanicsNote?: string | null;
 }
 
 /**
@@ -907,6 +911,8 @@ function ExerciseStage({
   onAdjustRest,
   onAddWarmup,
   prBadge,
+  onOpenBiomechanics,
+  biomechanicsNote,
 }: ExerciseStageProps) {
   const media = resolveMedia("exercise-gif", exercise.id, exercise.gif_url);
   const { src, failed, onLoad, onError } = useMediaSrc(media);
@@ -1062,6 +1068,23 @@ function ExerciseStage({
           </div>
         </div>
       )}
+      {biomechanicsNote && (
+        <div className="w-full px-2">
+          <button
+            type="button"
+            onClick={onOpenBiomechanics}
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+            style={{
+              backgroundColor: GLASS.fillSubtle,
+              color: TEXT.primary,
+              border: `1px solid ${ACCENT.border}`,
+            }}
+          >
+            <Compass size={12} strokeWidth={2} aria-hidden="true" style={{ color: ACCENT.text }} />
+            <span>{biomechanicsNote}</span>
+          </button>
+        </div>
+      )}
 
       {/*
         One dock: every action that belongs to this exercise.
@@ -1106,6 +1129,13 @@ function ExerciseStage({
           icon={<Plus size={14} strokeWidth={2} aria-hidden="true" />}
         >
           Calentamiento
+        </DockButton>
+        <DockButton
+          label="Postura / Agarre"
+          onClick={onOpenBiomechanics ?? (() => {})}
+          icon={<Compass size={14} strokeWidth={2} aria-hidden="true" />}
+        >
+          Postura / Agarre
         </DockButton>
         {totalSets > 0 && (
           <DockButton
@@ -1747,6 +1777,8 @@ export function ActiveWorkout({
     );
   }, [items, selected]);
 
+  const [biomechanicsModalOpen, setBiomechanicsModalOpen] = useState(false);
+  const [biomechanicsByExercise, setBiomechanicsByExercise] = useState<Record<string, string>>({});
   const carouselItems = useMemo(
     () =>
       items.map((item) => ({
@@ -2833,6 +2865,8 @@ export function ActiveWorkout({
                 onAdjustRest={() => adjustRestPreset(restPreset >= 180 ? 90 : restPreset + 30)}
                 onAddWarmup={insertSmartWarmups}
                 prBadge={sessionPrByExercise[selected.exercise.id] ?? null}
+                onOpenBiomechanics={() => setBiomechanicsModalOpen(true)}
+                biomechanicsNote={biomechanicsByExercise[selected.exercise.id] ?? null}
               />
 
               {substituteOpen && (
@@ -3203,6 +3237,24 @@ export function ActiveWorkout({
             pendingSetNumber={nextPendingSetNumber}
             isBodyweight={isBodyweightSelected}
             onUseTarget={applyRankTarget}
+          />
+          <BiomechanicalGripStanceModal
+            open={biomechanicsModalOpen}
+            onClose={() => setBiomechanicsModalOpen(false)}
+            exerciseTitle={cleanExerciseName(getExerciseDisplayName(selected.exercise))}
+            context={{
+              bodyPart: selected.exercise.body_part,
+              muscleGroup: selected.exercise.target,
+              movementPattern: smartExercise?.movement_pattern ?? null,
+              exerciseName: getExerciseDisplayName(selected.exercise),
+              equipmentId: selectedCatalogExercise?.effectiveEquipmentId ?? null,
+            }}
+            onApply={(selection) => {
+              setBiomechanicsByExercise((prev) => ({
+                ...prev,
+                [selected.exercise.id]: selection.chipSummary,
+              }));
+            }}
           />
         </>
       )}

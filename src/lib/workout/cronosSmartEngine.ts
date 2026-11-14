@@ -1407,6 +1407,15 @@ export function findStationAlternatives(
    * core row can never answer a chest/back/leg movement.
    */
   const currentRegion = regionOf(currentBody);
+  const isBandCandidate = (item: AlternativeCandidate): boolean => {
+    const eq = (item.equipment ?? "").trim().toLowerCase();
+    const label = `${item.name ?? ""} ${item.name_es ?? ""} ${item.customNameEs ?? ""}`.trim().toLowerCase();
+    if (eq === "band" || eq === "bands" || eq === "resistance band" || eq.includes("resistance band")) {
+      return true;
+    }
+    return /\b(band|bands|resistance band|banda|bandas|elástica|elastica)\b/i.test(`${eq} ${label}`);
+  };
+  const currentIsBand = isBandCandidate(current);
 
   const scored: Array<{ exercise: AlternativeCandidate; score: number }> = [];
 
@@ -1414,6 +1423,7 @@ export function findStationAlternatives(
     if (exercise.id === current.id) continue;
     if (exercise.availableInCronosGym === false) continue;
     if (exercise.station_key === "unavailable_station") continue;
+    if (!currentIsBand && isBandCandidate(exercise)) continue;
 
     const body = (exercise.body_part ?? "").trim().toLowerCase();
     const pattern = (exercise.movement_pattern ?? "").trim().toLowerCase();

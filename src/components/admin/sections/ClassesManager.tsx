@@ -12,7 +12,7 @@ import {
 
 const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const field =
-  "min-h-[44px] w-full rounded-xl border border-white/10 bg-zinc-800/80 px-3 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25";
+  "min-h-[42px] w-full min-w-0 rounded-xl border border-white/10 bg-zinc-800/80 px-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25";
 
 type GymClass = {
   id: string;
@@ -112,9 +112,9 @@ export function ClassesManager() {
   };
 
   return (
-    <section className="grid gap-5 pb-28">
+    <section className="grid gap-4 pb-28">
       <div
-        className="grid gap-3 p-4"
+        className="grid gap-2.5 p-3.5"
         style={{
           borderRadius: RADIUS.surface,
           backgroundColor: SURFACE.l1,
@@ -126,9 +126,9 @@ export function ClassesManager() {
           <h2 className="text-base font-bold text-white">Clases y horarios</h2>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Nombre de la clase
             </span>
             <input
@@ -138,8 +138,8 @@ export function ClassesManager() {
               placeholder="Ej. Mobility & Core"
             />
           </label>
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Instructor
             </span>
             <input
@@ -149,21 +149,25 @@ export function ClassesManager() {
               placeholder="Coach Carlos"
             />
           </label>
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+        </div>
+
+        {/* Fila Bento de 3 columnas: Precio (MXN), Cupo máximo y Duración (min) */}
+        <div className="grid grid-cols-3 gap-2">
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Precio (MXN)
             </span>
             <input
               className={field}
               value={price}
               onChange={(e) => setPrice(e.target.value)}
-              placeholder="0 = incluida"
+              placeholder="0"
               inputMode="decimal"
             />
           </label>
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
-              Cupo máximo
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
+              Cupo máx.
             </span>
             <input
               className={field}
@@ -173,8 +177,8 @@ export function ClassesManager() {
               inputMode="numeric"
             />
           </label>
-          <label className="grid gap-1 sm:col-span-2">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Duración (min)
             </span>
             <input
@@ -189,17 +193,18 @@ export function ClassesManager() {
 
         <button
           type="button"
-          className="min-h-[44px] rounded-xl text-sm font-bold text-white"
+          className="min-h-[44px] w-full rounded-xl text-sm font-bold text-white"
           style={{ backgroundColor: ACCENT.base }}
           onClick={() => void createClass()}
         >
           Crear clase
         </button>
 
-        <div className="mt-2 grid gap-2 border-t border-white/10 pt-3 sm:grid-cols-3">
+        {/* Bloque de horarios: Clase arriba y Día + Hora en grid-cols-2 */}
+        <div className="mt-1 grid gap-2 border-t border-white/10 pt-3">
           <label className="grid gap-1">
             <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
-              Clase
+              Clase a programar
             </span>
             <select
               className={field}
@@ -214,34 +219,37 @@ export function ClassesManager() {
               ))}
             </select>
           </label>
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
-              Día
-            </span>
-            <select className={field} value={day} onChange={(e) => setDay(e.target.value)}>
-              {[1, 2, 3, 4, 5, 6, 0].map((value) => (
-                <option key={value} value={value}>
-                  {DAYS[value]}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
-              Hora de inicio
-            </span>
-            <input
-              className={field}
-              type="time"
-              value={time}
-              onChange={(e) => setTime(e.target.value)}
-            />
-          </label>
+
+          <div className="grid grid-cols-2 gap-2">
+            <label className="grid min-w-0 gap-1">
+              <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
+                Día
+              </span>
+              <select className={field} value={day} onChange={(e) => setDay(e.target.value)}>
+                {[1, 2, 3, 4, 5, 6, 0].map((value) => (
+                  <option key={value} value={value}>
+                    {DAYS[value]}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="grid min-w-0 gap-1">
+              <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
+                Hora de inicio
+              </span>
+              <input
+                className={field}
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+              />
+            </label>
+          </div>
         </div>
 
         <button
           type="button"
-          className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-xl text-sm font-semibold text-white"
+          className="inline-flex min-h-[42px] w-full items-center justify-center gap-1.5 rounded-xl text-sm font-semibold text-white"
           style={{
             backgroundColor: GLASS.fillRaised,
             border: `1px solid ${GLASS.border}`,

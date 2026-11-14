@@ -119,7 +119,7 @@ export function AthleteDetailView({
       // 1. Perfil del atleta (nombre y objetivo guardado en onboarding)
       const { data: profileData, error: profileError } = await supabase
         .from("profiles")
-        .select("display_name, goal, weight_kg, height_cm, is_vip, vip_status, vip_activated_at, avatar_url")
+        .select("*")
         .eq("user_id", athleteId)
         .maybeSingle();
 

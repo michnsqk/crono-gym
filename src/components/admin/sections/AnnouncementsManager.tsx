@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ImagePlus, Trash2 } from "lucide-react";
+import { ImagePlus, Megaphone, Pin, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/image/compressImage";
 import { ACCENT, GLASS, RADIUS, STATUS, SURFACE, TEXT } from "@/design/tokens";
@@ -28,22 +28,13 @@ type AnnouncementRow = {
   created_at?: string;
 };
 
-const field = "min-h-[44px] w-full rounded-xl border border-white/10 bg-zinc-800/80 px-3 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25";
+const field =
+  "min-h-[42px] w-full min-w-0 rounded-xl border border-white/10 bg-zinc-800/80 px-3 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25";
 
 function normalizedTitle(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
 }
 
-/**
- * Mirror rows worth listing next to the remote table.
- *
- * The mirror and the remote table both hold the same published rows, so a plain
- * concatenation listed every locally-created aviso twice once Supabase had
- * accepted it — the id changed in the hand-off (`local-announcement-…` became a
- * uuid), so only the title still ties the two copies together. Mirror rows are
- * collapsed by id and by normalized title, and any row the remote table already
- * returns is dropped, with remote winning.
- */
 function dedupeAnnouncements(
   local: AnnouncementRow[],
   remote: AnnouncementRow[],
@@ -77,15 +68,16 @@ export function AnnouncementsManager() {
   const [status, setStatus] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    // Cleanup runs on every load: the mirror grows between visits, and doing it
-    // silently is what let the count drift for so long.
     const meta = cleanAnnouncementMeta();
     const feed = dedupeLocalAnnouncements<AnnouncementRow>();
     const cleaned: string[] = [];
     if (feed.removed > 0) cleaned.push(`${feed.removed} aviso(s) duplicado(s) del espejo local`);
     if (meta.removed.length > 0) cleaned.push(`${meta.removed.length} clave(s) de metadatos huerfana(s)`);
 
-    const { data } = await (supabase as any).from("announcements").select("*").order("created_at", { ascending: false });
+    const { data } = await (supabase as any)
+      .from("announcements")
+      .select("*")
+      .order("created_at", { ascending: false });
     const remoteItems = (data ?? []).map((item: AnnouncementRow) => {
       const itemMeta = findAnnouncementMeta(item.id, item.title);
       const banner = item.banner_path || itemMeta?.imageUrl || item.image_url;
@@ -98,15 +90,14 @@ export function AnnouncementsManager() {
     });
     const localItems = dedupeAnnouncements(readLocalAnnouncements<AnnouncementRow>(), remoteItems);
     setItems([...remoteItems, ...localItems]);
-    // Only a real cleanup replaces the status: the message of a publish or of a
-    // manual reset must survive the reload that follows it.
     if (cleaned.length > 0) setStatus(`Limpieza automatica: ${cleaned.join(" y ")} eliminados.`);
   }, []);
-  useEffect(() => { void load(); }, [load]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
 
   const resetCache = () => {
-    // The mirror keys are dropped through the shared helper, so a rename of the
-    // storage key cannot leave a stale copy behind.
     clearAnnouncementCaches();
     setStatus("Cache de avisos reseteado. Los avisos de Supabase se vuelven a leer al recargar.");
     void load();
@@ -133,34 +124,49 @@ export function AnnouncementsManager() {
       created_at: new Date().toISOString(),
     };
     const { data: authData } = await supabase.auth.getUser();
-    const { data, error } = await (supabase as any).from("announcements").insert({
-      title: trimmedTitle,
-      message: trimmedBody,
-      kind: category === "event" ? "event" : "notice",
-      banner_path: imageUrl || null,
-      starts_at: new Date().toISOString(),
-      expires_at: new Date(Date.now() + 365 * 86_400_000).toISOString(),
-      created_by: authData.user?.id,
-    }).select("id").single();
+    const { data, error } = await (supabase as any)
+      .from("announcements")
+      .insert({
+        title: trimmedTitle,
+        message: trimmedBody,
+        kind: category === "event" ? "event" : "notice",
+        banner_path: imageUrl || null,
+        starts_at: new Date().toISOString(),
+        expires_at: new Date(Date.now() + 365 * 86_400_000).toISOString(),
+        created_by: authData.user?.id,
+      })
+      .select("id")
+      .single();
     if (error) {
       saveLocalAnnouncement(localItem);
-      saveAnnouncementMeta(
-        [localItem.id, trimmedTitle],
-        { imageUrl: imageUrl || undefined, category: category as AnnouncementMeta["category"], pinned, active: true },
-      );
+      saveAnnouncementMeta([localItem.id, trimmedTitle], {
+        imageUrl: imageUrl || undefined,
+        category: category as AnnouncementMeta["category"],
+        pinned,
+        active: true,
+      });
       setItems((current) => [localItem, ...current]);
-      setTitle(""); setBody(""); setImageUrl(""); setPinned(false);
+      setTitle("");
+      setBody("");
+      setImageUrl("");
+      setPinned(false);
       setStatus("Aviso guardado localmente y publicado en /hoy.");
       window.dispatchEvent(new CustomEvent("cronos-announcements-changed"));
       return;
     }
-    saveAnnouncementMeta(
-      [String(data?.id ?? ""), trimmedTitle],
-      { imageUrl: imageUrl || undefined, category: category as AnnouncementMeta["category"], pinned, active: true },
-    );
+    saveAnnouncementMeta([String(data?.id ?? ""), trimmedTitle], {
+      imageUrl: imageUrl || undefined,
+      category: category as AnnouncementMeta["category"],
+      pinned,
+      active: true,
+    });
     saveLocalAnnouncement({ ...localItem, id: String(data?.id ?? localItem.id) });
     setItems((current) => [{ ...localItem, id: String(data?.id ?? localItem.id) }, ...current]);
-    setTitle(""); setBody(""); setImageUrl(""); setPinned(false); setStatus("Aviso publicado.");
+    setTitle("");
+    setBody("");
+    setImageUrl("");
+    setPinned(false);
+    setStatus("Aviso publicado.");
     window.dispatchEvent(new CustomEvent("cronos-announcements-changed"));
     await load();
   };
@@ -168,7 +174,10 @@ export function AnnouncementsManager() {
   const update = async (id: string, values: Partial<AnnouncementRow>) => {
     const current = items.find((item) => item.id === id);
     const meta: AnnouncementMeta = {
-      imageUrl: typeof values.image_url === "string" ? values.image_url : current?.imageUrl ?? current?.image_url,
+      imageUrl:
+        typeof values.image_url === "string"
+          ? values.image_url
+          : current?.imageUrl ?? current?.image_url,
       category: (values.category ?? current?.category) as AnnouncementMeta["category"],
       pinned: values.pinned ?? current?.pinned,
       active: values.active ?? current?.active,
@@ -181,9 +190,9 @@ export function AnnouncementsManager() {
   };
 
   return (
-    <section className="grid gap-5 pb-28">
+    <section className="grid gap-4 pb-28">
       <div
-        className="grid gap-3 p-4"
+        className="grid gap-2.5 p-3.5"
         style={{
           borderRadius: RADIUS.surface,
           backgroundColor: SURFACE.l1,
@@ -191,18 +200,21 @@ export function AnnouncementsManager() {
         }}
       >
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-base font-bold text-white">Avisos del Gym</h2>
+          <div className="flex items-center gap-2">
+            <Megaphone size={17} style={{ color: ACCENT.text }} aria-hidden="true" />
+            <h2 className="text-base font-bold text-white">Avisos del Gym</h2>
+          </div>
           <button
             type="button"
             onClick={resetCache}
-            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white"
+            className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl px-2.5 text-xs font-semibold text-white"
             style={{
               backgroundColor: GLASS.fillRaised,
               border: `1px solid ${GLASS.border}`,
             }}
           >
-            <Trash2 size={14} aria-hidden="true" />
-            Limpiar avisos duplicados / Resetear caché de avisos
+            <Trash2 size={13} aria-hidden="true" />
+            Limpiar duplicados / caché
           </button>
         </div>
 
@@ -218,9 +230,10 @@ export function AnnouncementsManager() {
           />
         </label>
 
-        <div className="grid gap-2 sm:grid-cols-2">
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+        {/* Bento Row: Tipo de aviso + Fijar en /hoy en 2 columnas */}
+        <div className="grid grid-cols-2 gap-2.5">
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Tipo de aviso
             </span>
             <select
@@ -233,47 +246,49 @@ export function AnnouncementsManager() {
               <option value="urgent">Urgente</option>
             </select>
           </label>
-          <div className="flex items-end">
+          <div className="flex min-w-0 items-end">
             <label
-              className="flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl px-3 text-sm"
+              className="flex min-h-[42px] w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-xl px-3 text-xs font-semibold"
               style={{
-                backgroundColor: GLASS.fill,
-                border: `1px solid ${GLASS.border}`,
-                color: TEXT.secondary,
+                backgroundColor: pinned ? ACCENT.subtle : GLASS.fill,
+                border: `1px solid ${pinned ? ACCENT.border : GLASS.border}`,
+                color: pinned ? TEXT.primary : TEXT.secondary,
               }}
             >
+              <span className="flex items-center gap-1.5 truncate">
+                <Pin size={13} aria-hidden="true" /> Fijar en /hoy
+              </span>
               <input
                 type="checkbox"
                 checked={pinned}
                 onChange={(e) => setPinned(e.target.checked)}
-              />{" "}
-              Fijar en /hoy
+              />
             </label>
           </div>
         </div>
 
-        <label className="grid gap-1">
-          <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
-            URL de imagen (opcional)
-          </span>
-          <input
-            className={field}
-            value={imageUrl}
-            onChange={(e) => setImageUrl(e.target.value)}
-            placeholder="https://…/aviso.jpg"
-          />
-        </label>
-
-        <div className="grid gap-2">
+        {/* Bento Row compacta: URL de imagen + Subir imagen */}
+        <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
+              URL de imagen (opcional)
+            </span>
+            <input
+              className={field}
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://…/aviso.jpg"
+            />
+          </label>
           <label
-            className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white"
+            className="inline-flex min-h-[42px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white"
             style={{
               backgroundColor: GLASS.fillRaised,
               border: `1px solid ${GLASS.border}`,
             }}
           >
-            <ImagePlus size={16} aria-hidden="true" />
-            Subir imagen del aviso
+            <ImagePlus size={15} aria-hidden="true" />
+            Subir imagen
             <input
               type="file"
               accept="image/*"
@@ -285,21 +300,22 @@ export function AnnouncementsManager() {
               }}
             />
           </label>
-          {imageUrl ? (
-            <img
-              src={imageUrl}
-              alt="Vista previa del aviso"
-              className="max-h-44 w-full rounded-xl border border-white/10 object-cover"
-            />
-          ) : null}
         </div>
+
+        {imageUrl ? (
+          <img
+            src={imageUrl}
+            alt="Vista previa del aviso"
+            className="max-h-36 w-full rounded-xl border border-white/10 object-cover"
+          />
+        ) : null}
 
         <label className="grid gap-1">
           <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
             Mensaje del aviso
           </span>
           <textarea
-            className="min-h-24 w-full rounded-xl border border-white/10 bg-zinc-800/80 p-3 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25"
+            className="min-h-20 w-full rounded-xl border border-white/10 bg-zinc-800/80 p-3 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25"
             value={body}
             onChange={(e) => setBody(e.target.value)}
             placeholder="Detalles para toda la comunidad Cronos..."
@@ -308,7 +324,7 @@ export function AnnouncementsManager() {
 
         <button
           type="button"
-          className="min-h-[44px] rounded-xl px-4 text-sm font-bold text-white"
+          className="min-h-[44px] w-full rounded-xl px-4 text-sm font-bold text-white"
           style={{ backgroundColor: ACCENT.base }}
           onClick={() => void publish()}
         >
@@ -331,16 +347,16 @@ export function AnnouncementsManager() {
         }}
       >
         {items.map((item) => (
-          <article key={item.id} className="grid gap-2.5 p-4">
+          <article key={item.id} className="grid gap-2 p-3.5">
             {item.imageUrl ?? item.image_url ? (
               <img
                 src={item.imageUrl ?? item.image_url}
                 alt=""
-                className="max-h-44 w-full rounded-xl object-cover"
+                className="max-h-40 w-full rounded-xl object-cover"
               />
             ) : null}
             <div className="flex items-center justify-between gap-2">
-              <strong className="truncate text-white">{item.title}</strong>
+              <strong className="truncate text-sm text-white">{item.title}</strong>
               <span
                 className="shrink-0 rounded-full px-2 py-0.5 text-xs"
                 style={{
@@ -357,7 +373,7 @@ export function AnnouncementsManager() {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className="min-h-[44px] rounded-xl px-3 text-xs font-medium text-white"
+                className="min-h-[38px] rounded-xl px-3 text-xs font-medium text-white"
                 style={{
                   backgroundColor: GLASS.fillRaised,
                   border: `1px solid ${GLASS.border}`,
@@ -368,7 +384,7 @@ export function AnnouncementsManager() {
               </button>
               <button
                 type="button"
-                className="min-h-[44px] rounded-xl px-3 text-xs font-medium text-white"
+                className="min-h-[38px] rounded-xl px-3 text-xs font-medium text-white"
                 style={{
                   backgroundColor: GLASS.fillRaised,
                   border: `1px solid ${GLASS.border}`,

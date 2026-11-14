@@ -160,7 +160,7 @@ export function RequestQueue({ onOpenConversation }: RequestQueueProps) {
     const athleteIds = [...new Set(requests.map((r) => r.athlete_id))];
     const { data: profiles } = await supabase
       .from("profiles")
-      .select("user_id,display_name")
+      .select("*")
       .in("user_id", athleteIds);
 
     if (!mounted.current) return;

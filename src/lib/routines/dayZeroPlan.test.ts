@@ -433,4 +433,36 @@ describe("buildDayZeroPlan 2-to-6 days & customDaysFocus", () => {
     expect(plan.days[1].label).toBe("Pierna y Dorsal");
     expect(plan.days[1].exercises.map((e) => e.row.id)).toEqual(["quad-comp", "back-comp"]);
   });
+
+  it("filters out resistance band exercises when real gym equipment is available", () => {
+    const mixedCatalog: CatalogExercise[] = [
+      row({
+        id: "band-chest",
+        name: "Band Chest Press",
+        name_es: "Press con banda elástica",
+        muscle_group: "chest",
+        movement_pattern: "horizontal_push",
+        equipment: "band",
+        equipment_id: "NONE",
+      }),
+      row({
+        id: "cg-mach-0006",
+        name: "Machine Chest Press",
+        name_es: "Press de pecho sentado en máquina",
+        muscle_group: "chest",
+        movement_pattern: "horizontal_push",
+        equipment: "leverage machine",
+        equipment_id: "CG-EQP-0006",
+      }),
+    ];
+    const plan = buildDayZeroPlan({
+      catalog: mixedCatalog,
+      daysPerWeek: 2,
+      goal: "hypertrophy",
+      level: "intermediate",
+      perDay: 1,
+      customDaysFocus: [{ dayIndex: 0, label: "Pecho", muscles: ["chest"] }],
+    });
+    expect(plan.days[0].exercises.map((e) => e.row.id)).toEqual(["cg-mach-0006"]);
+  });
 });

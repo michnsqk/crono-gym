@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ImagePlus, ShoppingBag, Ticket as TicketIcon } from "lucide-react";
+import { ImagePlus, Package, ShoppingBag, Ticket as TicketIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/image/compressImage";
 import { ACCENT, GLASS, RADIUS, STATUS, SURFACE, TEXT } from "@/design/tokens";
@@ -31,8 +31,15 @@ type Ticket = {
   product_id: string;
 };
 
+const CATEGORY_LABELS: Record<string, string> = {
+  supplements: "Suplementos",
+  accessories: "Accesorios",
+  clothing: "Ropa",
+  other: "Otros",
+};
+
 const field =
-  "min-h-[44px] w-full rounded-xl border border-white/10 bg-zinc-800/80 px-3 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25";
+  "min-h-[42px] w-full min-w-0 rounded-xl border border-white/10 bg-zinc-800/80 px-2.5 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25";
 
 export function StoreManager() {
   const [products, setProducts] = useState<Product[]>([]);
@@ -112,9 +119,9 @@ export function StoreManager() {
   };
 
   return (
-    <section className="grid gap-5 pb-28">
+    <section className="grid gap-4 pb-28">
       <div
-        className="grid gap-3 p-4"
+        className="grid gap-2.5 p-3.5"
         style={{
           borderRadius: RADIUS.surface,
           backgroundColor: SURFACE.l1,
@@ -126,20 +133,22 @@ export function StoreManager() {
           <h2 className="text-base font-bold text-white">Tienda del Gym</h2>
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
-              Nombre del producto
-            </span>
-            <input
-              className={field}
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              placeholder="Ej. Proteína Isolate 2 lb"
-            />
-          </label>
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+        <label className="grid gap-1">
+          <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+            Nombre del producto
+          </span>
+          <input
+            className={field}
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="Ej. Proteína Isolate 2 lb"
+          />
+        </label>
+
+        {/* Fila Bento de 3 columnas: Categoría + Precio (MXN) + Stock disponible */}
+        <div className="grid grid-cols-3 gap-2">
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Categoría
             </span>
             <select
@@ -153,8 +162,8 @@ export function StoreManager() {
               <option value="other">Otros</option>
             </select>
           </label>
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Precio (MXN)
             </span>
             <input
@@ -165,9 +174,9 @@ export function StoreManager() {
               inputMode="decimal"
             />
           </label>
-          <label className="grid gap-1">
-            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
-              Stock disponible
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
+              Stock disp.
             </span>
             <input
               className={field}
@@ -179,28 +188,28 @@ export function StoreManager() {
           </label>
         </div>
 
-        <label className="grid gap-1">
-          <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
-            Imagen del producto (URL opcional)
-          </span>
-          <input
-            className={field}
-            value={image}
-            onChange={(e) => setImage(e.target.value)}
-            placeholder="https://…/producto.jpg"
-          />
-        </label>
-
-        <div className="flex flex-wrap items-center gap-3">
+        {/* Fila compacta de imagen */}
+        <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+          <label className="grid min-w-0 gap-1">
+            <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
+              Imagen del producto (URL opcional)
+            </span>
+            <input
+              className={field}
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              placeholder="https://…/producto.jpg"
+            />
+          </label>
           <label
-            className="inline-flex min-h-[44px] cursor-pointer items-center gap-2 rounded-xl px-4 text-xs font-semibold text-white"
+            className="inline-flex min-h-[42px] shrink-0 cursor-pointer items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white"
             style={{
               backgroundColor: GLASS.fillRaised,
               border: `1px solid ${GLASS.border}`,
             }}
           >
-            <ImagePlus size={16} aria-hidden="true" />
-            Subir foto del producto
+            <ImagePlus size={15} aria-hidden="true" />
+            Subir foto
             <input
               type="file"
               accept="image/*"
@@ -212,19 +221,20 @@ export function StoreManager() {
               }}
             />
           </label>
-          {image ? (
-            <img
-              src={image}
-              alt="Vista previa del producto"
-              className="h-20 w-20 rounded-xl border border-white/10 object-cover"
-            />
-          ) : null}
         </div>
+
+        {image ? (
+          <img
+            src={image}
+            alt="Vista previa del producto"
+            className="h-20 w-20 rounded-xl border border-white/10 object-cover"
+          />
+        ) : null}
 
         <button
           type="button"
           onClick={() => void create()}
-          className="min-h-[44px] rounded-xl text-sm font-bold text-white"
+          className="min-h-[44px] w-full rounded-xl text-sm font-bold text-white"
           style={{ backgroundColor: ACCENT.base }}
         >
           Añadir producto a la tienda
@@ -237,6 +247,7 @@ export function StoreManager() {
         ) : null}
       </div>
 
+      {/* Apple Store Card Grid */}
       <div className="grid gap-2.5 sm:grid-cols-2">
         {products.map((product) => (
           <article
@@ -254,9 +265,24 @@ export function StoreManager() {
                 alt=""
                 className="h-16 w-16 shrink-0 rounded-xl object-cover"
               />
-            ) : null}
+            ) : (
+              <div
+                className="flex h-16 w-16 shrink-0 items-center justify-center rounded-xl"
+                style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
+              >
+                <Package size={20} style={{ color: TEXT.secondary }} aria-hidden="true" />
+              </div>
+            )}
             <div className="min-w-0 flex-1">
-              <strong className="block truncate text-sm text-white">{product.name}</strong>
+              <div className="flex items-center gap-1.5">
+                <span
+                  className="inline-flex shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                  style={{ backgroundColor: GLASS.fillRaised, color: TEXT.secondary }}
+                >
+                  {CATEGORY_LABELS[product.category ?? "other"] ?? product.category ?? "Tienda"}
+                </span>
+              </div>
+              <strong className="mt-1 block truncate text-sm text-white">{product.name}</strong>
               <span
                 className="mt-0.5 block font-mono text-xs tabular-nums"
                 style={{ color: TEXT.secondary }}
@@ -292,7 +318,7 @@ export function StoreManager() {
             <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                className="min-h-[44px] rounded-xl px-3 text-xs font-medium text-white"
+                className="min-h-[38px] rounded-xl px-3 text-xs font-medium text-white"
                 style={{
                   backgroundColor: GLASS.fillRaised,
                   border: `1px solid ${GLASS.border}`,
@@ -303,7 +329,7 @@ export function StoreManager() {
               </button>
               <button
                 type="button"
-                className="min-h-[44px] rounded-xl px-3 text-xs font-bold"
+                className="min-h-[38px] rounded-xl px-3 text-xs font-bold"
                 style={{
                   backgroundColor: STATUS.success.base,
                   color: TEXT.onAccent,

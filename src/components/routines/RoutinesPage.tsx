@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, AlertCircle, Loader2, ChevronRight, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, AlertCircle, Loader2, ChevronRight, ChevronDown, ChevronUp, Compass } from "lucide-react";
+import { BiomechanicalGripStanceModal } from "@/components/workout/BiomechanicalGripStanceModal";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import type { WorkspaceOutletContext } from "@/App";
 import { GlassButton } from "@/components/ui/GlassButton";
@@ -88,6 +89,7 @@ export function RoutinesPage() {
       return next;
     });
   }, []);
+  const [biomechanicsOpen, setBiomechanicsOpen] = useState(false);
   const { isActive, start, session, discardRecoverableDraft } = useActiveSession();
   const navigate = useNavigate();
 
@@ -544,12 +546,37 @@ export function RoutinesPage() {
       )}
 
       {showMainHeader && (
-        <SegmentedControl
-          value={tab}
-          options={TAB_OPTIONS}
-          onChange={(value) => setTab(value as RoutineTab)}
-          ariaLabel={ROUTINES_UI_LABELS.title}
-        />
+        <>
+          <button
+            type="button"
+            onClick={() => setBiomechanicsOpen(true)}
+            className="flex w-full items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-left"
+            style={{
+              backgroundColor: GLASS.fillRaised,
+              border: `1px solid ${GLASS.border}`,
+              color: TEXT.primary,
+            }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Compass size={16} className="shrink-0" style={{ color: ACCENT.text }} />
+              <div className="min-w-0">
+                <span className="block text-xs font-bold truncate" style={{ color: TEXT.primary }}>
+                  Atlas de Agarres, Manerales y Posturas
+                </span>
+                <span className="block text-[11px] truncate" style={{ color: TEXT.secondary }}>
+                  Posición de pies en prensa/hack, manerales CG-EQP y ángulos de banca
+                </span>
+              </div>
+            </div>
+            <ChevronRight size={15} className="shrink-0" style={{ color: TEXT.tertiary }} />
+          </button>
+          <SegmentedControl
+            value={tab}
+            options={TAB_OPTIONS}
+            onChange={(value) => setTab(value as RoutineTab)}
+            ariaLabel={ROUTINES_UI_LABELS.title}
+          />
+        </>
       )}
 
       {editorOpen && (
@@ -931,6 +958,10 @@ export function RoutinesPage() {
           </div>
         </div>
       ) : null}
+      <BiomechanicalGripStanceModal
+        open={biomechanicsOpen}
+        onClose={() => setBiomechanicsOpen(false)}
+      />
     </div>
   );
 }

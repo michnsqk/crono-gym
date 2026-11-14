@@ -129,7 +129,7 @@ export function useCoachAccess(userId: string | null): CoachAccess {
       setIsLoading(true);
       const { data, error: err } = await supabase
         .from("profiles")
-        .select("is_premium,premium_expires_at")
+        .select("*")
         .eq("user_id", userId)
         .maybeSingle();
 

@@ -579,6 +579,27 @@ const REPS_BY_GOAL: Record<DayZeroGoal, number> = {
   general_fitness: 8,
 };
 
+/** Whether the exercise uses an elastic/resistance band rather than real gym hardware. */
+export function isElasticBandExercise(
+  row: Pick<CatalogExercise, "equipment" | "name" | "name_es">,
+): boolean {
+  const eq = (row.equipment ?? "").trim().toLowerCase();
+  const label = `${row.name ?? ""} ${row.name_es ?? ""}`.trim().toLowerCase();
+  if (eq === "band" || eq === "bands" || eq === "resistance band" || eq.includes("resistance band")) {
+    return true;
+  }
+  return /\b(band|bands|resistance band|banda|bandas|elástica|elastica)\b/i.test(`${eq} ${label}`);
+}
+
+/** Priority score for Cronos Smart Day 0: real gym machines & free weights ahead of elastic bands. */
+export function dayZeroCandidateScore(row: CatalogExercise): number {
+  let score = 0;
+  if (isElasticBandExercise(row)) score -= 100;
+  if (isMachine(row) || row.id.startsWith("cg-mach-")) score += 25;
+  if (isCompoundMovement(row)) score += 15;
+  return score;
+}
+
 /** A row the gym can host: available, and not pointing at an unusable station. */
 export function isAvailableForDayZero(row: CatalogExercise): boolean {
   if (isExerciseDeleted(row.id)) return false;
@@ -704,9 +725,13 @@ export function matchesDayZeroMuscle(row: CatalogExercise, muscleId: DayZeroMusc
 
 function sortCustomDayCandidates(rows: readonly CatalogExercise[]): CatalogExercise[] {
   return [...rows].sort((a, b) => {
+    const bandDiff = Number(isElasticBandExercise(a)) - Number(isElasticBandExercise(b));
+    if (bandDiff !== 0) return bandDiff;
     const compDiff = Number(isCompoundMovement(b)) - Number(isCompoundMovement(a));
     if (compDiff !== 0) return compDiff;
-    return Number(isMachine(b)) - Number(isMachine(a));
+    const machDiff = Number(isMachine(b)) - Number(isMachine(a));
+    if (machDiff !== 0) return machDiff;
+    return dayZeroCandidateScore(b) - dayZeroCandidateScore(a);
   });
 }
 
@@ -789,7 +814,9 @@ export function buildDayZeroPlan({
   customDaysFocus,
   newId = defaultIdFactory(),
 }: BuildDayZeroPlanParams): DayZeroPlan {
-  const available = catalog.filter(isAvailableForDayZero);
+  const allAvailable = catalog.filter(isAvailableForDayZero);
+  const nonBandAvailable = allAvailable.filter((row) => !isElasticBandExercise(row));
+  const available = nonBandAvailable.length > 0 ? nonBandAvailable : allAvailable;
   const queues = new Map<DayZeroGroup, CatalogExercise[]>();
   for (const row of available) {
     const group = groupOf(row);
