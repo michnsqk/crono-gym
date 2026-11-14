@@ -1,5 +1,18 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { Activity, Dumbbell, Flame, Layers, Minus, Plus, Sparkles, X } from "lucide-react";
+import {
+  Activity,
+  Award,
+  CheckCircle2,
+  Circle,
+  Clock,
+  Dumbbell,
+  Flame,
+  Layers,
+  Minus,
+  Plus,
+  Sparkles,
+  X,
+} from "lucide-react";
 import {
   ACCENT,
   GLASS,
@@ -16,9 +29,14 @@ import {
 import type { StationKey } from "@/lib/catalog/types";
 import {
   CALIBRATION_PRESETS,
+  QUICK_RAMP_TARGET_WEIGHTS,
+  computeExerciseRank,
+  epley,
   generateMobilityWarmupProtocol,
   generateWarmupRamp,
   getLoadBreakdownHint,
+  getPlateAndImplementBreakdown,
+  getWarmupRampStepMeta,
   incrementForCategory,
   type CalibrationPresetId,
   type EquipmentCategory,
@@ -61,6 +79,8 @@ export interface SmartOverloadModalProps {
   bodyPart?: string | null;
   /** Active station for live implement breakdown hints inside the PAP tab. */
   station?: StationKey;
+  /** Optional athlete bodyweight (kg) for live rank projection. */
+  bodyweightKg?: number;
   /** The ramp that prepares this load, as the engine sizes it. */
   warmupRamp?: readonly SmartWorkoutSet[];
   /**
@@ -81,19 +101,6 @@ const CATEGORY_LABEL: Record<EquipmentCategory, string> = {
   cable: "Polea",
   machine: "Máquina",
 };
-
-const RAMP_STAGE_PURPOSE = [
-  "Lubricación articular y patrón motor",
-  "Activación neuromuscular progresiva",
-  "Potenciación post-activación (PAP) sin fatiga",
-] as const;
-
-function rampPurposeFor(index: number, total: number): string {
-  if (total <= 1) return "Activación ligera y fijación técnica";
-  if (index === 0) return RAMP_STAGE_PURPOSE[0];
-  if (index === total - 1) return RAMP_STAGE_PURPOSE[2];
-  return RAMP_STAGE_PURPOSE[1];
-}
 
 /**
  * Cronos 3-Engine Smart Assistant Modal:
@@ -117,6 +124,7 @@ export function SmartOverloadModal({
   movementPattern,
   bodyPart,
   station,
+  bodyweightKg,
   warmupRamp,
   onCalibrate,
   onApply,
@@ -128,6 +136,7 @@ export function SmartOverloadModal({
   const [repsValue, setRepsValue] = useState(String(reps));
   const [preset, setPreset] = useState<CalibrationPresetId | null>(null);
   const [includeWarmup, setIncludeWarmup] = useState(false);
+  const [checkedMobilitySteps, setCheckedMobilitySteps] = useState<Record<string, boolean>>({});
 
   // The sheet is mounted once and reused across exercises, so it has to adopt
   // the new exercise's numbers and default back to Sobrecarga every time it opens.
@@ -138,6 +147,7 @@ export function SmartOverloadModal({
     setRepsValue(String(reps));
     setPreset(null);
     setIncludeWarmup(false);
+    setCheckedMobilitySteps({});
   }, [isOpen, weightKg, reps]);
 
   const resolvedCategory: EquipmentCategory = category ?? (isBodyweight ? "bodyweight" : "machine");
@@ -181,6 +191,35 @@ export function SmartOverloadModal({
       }),
     [movementPattern, bodyPart, resolvedCategory, exerciseName, safeWorkingWeight, isBodyweight],
   );
+
+  const plateBreakdown = useMemo(
+    () =>
+      getPlateAndImplementBreakdown(
+        safeWorkingWeight,
+        station ?? "free_weight_area",
+        equipmentLabel ?? undefined,
+        resolvedCategory,
+      ),
+    [safeWorkingWeight, station, equipmentLabel, resolvedCategory],
+  );
+
+  const liveProjection = useMemo(() => {
+    const bw = bodyweightKg && bodyweightKg > 0 ? bodyweightKg : 75;
+    const rank = computeExerciseRank({
+      exerciseId: exerciseName,
+      weightKg: isBodyweight ? 0 : safeWorkingWeight,
+      reps: safeWorkingReps,
+      bodyWeightKg: bw,
+      equipment: equipmentLabel ?? undefined,
+      station,
+      isBodyweight,
+      category: resolvedCategory,
+    });
+    const estimated1rm = isBodyweight
+      ? safeWorkingReps
+      : Math.round(epley(safeWorkingWeight, safeWorkingReps));
+    return { rank, estimated1rm };
+  }, [safeWorkingWeight, safeWorkingReps, bodyweightKg, bodyPart, equipmentLabel, station, isBodyweight, resolvedCategory]);
 
   if (!isOpen) return null;
 
@@ -556,6 +595,84 @@ export function SmartOverloadModal({
               </label>
             </div>
 
+            {/* Plate / implement visual breakdown + e1RM & Rank projection */}
+            <div
+              className="flex flex-col gap-2 p-3"
+              style={{
+                borderRadius: RADIUS.control,
+                border: `1px solid ${GLASS.border}`,
+                background: SURFACE.sunken,
+              }}
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <Award size={14} strokeWidth={2} aria-hidden="true" style={{ color: ACCENT.text }} />
+                  <span style={{ fontSize: TYPE.caption.size, fontWeight: 700, color: TEXT.primary }}>
+                    {isBodyweight
+                      ? `Rendimiento: ${liveProjection.estimated1rm} reps`
+                      : `e1RM est.: ${liveProjection.estimated1rm} kg`}
+                  </span>
+                </div>
+                <span
+                  className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold"
+                  style={{
+                    background: ACCENT.subtle,
+                    color: ACCENT.text,
+                    border: `1px solid ${ACCENT.border}`,
+                    fontVariantNumeric: NUMERIC.transform,
+                  }}
+                >
+                  Rango {liveProjection.rank.currentRank.tier}
+                </span>
+              </div>
+
+              {plateBreakdown.mode !== "bodyweight" && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span style={{ fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                    Armado:
+                  </span>
+                  {plateBreakdown.mode === "barbell" && (
+                    <span
+                      className="rounded-full px-2 py-0.5 font-mono text-xs font-semibold"
+                      style={{
+                        background: SURFACE.raised,
+                        color: TEXT.secondary,
+                        border: `1px solid ${GLASS.border}`,
+                        fontVariantNumeric: NUMERIC.transform,
+                      }}
+                    >
+                      Barra {plateBreakdown.barWeightKg ?? 20} kg
+                    </span>
+                  )}
+                  {plateBreakdown.platesPerSide.length > 0 ? (
+                    plateBreakdown.platesPerSide.map((plate, idx) => (
+                      <span
+                        key={`${plate}-${idx}`}
+                        className="rounded-full px-2 py-0.5 font-mono text-xs font-semibold"
+                        style={{
+                          background: SURFACE.raised,
+                          color: TEXT.primary,
+                          border: `1px solid ${GLASS.borderStrong}`,
+                          fontVariantNumeric: NUMERIC.transform,
+                        }}
+                      >
+                        {plate} kg
+                      </span>
+                    ))
+                  ) : (
+                    <span style={{ fontSize: TYPE.caption.size, color: TEXT.secondary }}>
+                      {plateBreakdown.summary}
+                    </span>
+                  )}
+                  {plateBreakdown.platesPerSide.length > 0 && (
+                    <span style={{ fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                      c/lado
+                    </span>
+                  )}
+                </div>
+              )}
+            </div>
+
             {showRamp && (
               <div
                 style={{
@@ -712,6 +829,34 @@ export function SmartOverloadModal({
               )}
             </div>
 
+            {!isBodyweight && (
+              <div className="flex flex-wrap items-center gap-1.5">
+                <span style={{ fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                  Objetivo rápido:
+                </span>
+                {QUICK_RAMP_TARGET_WEIGHTS.map((targetKg) => {
+                  const selected = Math.abs(safeWorkingWeight - targetKg) < 0.01;
+                  return (
+                    <button
+                      key={targetKg}
+                      type="button"
+                      onClick={() => setWeight(String(targetKg))}
+                      className="rounded-full px-2.5 py-1 font-mono text-xs font-semibold transition-colors"
+                      style={{
+                        fontVariantNumeric: NUMERIC.transform,
+                        background: selected ? ACCENT.subtle : SURFACE.sunken,
+                        color: selected ? ACCENT.text : TEXT.secondary,
+                        border: `1px solid ${selected ? ACCENT.border : GLASS.border}`,
+                        cursor: "pointer",
+                      }}
+                    >
+                      {targetKg} kg
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {showRamp ? (
               <div className="flex flex-col gap-2">
                 {ramp.map((item, index) => {
@@ -719,6 +864,7 @@ export function SmartOverloadModal({
                     !isBodyweight && safeWorkingWeight > 0
                       ? Math.round((item.weightKg / safeWorkingWeight) * 100)
                       : null;
+                  const stepMeta = getWarmupRampStepMeta(index, ramp.length);
                   const stepHint =
                     station && item.weightKg > 0
                       ? getLoadBreakdownHint(item.weightKg, station, equipmentLabel ?? undefined, resolvedCategory)
@@ -747,12 +893,24 @@ export function SmartOverloadModal({
                             W{index + 1}
                             {pct !== null ? ` · ${pct}%` : ""}
                           </span>
-                          <span style={{ fontSize: TYPE.caption.size, color: TEXT.secondary }}>
-                            {rampPurposeFor(index, ramp.length)}
+                          <span
+                            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{
+                              background: SURFACE.sunken,
+                              color: TEXT.tertiary,
+                              border: `1px solid ${GLASS.border}`,
+                              fontVariantNumeric: NUMERIC.transform,
+                            }}
+                          >
+                            <Clock size={11} aria-hidden="true" />
+                            {stepMeta.restLabel}
                           </span>
                         </div>
+                        <p className="mt-1" style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.secondary }}>
+                          {stepMeta.purpose}
+                        </p>
                         {stepHint && (
-                          <p className="mt-1" style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                          <p className="mt-0.5" style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
                             {stepHint}
                           </p>
                         )}
@@ -836,51 +994,103 @@ export function SmartOverloadModal({
               </p>
             </div>
 
+            <div className="flex items-center justify-between gap-2 px-1">
+              <span style={{ fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                Checklist de preparación articular
+              </span>
+              <span
+                className="font-mono text-xs font-semibold"
+                style={{ fontVariantNumeric: NUMERIC.transform, color: TEXT.secondary }}
+              >
+                {mobilityProtocol.steps.filter((s) => checkedMobilitySteps[s.id]).length}/{mobilityProtocol.steps.length}
+              </span>
+            </div>
+
             <div className="flex flex-col gap-2">
-              {mobilityProtocol.steps.map((stepItem, idx) => (
-                <div
-                  key={stepItem.id}
-                  className="p-3"
-                  style={{
-                    borderRadius: RADIUS.control,
-                    background: GLASS.fillSubtle,
-                    border: `1px solid ${GLASS.border}`,
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p style={{ margin: 0, fontSize: TYPE.subhead.size, fontWeight: 600, color: TEXT.primary }}>
+              {mobilityProtocol.steps.map((stepItem, idx) => {
+                const done = checkedMobilitySteps[stepItem.id] === true;
+                return (
+                  <button
+                    key={stepItem.id}
+                    type="button"
+                    aria-pressed={done}
+                    onClick={() =>
+                      setCheckedMobilitySteps((prev) => ({
+                        ...prev,
+                        [stepItem.id]: !prev[stepItem.id],
+                      }))
+                    }
+                    className="w-full p-3 text-left transition-colors"
+                    style={{
+                      borderRadius: RADIUS.control,
+                      background: done ? SURFACE.sunken : GLASS.fillSubtle,
+                      border: `1px solid ${done ? ACCENT.border : GLASS.border}`,
+                      cursor: "pointer",
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex min-w-0 items-start gap-2.5">
+                        {done ? (
+                          <CheckCircle2
+                            size={18}
+                            className="mt-0.5 shrink-0"
+                            style={{ color: ACCENT.text }}
+                            aria-hidden="true"
+                          />
+                        ) : (
+                          <Circle
+                            size={18}
+                            className="mt-0.5 shrink-0"
+                            style={{ color: TEXT.tertiary }}
+                            aria-hidden="true"
+                          />
+                        )}
+                        <div className="min-w-0">
+                          <p
+                            style={{
+                              margin: 0,
+                              fontSize: TYPE.subhead.size,
+                              fontWeight: 600,
+                              color: done ? TEXT.secondary : TEXT.primary,
+                              textDecoration: done ? "line-through" : "none",
+                            }}
+                          >
+                            <span
+                              className="mr-1.5 font-mono"
+                              style={{ fontVariantNumeric: NUMERIC.transform, color: ACCENT.text }}
+                            >
+                              0{idx + 1}
+                            </span>
+                            {stepItem.title}
+                          </p>
+                          <p className="mt-0.5" style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                            {stepItem.focusZone}
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 flex-col items-end gap-1">
                         <span
-                          className="mr-1.5 font-mono"
-                          style={{ fontVariantNumeric: NUMERIC.transform, color: ACCENT.text }}
+                          className="rounded-full px-2 py-0.5 font-mono text-xs font-semibold"
+                          style={{
+                            fontVariantNumeric: NUMERIC.transform,
+                            background: SURFACE.sunken,
+                            color: TEXT.primary,
+                            border: `1px solid ${GLASS.border}`,
+                          }}
                         >
-                          0{idx + 1}
+                          {stepItem.doseLabel}
                         </span>
-                        {stepItem.title}
-                      </p>
-                      <p className="mt-0.5" style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
-                        {stepItem.focusZone}
-                      </p>
+                        <span style={{ fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                          Tempo {stepItem.tempoLabel}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex shrink-0 items-center gap-1">
-                      <span
-                        className="rounded-full px-2 py-0.5 font-mono text-xs font-semibold"
-                        style={{
-                          fontVariantNumeric: NUMERIC.transform,
-                          background: SURFACE.sunken,
-                          color: TEXT.primary,
-                          border: `1px solid ${GLASS.border}`,
-                        }}
-                      >
-                        {stepItem.doseLabel}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="mt-1.5" style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.secondary }}>
-                    {stepItem.cue} · {stepItem.tempoLabel}
-                  </p>
-                </div>
-              ))}
+                    <p className="mt-1.5 pl-7" style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.secondary }}>
+                      {stepItem.cue}
+                    </p>
+                  </button>
+                );
+              })}
             </div>
 
             <div

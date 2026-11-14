@@ -66,19 +66,25 @@ export function useProfile(userId: string | null): ProfileState {
     setError(null);
     setProfile(null);
     const cached = profileCache.get(userId);
-    const { data: fetched, error: err } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (err) setError(err.message);
-    const data = fetched ?? (err ? cached : null);
-    if (fetched) {
-      profileCache.set(userId, fetched as Record<string, unknown>);
+    try {
+      const { data: fetched, error: err } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (err) setError(err.message);
+      const data = fetched ?? (err ? cached : null);
+      if (fetched) {
+        profileCache.set(userId, fetched as Record<string, unknown>);
+      }
+      if (data) setProfile(toProfile(data as Record<string, unknown>));
+      else setProfile(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "No se pudo cargar el perfil");
+      setProfile(cached ? toProfile(cached) : null);
+    } finally {
+      setLoading(false);
     }
-    if (data) setProfile(toProfile(data as Record<string, unknown>));
-    else setProfile(null);
-    setLoading(false);
   }, [userId]);
 
   useEffect(() => {

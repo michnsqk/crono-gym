@@ -63,7 +63,7 @@ function roundLoad(value: number): number {
   return Math.max(0, Math.round(value * 2) / 2);
 }
 
-function epley(weightKg: number, reps: number): number {
+export function epley(weightKg: number, reps: number): number {
   if (weightKg <= 0 || reps <= 0) return 0;
   return weightKg * (1 + reps / 30);
 }
@@ -411,6 +411,132 @@ export function getAdaptiveRestSeconds(
   if (setType === "failure" || setType === "dropset") return 90;
   const compounds = new Set(["squat", "hinge", "horizontal_push", "horizontal_pull", "vertical_push", "vertical_pull"]);
   return compounds.has(movementPattern ?? "") ? 120 : 75;
+}
+
+export interface PlateBreakdownResult {
+  mode: "bodyweight" | "dumbbell" | "cable" | "barbell" | "machine";
+  summary: string;
+  barWeightKg?: number;
+  perSideKg?: number;
+  platesPerSide: number[];
+  perHandKg?: number;
+  remainderKg?: number;
+}
+
+const STANDARD_GYM_PLATES = [20, 15, 10, 5, 2.5, 1.25] as const;
+
+function decomposePlates(targetKg: number): { plates: number[]; remainderKg: number } {
+  let remaining = Math.max(0, roundLoad(targetKg));
+  const plates: number[] = [];
+  for (const plate of STANDARD_GYM_PLATES) {
+    while (remaining + 0.01 >= plate) {
+      plates.push(plate);
+      remaining = Math.round((remaining - plate) * 100) / 100;
+    }
+  }
+  return { plates, remainderKg: Math.max(0, remaining) };
+}
+
+export function getPlateAndImplementBreakdown(
+  weightKg: number,
+  station: StationKey,
+  equipment?: string,
+  category?: EquipmentCategory,
+): PlateBreakdownResult {
+  const weight = roundLoad(weightKg);
+  if (station === "pullup_dip_station" || category === "bodyweight" || weight <= 0) {
+    return { mode: "bodyweight", summary: BODYWEIGHT_LOAD_HINT, platesPerSide: [] };
+  }
+  if (
+    category === "dumbbell" ||
+    (station === "free_weight_area" && equipment?.toLowerCase().includes("dumbbell"))
+  ) {
+    const perHand = roundLoad(weight / 2);
+    return {
+      mode: "dumbbell",
+      summary: `Mancuerna ${perHand} kg c/u · ${weight} kg total`,
+      perHandKg: perHand,
+      platesPerSide: [],
+    };
+  }
+  if (category === "cable" || station.startsWith("cable_")) {
+    return {
+      mode: "cable",
+      summary: `Torre ${weight} kg · seleccionar pasador`,
+      platesPerSide: [],
+    };
+  }
+  if (category === "machine") {
+    const perSide = roundLoad(weight / 2);
+    const { plates, remainderKg } = decomposePlates(perSide);
+    return {
+      mode: "machine",
+      summary: `${weight} kg en máquina${plates.length > 0 ? ` · [${plates.join("+")} kg]/lado` : ""}`,
+      perSideKg: perSide,
+      platesPerSide: plates,
+      remainderKg,
+    };
+  }
+
+  const barWeightKg = 20;
+  if (weight <= barWeightKg) {
+    return {
+      mode: "barbell",
+      summary: `Barra ${weight} kg`,
+      barWeightKg: weight,
+      perSideKg: 0,
+      platesPerSide: [],
+      remainderKg: 0,
+    };
+  }
+
+  const perSideKg = roundLoad((weight - barWeightKg) / 2);
+  const { plates, remainderKg } = decomposePlates(perSideKg);
+  return {
+    mode: "barbell",
+    summary: `Barra 20 kg + [${plates.join(" + ") || perSideKg} kg]/lado`,
+    barWeightKg,
+    perSideKg,
+    platesPerSide: plates,
+    remainderKg,
+  };
+}
+
+export interface WarmupRampStepMeta {
+  restSeconds: number;
+  restLabel: string;
+  purpose: string;
+}
+
+export const QUICK_RAMP_TARGET_WEIGHTS = [30, 40, 50, 60, 80] as const;
+
+export function getWarmupRampStepMeta(index: number, total: number): WarmupRampStepMeta {
+  if (total <= 1) {
+    return {
+      restSeconds: 45,
+      restLabel: "Descanso: 45s",
+      purpose: "Activación ligera y fijación técnica",
+    };
+  }
+  if (index === 0) {
+    return {
+      restSeconds: 45,
+      restLabel: "Descanso: 45s",
+      purpose: "Lubricación articular y patrón motor",
+    };
+  }
+  if (index >= total - 1) {
+    return {
+      restSeconds: 90,
+      restLabel: "Descanso: 90s",
+      purpose: "Potenciación post-activación (PAP) sin fatiga",
+    };
+  }
+  return {
+    restSeconds: 60,
+    restLabel: "Descanso: 60s",
+    purpose: "Activación neuromuscular progresiva",
+  };
 }
 
 export function getLoadBreakdownHint(

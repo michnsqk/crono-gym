@@ -32,6 +32,8 @@ import {
   Sparkles,
   Moon,
   FastForward,
+  Award,
+  Minus,
 } from "lucide-react";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { loadRestSeconds } from "../lib/workout/restPreferences";
@@ -107,6 +109,7 @@ import {
   classifyEquipmentCategory,
   cleanEquipmentLabel,
   computeExerciseRank,
+  epley,
   estimateSmartLoad,
   findStationAlternatives,
   generateSmartWarmupSets,
@@ -873,6 +876,7 @@ interface ExerciseStageProps {
   restSeconds: number;
   onAdjustRest: () => void;
   onAddWarmup: () => void;
+  prBadge?: { e1rmKg: number; weightKg: number; reps: number } | null;
 }
 
 /**
@@ -902,10 +906,10 @@ function ExerciseStage({
   restSeconds,
   onAdjustRest,
   onAddWarmup,
+  prBadge,
 }: ExerciseStageProps) {
   const media = resolveMedia("exercise-gif", exercise.id, exercise.gif_url);
   const { src, failed, onLoad, onError } = useMediaSrc(media);
-  const progress = totalSets > 0 ? Math.round((completedSets / totalSets) * 100) : 0;
   const cleanLocation = cleanEquipmentLabel(locationLabel);
   const displayName = cleanExerciseName(getExerciseDisplayName(exercise));
 
@@ -1000,15 +1004,33 @@ function ExerciseStage({
         )}
       </div>
 
-      {/* The name, editorial: one line that answers "what am I doing". */}
-      <h2
-        className="w-full px-2 text-center text-lg font-bold leading-snug tracking-tight text-white"
-        style={{ margin: 0, overflowWrap: "break-word" }}
-      >
-        {displayName}
-      </h2>
+      {/* The header row: exercise title aligned horizontally with its rank pill. */}
+      <div className="flex w-full items-center justify-between gap-2.5 px-2">
+        <h2
+          className="min-w-0 flex-1 text-left text-lg font-bold leading-snug tracking-tight text-white"
+          style={{ margin: 0, overflowWrap: "break-word" }}
+        >
+          {displayName}
+        </h2>
+        <button
+          type="button"
+          onClick={onOpenRank}
+          aria-label={`Rango del ejercicio: ${rank.currentRank.tier}`}
+          title={`${rank.currentRank.tier} · siguiente ${rank.nextRank.tier}`}
+          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-semibold backdrop-blur-md"
+          style={{
+            borderColor: rank.currentRank.colorHex,
+            backgroundColor: GLASS.fillSubtle,
+            color: rank.currentRank.colorHex,
+          }}
+        >
+          <Shield size={12} strokeWidth={2} aria-hidden="true" />
+          {rank.currentRank.tier}
+        </button>
+      </div>
       {lastSessionShort && (
         <p
+          className="w-full px-2 text-left"
           style={{
             margin: 0,
             fontSize: TYPE.caption.size,
@@ -1024,59 +1046,32 @@ function ExerciseStage({
           {lastSessionShort}
         </p>
       )}
+      {prBadge && (
+        <div className="w-full px-2">
+          <div
+            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+            style={{
+              background: ACCENT.subtle,
+              color: ACCENT.text,
+              border: `1px solid ${ACCENT.border}`,
+              fontVariantNumeric: "tabular-nums",
+            }}
+          >
+            <Award size={13} strokeWidth={2} aria-hidden="true" />
+            <span>Nuevo PR · {prBadge.e1rmKg} kg e1RM</span>
+          </div>
+        </div>
+      )}
 
       {/*
-        The header row: one pill, on the right, aligned with the name.
-        The counter that used to sit here is on the dock below, where the
-        progress bar already says it -- a second copy of "3/4 series" a few
-        pixels away is a number the athlete reads twice and needs once.
-      */}
-      <div className="flex w-full items-center justify-end gap-2.5 px-4">
-        <button
-          type="button"
-          onClick={onOpenRank}
-          aria-label={`Rango del ejercicio: ${rank.currentRank.tier}`}
-          title={`${rank.currentRank.tier} · siguiente ${rank.nextRank.tier}`}
-          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-semibold backdrop-blur-md"
-          style={{
-            borderColor: rank.currentRank.colorHex,
-            backgroundColor: "rgba(255, 255, 255, 0.06)",
-            color: rank.currentRank.colorHex,
-          }}
-        >
-          <Shield size={12} strokeWidth={2} aria-hidden="true" />
-          {rank.currentRank.tier}
-        </button>
-      </div>
-
-      {/*
-        One dock: the progress, and every action that belongs to this exercise.
+        One dock: every action that belongs to this exercise.
         The buttons carry words, not only icons: at the rack, an icon the
-        athlete has to decode is a tap they will not make. The row scrolls when
-        a narrow phone cannot fit them all, and the progress never leaves.
+        athlete has to decode is a tap they will not make.
       */}
-      <div className="flex w-full items-center gap-2 overflow-x-auto rounded-full border border-white/10 bg-neutral-900/90 py-1 pl-3.5 pr-1 backdrop-blur-md">
-        {/*
-          The count, for the ear. The bar below already shows the athlete how far
-          they are; the number itself is not worth a second element in the strip,
-          but a screen reader has no bar to look at, so it keeps the count.
-        */}
+      <div className="flex w-full items-center gap-2 overflow-x-auto rounded-full border border-white/10 bg-neutral-900/90 py-1 px-2 backdrop-blur-md">
         <span className="sr-only">
           {completedSets} / {totalSets} series
         </span>
-        <div
-          aria-hidden="true"
-          className="mx-1 h-[3px] w-10 shrink-0 overflow-hidden rounded-full bg-white/10"
-        >
-          <div
-            className="h-full rounded-full"
-            style={{
-              width: `${progress}%`,
-              background: ACCENT.base,
-              transition: `width ${MOTION.fast} ${MOTION.easeOut}`,
-            }}
-          />
-        </div>
         <DockButton
           label="Demo"
           onClick={onDemo ?? (() => {})}
@@ -1658,6 +1653,9 @@ export function ActiveWorkout({
   const [strengthRevision, setStrengthRevision] = useState(0);
   const [calibrationSetIndex, setCalibrationSetIndex] = useState<number | null>(null);
   const [appliedSmartLoadByExercise, setAppliedSmartLoadByExercise] = useState<Record<string, { weightKg: number; reps: number }>>({});
+  const [sessionPrByExercise, setSessionPrByExercise] = useState<
+    Record<string, { e1rmKg: number; weightKg: number; reps: number }>
+  >({});
   const [selectedEquipment, setSelectedEquipment] = useState<EquipmentEntry | null>(
     null,
   );
@@ -2144,6 +2142,22 @@ export function ActiveWorkout({
     const weightKg = toNumber(entry.weight) ?? 0;
     const reps = toNumber(entry.reps) ?? 0;
     if (item && weightKg > 0 && reps > 0) {
+      const currentE1rm = Math.round(epley(weightKg, reps));
+      const prevBest = performance[item.exercise.id]?.bestSet;
+      const prevBestE1rm =
+        prevBest?.weight != null &&
+        prevBest?.reps != null &&
+        prevBest.weight > 0 &&
+        prevBest.reps > 0
+          ? Math.round(epley(prevBest.weight, prevBest.reps))
+          : 0;
+      const currentSessionPr = sessionPrByExercise[item.exercise.id]?.e1rmKg ?? 0;
+      if (currentE1rm > Math.max(prevBestE1rm, currentSessionPr)) {
+        setSessionPrByExercise((prev) => ({
+          ...prev,
+          [item.exercise.id]: { e1rmKg: currentE1rm, weightKg, reps },
+        }));
+      }
       const targetReps = Number(item.sets.find((set) => set.kind === "normal")?.reps ?? 0) || reps;
       recordSetAndTrainEngine({
         exerciseId: item.exercise.id,
@@ -2818,6 +2832,7 @@ export function ActiveWorkout({
                 restSeconds={restPreset}
                 onAdjustRest={() => adjustRestPreset(restPreset >= 180 ? 90 : restPreset + 30)}
                 onAddWarmup={insertSmartWarmups}
+                prBadge={sessionPrByExercise[selected.exercise.id] ?? null}
               />
 
               {substituteOpen && (
@@ -3040,29 +3055,107 @@ export function ActiveWorkout({
                       />
                     ))}
 
+                    {(() => {
+                      const pendingIdx = selected.sets.findIndex((s) => !s.completed);
+                      if (pendingIdx === -1) return null;
+                      const pendingEntry = selected.sets[pendingIdx];
+                      const prevBest = performance[selected.exercise.id]?.bestSet;
+                      const prevSetInList = pendingIdx > 0 ? selected.sets[pendingIdx - 1] : null;
+                      const matchSource =
+                        prevSetInList && (toNumber(prevSetInList.weight) != null || toNumber(prevSetInList.reps) != null)
+                          ? { weight: prevSetInList.weight, reps: prevSetInList.reps }
+                          : prevBest?.weight != null && prevBest?.reps != null
+                            ? { weight: String(prevBest.weight), reps: String(prevBest.reps) }
+                            : null;
+                      const nudgePendingWeight = (delta: number) => {
+                        const base = toNumber(pendingEntry.weight) ?? 0;
+                        const nextWeight = Math.max(0, Math.round((base + delta) * 10) / 10);
+                        updateSet(selected.key, pendingIdx, { ...pendingEntry, weight: String(nextWeight) });
+                      };
+                      const nudgePendingReps = (delta: number) => {
+                        const base = toNumber(pendingEntry.reps) ?? 0;
+                        const nextReps = Math.max(1, Math.round(base + delta));
+                        updateSet(selected.key, pendingIdx, { ...pendingEntry, reps: String(nextReps) });
+                      };
+                      return (
+                        <div
+                          className="mt-2 flex flex-wrap items-center justify-center gap-1.5"
+                          role="group"
+                          aria-label="Ajuste rápido a una mano"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => nudgePendingWeight(-2.5)}
+                            className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-neutral-900 px-3 font-mono text-xs font-semibold text-neutral-200 transition-colors"
+                            style={{ fontVariantNumeric: "tabular-nums" }}
+                          >
+                            <Minus size={12} aria-hidden="true" />
+                            2.5 kg
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => nudgePendingWeight(2.5)}
+                            className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-neutral-900 px-3 font-mono text-xs font-semibold text-neutral-200 transition-colors"
+                            style={{ fontVariantNumeric: "tabular-nums" }}
+                          >
+                            <Plus size={12} aria-hidden="true" />
+                            2.5 kg
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => nudgePendingReps(-1)}
+                            className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-neutral-900 px-3 font-mono text-xs font-semibold text-neutral-200 transition-colors"
+                            style={{ fontVariantNumeric: "tabular-nums" }}
+                          >
+                            <Minus size={12} aria-hidden="true" />
+                            1 rep
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => nudgePendingReps(1)}
+                            className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-neutral-900 px-3 font-mono text-xs font-semibold text-neutral-200 transition-colors"
+                            style={{ fontVariantNumeric: "tabular-nums" }}
+                          >
+                            <Plus size={12} aria-hidden="true" />
+                            1 rep
+                          </button>
+                          {matchSource && (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                updateSet(selected.key, pendingIdx, {
+                                  ...pendingEntry,
+                                  weight: matchSource.weight,
+                                  reps: matchSource.reps,
+                                })
+                              }
+                              className="inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-semibold text-white transition-colors"
+                              style={{
+                                borderColor: GLASS.border,
+                                background: GLASS.fillSubtle,
+                              }}
+                            >
+                              Igualar anterior
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
+
                     <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
                       <button
                         type="button"
                         onClick={() => addSet(selected.key)}
                         aria-label="+ Agregar serie"
+                        className="flex h-10 w-full items-center justify-center gap-1.5 rounded-full border text-xs font-semibold text-white transition-colors"
                         style={{
-                          width: "100%",
-                          height: 40,
-                          borderRadius: 24,
-                          background: "#2C2C2E",
-                          border: "1px solid rgba(255, 255, 255, 0.10)",
-                          color: TEXT.primary,
-                          fontSize: "12px",
-                          fontWeight: 600,
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          gap: 6,
-                          transition: "background 150ms ease, transform 150ms ease",
+                          background: SOLID.popover,
+                          borderColor: GLASS.border,
+                          fontSize: TYPE.caption.size,
+                          transition: `background ${MOTION.fast} ${MOTION.easeOut}, transform ${MOTION.fast} ${MOTION.easeOut}`,
                         }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = "#3A3A3E"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = "#2C2C2E"; }}
+                        onMouseEnter={(e) => { e.currentTarget.style.background = SURFACE.raised; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.background = SOLID.popover; }}
                         onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.99)"; }}
                         onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
                       >
@@ -3096,6 +3189,7 @@ export function ActiveWorkout({
             movementPattern={smartExercise?.movement_pattern ?? null}
             bodyPart={selected.exercise.body_part}
             station={smartExercise?.station_key}
+            bodyweightKg={profile?.weight_kg ?? undefined}
             warmupRamp={warmupRamp}
             onCalibrate={calibrateColdStart}
             onApply={applySmartLoadFromModal}

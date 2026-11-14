@@ -1,13 +1,15 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { Copy, MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import type { RoutineWithExercises } from "@/hooks/useGymData";
 import type { Exercise } from "@/types/supabase";
-import { ACCENT, GLASS, MOTION, RADIUS, SOLID, SPACE, TEXT, TYPE, Z_INDEX } from "@/design/tokens";
+import { ACCENT, GLASS, MOTION, RADIUS, SOLID, SPACE, SURFACE, TEXT, TYPE, Z_INDEX } from "@/design/tokens";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { hapticLight } from "@/lib/haptics";
-import { ROUTINES_UI_LABELS, translateBodyPart, translateTarget } from "@/lib/i18n";
+import { ROUTINES_UI_LABELS, translateBodyPart, translateEquipment, translateTarget } from "@/lib/i18n";
+import { resolveCatalogExerciseWithOverrides } from "@/lib/catalog/resolveExercise";
 import { draftFromRoutine, displayDayLabel } from "@/lib/routines/routineDayModel";
+import { cleanEquipmentLabel } from "@/lib/workout/cronosSmartEngine";
 import { getExerciseDisplayName } from "@/utils/exerciseTranslation";
 
 type RoutineCardRoutine = RoutineWithExercises & {
@@ -63,6 +65,7 @@ export function RoutineCard({
 }: RoutineCardProps) {
   const reducedMotion = useReducedMotion();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [showExercises, setShowExercises] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -318,7 +321,7 @@ export function RoutineCard({
                       fontSize: TYPE.caption.size,
                       fontWeight: 600,
                       color: isActive ? ACCENT.base : TEXT.tertiary,
-                      background: isToday ? "rgba(255, 59, 48, 0.12)" : "transparent",
+                      background: isToday ? ACCENT.subtle : "transparent",
                       ...(isActive && { border: `1px solid ${ACCENT.base}` }),
                     }}
                     title={weekdayShort[i]}
@@ -371,6 +374,129 @@ export function RoutineCard({
             <p style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
               {ROUTINES_UI_LABELS.incomplete}
             </p>
+          )}
+
+          {routine.exercises.length > 0 && (
+            <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
+              <button
+                type="button"
+                aria-expanded={showExercises}
+                onClick={() => setShowExercises((prev) => !prev)}
+                style={{
+                  alignSelf: "flex-start",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: SPACE.xs,
+                  minHeight: 36,
+                  padding: `0 ${SPACE.sm}`,
+                  borderRadius: RADIUS.pill,
+                  border: `1px solid ${GLASS.border}`,
+                  background: SURFACE.sunken,
+                  color: TEXT.secondary,
+                  fontSize: TYPE.caption.size,
+                  fontWeight: 600,
+                  cursor: "pointer",
+                }}
+              >
+                <span>
+                  {showExercises
+                    ? "Ocultar ejercicios"
+                    : `Ver ejercicios (${metrics.exerciseCount})`}
+                </span>
+                {showExercises ? (
+                  <ChevronUp size={13} aria-hidden="true" />
+                ) : (
+                  <ChevronDown size={13} aria-hidden="true" />
+                )}
+              </button>
+
+              {showExercises && (
+                <ul
+                  style={{
+                    margin: 0,
+                    padding: SPACE.sm,
+                    listStyle: "none",
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: SPACE.xs,
+                    borderRadius: RADIUS.control,
+                    background: SURFACE.sunken,
+                    border: `1px solid ${GLASS.border}`,
+                  }}
+                >
+                  {routine.exercises.map((re, idx) => {
+                    const resolved = resolveCatalogExerciseWithOverrides(re.exercise.id);
+                    const exName = resolved?.displayName ?? getExerciseDisplayName(re.exercise);
+                    const machineLabel =
+                      resolved?.effectiveEquipmentName ??
+                      cleanEquipmentLabel(re.exercise.equipment) ??
+                      translateEquipment(re.exercise.equipment);
+                    const repRange =
+                      re.target_reps_min != null && re.target_reps_max != null
+                        ? `${re.target_reps_min}-${re.target_reps_max}`
+                        : re.target_reps_min ?? re.target_reps_max ?? "8-12";
+                    return (
+                      <li
+                        key={re.rowId ?? `${re.exercise.id}-${idx}`}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          gap: SPACE.sm,
+                          padding: `${SPACE.xs} 0`,
+                          borderBottom:
+                            idx < routine.exercises.length - 1
+                              ? `1px solid ${GLASS.border}`
+                              : "none",
+                        }}
+                      >
+                        <div style={{ minWidth: 0, flex: 1 }}>
+                          <span
+                            style={{
+                              display: "block",
+                              fontSize: TYPE.subhead.size,
+                              fontWeight: 600,
+                              color: TEXT.primary,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {idx + 1}. {exName}
+                          </span>
+                          {machineLabel && (
+                            <span
+                              style={{
+                                display: "block",
+                                fontSize: TYPE.caption.size,
+                                color: TEXT.tertiary,
+                                overflow: "hidden",
+                                textOverflow: "ellipsis",
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {machineLabel}
+                            </span>
+                          )}
+                        </div>
+                        <span
+                          style={{
+                            flexShrink: 0,
+                            fontFamily: TYPE.mono.font,
+                            fontSize: TYPE.caption.size,
+                            fontWeight: 600,
+                            fontVariantNumeric: "tabular-nums",
+                            color: TEXT.secondary,
+                          }}
+                        >
+                          {re.target_sets ?? 3}×{repRange}
+                        </span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
+            </div>
           )}
         </div>
 

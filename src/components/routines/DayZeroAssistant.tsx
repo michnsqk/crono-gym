@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Check, RotateCw, Sparkles } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, RotateCw, Sparkles } from "lucide-react";
 import { MuscleReadonlyMap } from "@/components/MuscleReadonlyMap";
 import { ACCENT, GLASS, NUMERIC, RADIUS, SURFACE, TEXT } from "@/design/tokens";
 import { loadCatalog } from "@/lib/catalog/catalogLoader";
@@ -64,9 +64,10 @@ export type { DayZeroPlan };
 
 export interface DayZeroAssistantProps {
   onCreated: (plan: DayZeroPlan) => void;
+  defaultExpanded?: boolean;
 }
 
-export function DayZeroAssistant({ onCreated }: DayZeroAssistantProps) {
+export function DayZeroAssistant({ onCreated, defaultExpanded = true }: DayZeroAssistantProps) {
   const [frequency, setFrequency] = useState<DayZeroFrequency>(3);
   const [daysFocus, setDaysFocus] = useState<DayZeroCustomDayFocus[]>(() =>
     defaultDaysFocusForFrequency(3),
@@ -77,7 +78,8 @@ export function DayZeroAssistant({ onCreated }: DayZeroAssistantProps) {
   const [level, setLevel] = useState<DayZeroLevel>("beginner");
   const [catalog, setCatalog] = useState<CatalogExercise[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
-  const [collapsed, setCollapsed] = useState(false);
+  const [hasGenerated, setHasGenerated] = useState(false);
+  const [collapsed, setCollapsed] = useState(!defaultExpanded);
 
   useEffect(() => {
     let alive = true;
@@ -175,6 +177,7 @@ export function DayZeroAssistant({ onCreated }: DayZeroAssistantProps) {
     } catch {
       // The callback still lets the current screen confirm the generated routine.
     }
+    setHasGenerated(true);
     onCreated(plan);
     setCollapsed(true);
   }
@@ -182,28 +185,39 @@ export function DayZeroAssistant({ onCreated }: DayZeroAssistantProps) {
   if (collapsed) {
     return (
       <section
-        className="mb-4 flex w-full flex-wrap items-center justify-between gap-3 p-4"
+        className="mb-4 flex w-full items-center justify-between gap-3 px-4 py-3"
         style={{
           borderRadius: RADIUS.card,
           background: SURFACE.raised,
           border: `1px solid ${SURFACE.border}`,
         }}
       >
-        <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: ACCENT.text }}>
-            Cronos Smart Day 0
-          </p>
-          <p className="mt-1 text-sm" style={{ color: TEXT.secondary }}>
-            Rutina generada. Ajusta los ejercicios cuando quieras.
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5">
+            <Sparkles size={13} aria-hidden="true" style={{ color: ACCENT.text }} />
+            <p className="truncate text-xs font-semibold uppercase tracking-wider" style={{ color: ACCENT.text }}>
+              Cronos Smart Day 0
+            </p>
+          </div>
+          <p className="mt-0.5 truncate text-sm font-medium" style={{ color: TEXT.secondary }}>
+            {hasGenerated
+              ? "Rutina generada. Ajusta los ejercicios cuando quieras."
+              : "Crea tu rutina en 3 pasos (2 a 6 días)"}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setCollapsed(false)}
-          className="min-h-11 shrink-0 px-4 text-sm font-semibold"
-          style={{ borderRadius: RADIUS.control, background: ACCENT.base, color: TEXT.onAccent }}
+          className="inline-flex min-h-11 shrink-0 items-center gap-1.5 px-4 text-sm font-semibold"
+          style={{
+            borderRadius: RADIUS.pill,
+            background: hasGenerated ? ACCENT.base : SURFACE.sunken,
+            color: hasGenerated ? TEXT.onAccent : TEXT.primary,
+            border: hasGenerated ? "none" : `1px solid ${GLASS.borderStrong}`,
+          }}
         >
-          Crear otra rutina
+          <span>{hasGenerated ? "Crear otra rutina" : "Configurar"}</span>
+          <ChevronDown size={15} aria-hidden="true" />
         </button>
       </section>
     );
@@ -227,18 +241,33 @@ export function DayZeroAssistant({ onCreated }: DayZeroAssistantProps) {
             Crea tu rutina en 3 pasos
           </h2>
         </div>
-        {status === "ready" && (
-          <span
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+        <div className="flex items-center gap-2">
+          {status === "ready" && (
+            <span
+              className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium"
+              style={{
+                background: GLASS.fillSubtle,
+                border: `1px solid ${GLASS.border}`,
+                color: TEXT.secondary,
+              }}
+            >
+              <span style={{ fontVariantNumeric: NUMERIC.transform }}>{frequency}</span> días · personalizado
+            </span>
+          )}
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            className="inline-flex min-h-9 items-center gap-1 rounded-full px-3 text-xs font-medium"
             style={{
-              background: GLASS.fillSubtle,
+              background: SURFACE.sunken,
               border: `1px solid ${GLASS.border}`,
               color: TEXT.secondary,
             }}
           >
-            <span style={{ fontVariantNumeric: NUMERIC.transform }}>{frequency}</span> días · personalizado
-          </span>
-        )}
+            <span>Minimizar</span>
+            <ChevronUp size={13} aria-hidden="true" />
+          </button>
+        </div>
       </div>
 
       {status === "loading" && (

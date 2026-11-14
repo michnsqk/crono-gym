@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { RefreshCw } from "lucide-react";
 import { GlassButton, GlassCard, Skeleton } from "@/components/ui";
 import { supabase } from "@/lib/supabase";
-import { GLASS, RADIUS, SPACE, TEXT, TYPE } from "@/design/tokens";
+import { GLASS, RADIUS, SPACE, STATUS, TEXT, TYPE } from "@/design/tokens";
+
+const USERS_CACHE_KEY = "cronos_admin_users_cache_v1";
 
 interface AdminUser {
   user_id: string;
@@ -12,9 +15,21 @@ interface AdminUser {
   granted_at: string | null;
 }
 
+function readCachedUsers(): AdminUser[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(USERS_CACHE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? (parsed as AdminUser[]) : [];
+  } catch {
+    return [];
+  }
+}
+
 export function UsersRolesManager() {
   const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<AdminUser[]>([]);
+  const [users, setUsers] = useState<AdminUser[]>(() => readCachedUsers());
   const [email, setEmail] = useState("");
   const [search, setSearch] = useState("");
   const [role, setRole] = useState("coach");
@@ -38,16 +53,28 @@ export function UsersRolesManager() {
         existing.grantedAt = row.granted_at ?? existing.grantedAt;
         rolesByUser.set(row.user_id, existing);
       });
-      setUsers((profiles ?? []).map((profile: any) => ({
+      const mapped: AdminUser[] = (profiles ?? []).map((profile: any) => ({
         user_id: profile.id,
         display_name: profile.display_name ?? null,
         email: profile.email ?? null,
         avatar_url: profile.avatar_url ?? null,
         roles: rolesByUser.get(profile.id)?.roles ?? [],
         granted_at: rolesByUser.get(profile.id)?.grantedAt ?? null,
-      })));
+      }));
+      setUsers(mapped);
+      try {
+        window.localStorage.setItem(USERS_CACHE_KEY, JSON.stringify(mapped));
+      } catch {
+        // Ignore storage quota error
+      }
     } catch (error) {
-      setErr(error instanceof Error ? error.message : "Error al cargar");
+      const fallback = readCachedUsers();
+      if (fallback.length > 0) {
+        setUsers(fallback);
+        setErr("Mostrando caché local (no se pudo sincronizar usuarios con Supabase).");
+      } else {
+        setErr(error instanceof Error ? error.message : "Error al cargar usuarios.");
+      }
     } finally {
       setLoading(false);
     }
@@ -58,7 +85,10 @@ export function UsersRolesManager() {
   }, [load]);
 
   const grant = useCallback(async () => {
-    if (!email.trim()) return;
+    if (!email.trim()) {
+      setErr("Ingresa el correo del usuario antes de asignar un rol.");
+      return;
+    }
     setErr(null);
     setStatus(null);
     try {
@@ -68,10 +98,10 @@ export function UsersRolesManager() {
       });
       if (error) throw error;
       setEmail("");
-      setStatus("Rol asignado");
+      setStatus("Rol asignado correctamente.");
       await load();
     } catch (error) {
-      setErr(error instanceof Error ? error.message : "Error al asignar");
+      setErr(error instanceof Error ? error.message : "Error al asignar rol.");
     }
   }, [email, role, load]);
 
@@ -86,7 +116,7 @@ export function UsersRolesManager() {
       setErr(error.message);
       return;
     }
-    setStatus("Rol revocado");
+    setStatus("Rol revocado.");
     await load();
   }, [load]);
 
@@ -98,38 +128,174 @@ export function UsersRolesManager() {
     );
   }, [search, users]);
 
-  if (loading) return <Skeleton variant="block" height="160px" />;
+  if (loading && users.length === 0) return <Skeleton variant="block" height="160px" />;
 
   return (
     <GlassCard style={{ padding: SPACE.lg }}>
-      <h3 style={{ fontSize: TYPE.subhead.size, fontWeight: TYPE.subhead.weight, color: TEXT.primary, margin: `0 0 ${SPACE.md} 0` }}>
-        Gestor de Usuarios y Roles
-      </h3>
-      <div style={{ display: "flex", gap: SPACE.sm, flexWrap: "wrap", marginBottom: SPACE.md }}>
-        <input value={email} onChange={(event) => setEmail(event.target.value)} placeholder="Email del usuario" style={{ flex: 1, minWidth: 240, padding: `8px ${SPACE.md}`, borderRadius: RADIUS.control, border: `1px solid ${GLASS.border}`, background: GLASS.fill, color: TEXT.primary }} />
-        <select value={role} onChange={(event) => setRole(event.target.value)} style={{ padding: `8px ${SPACE.md}`, borderRadius: RADIUS.control, border: `1px solid ${GLASS.border}`, background: GLASS.fill, color: TEXT.primary }}>
-          <option value="athlete">Atleta</option>
-          <option value="coach">Entrenador</option>
-          <option value="admin">Administrador</option>
-        </select>
-        <GlassButton variant="primary" onClick={() => void grant}>Asignar rol</GlassButton>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <h3 style={{ fontSize: TYPE.subhead.size, fontWeight: TYPE.subhead.weight, color: TEXT.primary, margin: 0 }}>
+          Gestor de Usuarios y Roles
+        </h3>
+        <button
+          type="button"
+          onClick={() => void load()}
+          className="inline-flex min-h-[36px] items-center gap-1.5 rounded-xl px-3 text-xs font-semibold"
+          style={{
+            backgroundColor: GLASS.fillRaised,
+            border: `1px solid ${GLASS.border}`,
+            color: TEXT.secondary,
+          }}
+        >
+          <RefreshCw size={13} aria-hidden="true" /> Actualizar
+        </button>
       </div>
-      <input value={search} onChange={(event) => setSearch(event.target.value)} placeholder="Buscar por nombre o correo" style={{ width: "100%", marginBottom: SPACE.md, padding: `8px ${SPACE.md}`, borderRadius: RADIUS.control, border: `1px solid ${GLASS.border}`, background: GLASS.fill, color: TEXT.primary }} />
-      {status && <p style={{ color: TEXT.secondary, margin: `0 0 ${SPACE.sm} 0` }}>{status}</p>}
-      {err && <p style={{ color: TEXT.tertiary, margin: `0 0 ${SPACE.sm} 0` }}>{err}</p>}
-      <div style={{ display: "flex", flexDirection: "column", gap: SPACE.sm }}>
-        {filteredUsers.map((user) => (
-          <div key={user.user_id} style={{ display: "flex", alignItems: "center", gap: SPACE.sm, padding: `${SPACE.sm} ${SPACE.md}`, borderRadius: RADIUS.control, border: `1px solid ${GLASS.border}`, background: GLASS.fill }}>
-            {user.avatar_url ? <img src={user.avatar_url} alt="" width={32} height={32} style={{ borderRadius: "9999px" }} /> : <span aria-hidden="true" style={{ width: 32, height: 32, borderRadius: "9999px", backgroundColor: GLASS.border }} />}
-            <div style={{ minWidth: 0, flex: 1 }}>
-              <strong style={{ display: "block", color: TEXT.primary }}>{user.display_name || "Sin nombre"}</strong>
-              <span style={{ display: "block", color: TEXT.secondary, fontSize: TYPE.caption.size }}>{user.email || "Sin correo"}</span>
+
+      <div className="mb-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
+        <label className="grid gap-1">
+          <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+            Correo electrónico
+          </span>
+          <input
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
+            placeholder="atleta@cronosgym.com"
+            className="min-h-[44px] w-full rounded-xl px-3 text-sm outline-none"
+            style={{
+              borderRadius: RADIUS.control,
+              border: `1px solid ${GLASS.border}`,
+              backgroundColor: GLASS.fill,
+              color: TEXT.primary,
+            }}
+          />
+        </label>
+
+        <label className="grid gap-1">
+          <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+            Rol a otorgar
+          </span>
+          <select
+            value={role}
+            onChange={(event) => setRole(event.target.value)}
+            className="min-h-[44px] rounded-xl px-3 text-sm outline-none"
+            style={{
+              borderRadius: RADIUS.control,
+              border: `1px solid ${GLASS.border}`,
+              backgroundColor: GLASS.fill,
+              color: TEXT.primary,
+            }}
+          >
+            <option value="athlete">Atleta</option>
+            <option value="coach">Entrenador</option>
+            <option value="admin">Administrador</option>
+          </select>
+        </label>
+
+        <div className="flex items-end">
+          <GlassButton variant="primary" onClick={() => void grant()}>
+            Asignar rol
+          </GlassButton>
+        </div>
+      </div>
+
+      <label className="mb-3 grid gap-1">
+        <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+          Filtrar usuarios
+        </span>
+        <input
+          value={search}
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Buscar por nombre o correo"
+          className="min-h-[44px] w-full rounded-xl px-3 text-sm outline-none"
+          style={{
+            borderRadius: RADIUS.control,
+            border: `1px solid ${GLASS.border}`,
+            backgroundColor: GLASS.fill,
+            color: TEXT.primary,
+          }}
+        />
+      </label>
+
+      {status && (
+        <p className="mb-2 text-xs font-medium" style={{ color: STATUS.success.text }} role="status">
+          {status}
+        </p>
+      )}
+      {err && (
+        <div
+          className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-xl px-3 py-2 text-xs"
+          style={{
+            backgroundColor: STATUS.warning.muted,
+            border: `1px solid ${STATUS.warning.border}`,
+            color: STATUS.warning.text,
+          }}
+          role="alert"
+        >
+          <span>{err}</span>
+          <button
+            type="button"
+            onClick={() => void load()}
+            className="rounded-lg px-2.5 py-1 font-semibold underline"
+          >
+            Reintentar
+          </button>
+        </div>
+      )}
+
+      <div className="flex flex-col gap-2">
+        {filteredUsers.length === 0 ? (
+          <p className="py-4 text-center text-xs" style={{ color: TEXT.secondary }}>
+            No hay usuarios para mostrar con este filtro.
+          </p>
+        ) : (
+          filteredUsers.map((user) => (
+            <div
+              key={user.user_id}
+              className="flex flex-wrap items-center gap-3 px-3 py-2.5"
+              style={{
+                borderRadius: RADIUS.control,
+                border: `1px solid ${GLASS.border}`,
+                backgroundColor: GLASS.fill,
+              }}
+            >
+              {user.avatar_url ? (
+                <img src={user.avatar_url} alt="" width={32} height={32} className="rounded-full object-cover" />
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className="inline-block h-8 w-8 shrink-0 rounded-full"
+                  style={{ backgroundColor: GLASS.border }}
+                />
+              )}
+              <div className="min-w-0 flex-1">
+                <strong className="block truncate text-sm" style={{ color: TEXT.primary }}>
+                  {user.display_name || "Sin nombre"}
+                </strong>
+                <span className="block truncate text-xs" style={{ color: TEXT.secondary }}>
+                  {user.email || "Sin correo"}
+                </span>
+              </div>
+              <div className="flex flex-wrap justify-end gap-1.5">
+                {user.roles.map((userRole) => (
+                  <button
+                    key={userRole}
+                    type="button"
+                    onClick={() => void revoke(user.user_id, userRole)}
+                    title={`Revocar ${userRole}`}
+                    className="cursor-pointer px-2.5 py-1 text-xs font-medium"
+                    style={{
+                      border: `1px solid ${GLASS.border}`,
+                      borderRadius: RADIUS.pill,
+                      backgroundColor: GLASS.fillRaised,
+                      color: TEXT.secondary,
+                    }}
+                  >
+                    {userRole} ×
+                  </button>
+                ))}
+              </div>
             </div>
-            <div style={{ display: "flex", gap: SPACE.xs, flexWrap: "wrap", justifyContent: "flex-end" }}>
-              {user.roles.map((userRole) => <button key={userRole} type="button" onClick={() => void revoke(user.user_id, userRole)} title={`Revocar ${userRole}`} style={{ border: `1px solid ${GLASS.border}`, borderRadius: RADIUS.pill, background: GLASS.fill, color: TEXT.secondary, padding: "4px 8px", cursor: "pointer" }}>{userRole} ×</button>)}
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </GlassCard>
   );

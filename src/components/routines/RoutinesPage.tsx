@@ -432,7 +432,12 @@ export function RoutinesPage() {
           )}
         </section>
       )}
-      {!editorOpen && <DayZeroAssistant onCreated={(plan) => void handleDayZeroCreated(plan)} />}
+      {!editorOpen && (
+        <DayZeroAssistant
+          defaultExpanded={false}
+          onCreated={(plan) => void handleDayZeroCreated(plan)}
+        />
+      )}
       {toast && (
         <div
           style={{

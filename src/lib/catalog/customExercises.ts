@@ -31,6 +31,7 @@ import {
 } from "./types";
 
 const STORAGE_KEY = "cronos_custom_exercises_v1";
+export const LEGACY_EXERCISE_OVERRIDES_KEY = "cronos_exercise_overrides_v1";
 export const CATALOG_OVERRIDES_KEY = "cronos_catalog_overrides_v1";
 export const EXERCISE_NAME_OVERRIDES_KEY = "cronos_exercise_name_overrides_v1";
 export const CATALOG_UPDATED_EVENT = "cronos:catalog-updated";
@@ -67,6 +68,7 @@ export type OverrideSyncStatus = "synced" | "pending" | "local_only";
 /** The shipped values an override is compared against: the default, not a cache. */
 export interface CatalogDefault {
   name?: string;
+  name_es?: string | null;
   gif_url?: string;
   equipment_id?: string | null;
   equipment_name?: string | null;
@@ -174,18 +176,55 @@ function writeJson(key: string, value: unknown): void {
 
 export function loadCatalogOverrides(): CatalogOverrides {
   const parsed = readJson(CATALOG_OVERRIDES_KEY);
-  return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-    ? (parsed as CatalogOverrides)
-    : {};
+  const current: CatalogOverrides =
+    parsed && typeof parsed === "object" && !Array.isArray(parsed)
+      ? { ...(parsed as CatalogOverrides) }
+      : {};
+
+  // Migrate/preserve any legacy coach overrides written before the unified store.
+  const legacy = readJson(LEGACY_EXERCISE_OVERRIDES_KEY);
+  if (legacy && typeof legacy === "object" && !Array.isArray(legacy)) {
+    for (const [id, value] of Object.entries(legacy as Record<string, unknown>)) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      const canonical = normaliseExerciseId(id);
+      if (current[canonical] || current[id]) continue;
+      const entry = value as CatalogOverride;
+      current[canonical] = entry;
+      for (const variant of exerciseIdVariants(id)) {
+        if (variant !== canonical && !current[variant]) current[variant] = entry;
+      }
+    }
+  }
+
+  return current;
 }
 
 export function loadNameOverrides(): ExerciseNameOverrides {
   const parsed = readJson(EXERCISE_NAME_OVERRIDES_KEY);
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return {};
   const names: ExerciseNameOverrides = {};
-  for (const [id, name] of Object.entries(parsed as Record<string, unknown>)) {
-    if (typeof name === "string" && name.trim() !== "") names[id] = name;
+  if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+    for (const [id, name] of Object.entries(parsed as Record<string, unknown>)) {
+      if (typeof name === "string" && name.trim() !== "") names[id] = name;
+    }
   }
+
+  // Fallback to legacy override store for any custom name not present in the dedicated store.
+  const legacy = readJson(LEGACY_EXERCISE_OVERRIDES_KEY);
+  if (legacy && typeof legacy === "object" && !Array.isArray(legacy)) {
+    for (const [id, value] of Object.entries(legacy as Record<string, unknown>)) {
+      if (typeof value === "string" && value.trim() !== "") {
+        const canonical = normaliseExerciseId(id);
+        if (!names[canonical] && !names[id]) names[canonical] = value.trim();
+      } else if (value && typeof value === "object" && !Array.isArray(value)) {
+        const maybeName = (value as CatalogOverride).customNameEs;
+        if (typeof maybeName === "string" && maybeName.trim() !== "") {
+          const canonical = normaliseExerciseId(id);
+          if (!names[canonical] && !names[id]) names[canonical] = maybeName.trim();
+        }
+      }
+    }
+  }
+
   return names;
 }
 
@@ -493,24 +532,32 @@ export function mergeOverridesFromRemote(
 
     const customNameEs = incoming.customNameEs?.trim();
     const remoteNameIsDefault =
-      Boolean(customNameEs) && Boolean(base?.name) && customNameEs === base?.name;
+      Boolean(customNameEs) &&
+      ((Boolean(base?.name) && customNameEs === base?.name) ||
+        (Boolean(base?.name_es) && customNameEs === base?.name_es));
     const localName = names[canonical] ?? names[rawId];
     const nameHeld = localDirty && Boolean(localName);
     const nameIsNews = Boolean(customNameEs) && !remoteNameIsDefault;
 
+    let rowChanged = false;
     if (JSON.stringify(merged) !== JSON.stringify(existing)) {
       nextCatalog[canonical] = merged;
       for (const variant of exerciseIdVariants(rawId)) {
         if (variant !== canonical) nextCatalog[variant] = merged;
       }
-      changed += 1;
+      rowChanged = true;
     }
 
-    if (customNameEs && nameIsNews && !nameHeld) {
+    if (customNameEs && nameIsNews && !nameHeld && localName !== customNameEs) {
       names[canonical] = customNameEs;
       for (const variant of exerciseIdVariants(rawId)) {
         if (variant !== canonical) names[variant] = customNameEs;
       }
+      rowChanged = true;
+    }
+
+    if (rowChanged) {
+      changed += 1;
     }
   }
 

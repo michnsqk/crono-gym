@@ -29,6 +29,7 @@ import {
   mergeOverridesFromRemote,
   normaliseExerciseId,
   readCatalogOverride,
+  readNameOverride,
   saveCatalogOverride,
   type CatalogDefault,
   type CatalogOverride,
@@ -423,6 +424,11 @@ export async function syncPendingOverrides(): Promise<{
   let synced = 0;
   for (const [id] of pending) {
     const override = readCatalogOverride(id) ?? {};
+    const pendingName = readNameOverride(id);
+    const payload: CatalogOverride =
+      pendingName && !override.customNameEs
+        ? { ...override, customNameEs: pendingName }
+        : override;
     // A removal and a restore are their own writes: neither is a field update, and
     // sending them as one would leave the free-text equipment saying "DELETED"
     // after a restore.
@@ -431,7 +437,7 @@ export async function syncPendingOverrides(): Promise<{
         ? await deleteCoachExercise(id)
         : override.deleted === false
           ? await restoreCoachExercise(id)
-          : await persistCoachExerciseChange(id, override);
+          : await persistCoachExerciseChange(id, payload);
     if (result.remote === "updated" || result.remote === "upserted" || result.remote === "marked_deleted") {
       synced += 1;
     }
@@ -490,6 +496,7 @@ export async function hydrateOverridesFromSupabase(): Promise<HydrateResult> {
   for (const row of local) {
     baseById.set(row.id, {
       name: row.name,
+      name_es: row.name_es ?? null,
       gif_url: row.gif_url,
       equipment_id: row.equipment_id ?? null,
       equipment_name: row.equipment_name ?? null,
@@ -511,7 +518,19 @@ export async function hydrateOverridesFromSupabase(): Promise<HydrateResult> {
       // available: saying so keeps every reader consistent with the mark.
       override.availableInCronosGym = false;
     }
-    if (row.equipment_id) override.equipment_id = row.equipment_id;
+    if (row.equipment_id) {
+      override.equipment_id = row.equipment_id;
+    } else if (row.equipment && row.equipment !== DELETED_EQUIPMENT) {
+      const eqMatch = /^(CG-EQP-\d+)\s*::\s*(.*)$/i.exec(row.equipment.trim());
+      if (eqMatch) {
+        override.equipment_id = eqMatch[1].toUpperCase();
+        if (eqMatch[2]?.trim() && !row.equipment_name) {
+          override.equipment_name = eqMatch[2].trim();
+        }
+      } else if (row.equipment.trim().toLowerCase() === BODYWEIGHT_EQUIPMENT) {
+        override.equipment_id = NO_EQUIPMENT_ID;
+      }
+    }
     if (row.equipment_name) override.equipment_name = row.equipment_name;
     if (row.station_key) override.station_key = row.station_key as StationKey;
     if (row.movement_pattern) override.movement_pattern = row.movement_pattern;
@@ -522,11 +541,15 @@ export async function hydrateOverridesFromSupabase(): Promise<HydrateResult> {
     // the device shipped; otherwise every row would carry an override and the
     // shipped demonstrations would stop updating with the app. The merge applies
     // the same rule to every other field.
-    const shipped = baseById.get(normaliseExerciseId(row.id))?.gif_url;
-    if (row.gif_url && shipped && row.gif_url !== shipped) override.gif_url = row.gif_url;
+    const canonicalId = normaliseExerciseId(row.id);
+    const knownBase = baseById.get(canonicalId);
+    const shipped = knownBase?.gif_url;
+    if (row.gif_url && ((shipped && row.gif_url !== shipped) || (!knownBase && row.equipment_id))) {
+      override.gif_url = row.gif_url;
+    }
     if (row.name) override.customNameEs = row.name;
     if (row.image) override.image = row.image;
-    if (Object.keys(override).length > 0) overrides[normaliseExerciseId(row.id)] = override;
+    if (Object.keys(override).length > 0) overrides[canonicalId] = override;
   }
 
   const hydrated = mergeOverridesFromRemote(overrides, baseById);

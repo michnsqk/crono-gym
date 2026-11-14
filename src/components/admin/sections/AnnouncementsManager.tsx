@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import { ImagePlus, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/image/compressImage";
+import { ACCENT, GLASS, RADIUS, STATUS, SURFACE, TEXT } from "@/design/tokens";
 import {
   cleanAnnouncementMeta,
   clearAnnouncementCaches,
@@ -26,7 +28,7 @@ type AnnouncementRow = {
   created_at?: string;
 };
 
-const field = "h-11 rounded-xl border border-white/10 bg-[#2C2C2E] px-3 text-sm text-white";
+const field = "min-h-[44px] w-full rounded-xl border border-white/10 bg-zinc-800/80 px-3 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25";
 
 function normalizedTitle(value: unknown) {
   return String(value ?? "").trim().toLowerCase();
@@ -179,41 +181,205 @@ export function AnnouncementsManager() {
   };
 
   return (
-    <section className="grid gap-4">
-      <div className="grid gap-3">
+    <section className="grid gap-5 pb-28">
+      <div
+        className="grid gap-3 p-4"
+        style={{
+          borderRadius: RADIUS.surface,
+          backgroundColor: SURFACE.l1,
+          border: `1px solid ${GLASS.border}`,
+        }}
+      >
         <div className="flex flex-wrap items-center justify-between gap-2">
           <h2 className="text-base font-bold text-white">Avisos del Gym</h2>
           <button
             type="button"
             onClick={resetCache}
-            className="h-11 rounded-xl bg-[#2C2C2E] px-3 text-xs font-semibold text-white"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white"
+            style={{
+              backgroundColor: GLASS.fillRaised,
+              border: `1px solid ${GLASS.border}`,
+            }}
           >
+            <Trash2 size={14} aria-hidden="true" />
             Limpiar avisos duplicados / Resetear caché de avisos
           </button>
         </div>
-        <input className={field} value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Título del aviso" />
+
+        <label className="grid gap-1">
+          <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+            Título del aviso
+          </span>
+          <input
+            className={field}
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Ej. Horario especial de puente"
+          />
+        </label>
+
         <div className="grid gap-2 sm:grid-cols-2">
-          <select className={field} value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="info">Aviso</option><option value="event">Evento</option><option value="urgent">Urgente</option>
-          </select>
-          <label className="flex h-11 items-center gap-2 rounded-xl bg-[#2C2C2E] px-3 text-sm text-zinc-300">
-            <input type="checkbox" checked={pinned} onChange={(e) => setPinned(e.target.checked)} /> Fijar en /hoy
+          <label className="grid gap-1">
+            <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+              Tipo de aviso
+            </span>
+            <select
+              className={field}
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+            >
+              <option value="info">Aviso</option>
+              <option value="event">Evento</option>
+              <option value="urgent">Urgente</option>
+            </select>
           </label>
+          <div className="flex items-end">
+            <label
+              className="flex min-h-[44px] w-full cursor-pointer items-center gap-2 rounded-xl px-3 text-sm"
+              style={{
+                backgroundColor: GLASS.fill,
+                border: `1px solid ${GLASS.border}`,
+                color: TEXT.secondary,
+              }}
+            >
+              <input
+                type="checkbox"
+                checked={pinned}
+                onChange={(e) => setPinned(e.target.checked)}
+              />{" "}
+              Fijar en /hoy
+            </label>
+          </div>
         </div>
-        <input className={field} value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="URL de foto del aviso (opcional)" />
-        <input className={field} type="file" accept="image/*" onChange={(e) => { const file = e.target.files?.[0]; if (file) void compressImage(file).then(setImageUrl); }} />
-        {imageUrl ? <img src={imageUrl} alt="Vista previa del aviso" className="aspect-[16/9] w-full rounded-xl object-cover" /> : null}
-        <textarea className="min-h-24 rounded-xl border border-white/10 bg-[#2C2C2E] p-3 text-sm text-white" value={body} onChange={(e) => setBody(e.target.value)} placeholder="Mensaje del aviso" />
-        <button type="button" className="h-11 rounded-xl bg-[#FF3B30] px-4 text-sm font-bold text-white" onClick={() => void publish()}>Publicar Aviso en el Gym</button>
-        {status ? <p className="text-sm text-zinc-300" role="status">{status}</p> : null}
+
+        <label className="grid gap-1">
+          <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+            URL de imagen (opcional)
+          </span>
+          <input
+            className={field}
+            value={imageUrl}
+            onChange={(e) => setImageUrl(e.target.value)}
+            placeholder="https://…/aviso.jpg"
+          />
+        </label>
+
+        <div className="grid gap-2">
+          <label
+            className="inline-flex min-h-[44px] cursor-pointer items-center justify-center gap-2 rounded-xl px-4 text-xs font-semibold text-white"
+            style={{
+              backgroundColor: GLASS.fillRaised,
+              border: `1px solid ${GLASS.border}`,
+            }}
+          >
+            <ImagePlus size={16} aria-hidden="true" />
+            Subir imagen del aviso
+            <input
+              type="file"
+              accept="image/*"
+              className="sr-only"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void compressImage(file).then(setImageUrl);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt="Vista previa del aviso"
+              className="max-h-44 w-full rounded-xl border border-white/10 object-cover"
+            />
+          ) : null}
+        </div>
+
+        <label className="grid gap-1">
+          <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
+            Mensaje del aviso
+          </span>
+          <textarea
+            className="min-h-24 w-full rounded-xl border border-white/10 bg-zinc-800/80 p-3 text-sm text-white placeholder:text-zinc-500 outline-none focus:border-white/25"
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            placeholder="Detalles para toda la comunidad Cronos..."
+          />
+        </label>
+
+        <button
+          type="button"
+          className="min-h-[44px] rounded-xl px-4 text-sm font-bold text-white"
+          style={{ backgroundColor: ACCENT.base }}
+          onClick={() => void publish()}
+        >
+          Publicar Aviso en el Gym
+        </button>
+
+        {status ? (
+          <p className="text-xs font-medium" style={{ color: STATUS.success.text }} role="status">
+            {status}
+          </p>
+        ) : null}
       </div>
-      <div className="divide-y divide-white/10 rounded-2xl border border-white/10 bg-[#1C1C1E]">
-        {items.map((item) => <article key={item.id} className="grid gap-2 p-4">
-          {item.imageUrl ?? item.image_url ? <img src={item.imageUrl ?? item.image_url} alt="" className="h-20 w-full rounded-xl object-cover" /> : null}
-          <div className="flex items-center justify-between gap-2"><strong className="truncate text-white">{item.title}</strong><span className="text-xs text-zinc-400">{item.category ?? "info"}</span></div>
-          <p className="text-sm text-zinc-300">{item.body ?? item.message}</p>
-          <div className="flex gap-2"><button type="button" className="h-11 rounded-xl bg-[#2C2C2E] px-3 text-xs text-white" onClick={() => void update(item.id, { pinned: !item.pinned })}>{item.pinned ? "Desfijar" : "Fijar"}</button><button type="button" className="h-11 rounded-xl bg-[#2C2C2E] px-3 text-xs text-white" onClick={() => void update(item.id, { active: item.active === false })}>{item.active === false ? "Activar" : "Ocultar"}</button></div>
-        </article>)}
+
+      <div
+        className="divide-y divide-white/10"
+        style={{
+          borderRadius: RADIUS.surface,
+          backgroundColor: SURFACE.l1,
+          border: `1px solid ${GLASS.border}`,
+        }}
+      >
+        {items.map((item) => (
+          <article key={item.id} className="grid gap-2.5 p-4">
+            {item.imageUrl ?? item.image_url ? (
+              <img
+                src={item.imageUrl ?? item.image_url}
+                alt=""
+                className="max-h-44 w-full rounded-xl object-cover"
+              />
+            ) : null}
+            <div className="flex items-center justify-between gap-2">
+              <strong className="truncate text-white">{item.title}</strong>
+              <span
+                className="shrink-0 rounded-full px-2 py-0.5 text-xs"
+                style={{
+                  backgroundColor: GLASS.fill,
+                  color: TEXT.secondary,
+                }}
+              >
+                {item.category ?? "info"}
+              </span>
+            </div>
+            <p className="text-sm" style={{ color: TEXT.secondary }}>
+              {item.body ?? item.message}
+            </p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="min-h-[44px] rounded-xl px-3 text-xs font-medium text-white"
+                style={{
+                  backgroundColor: GLASS.fillRaised,
+                  border: `1px solid ${GLASS.border}`,
+                }}
+                onClick={() => void update(item.id, { pinned: !item.pinned })}
+              >
+                {item.pinned ? "Desfijar" : "Fijar"}
+              </button>
+              <button
+                type="button"
+                className="min-h-[44px] rounded-xl px-3 text-xs font-medium text-white"
+                style={{
+                  backgroundColor: GLASS.fillRaised,
+                  border: `1px solid ${GLASS.border}`,
+                }}
+                onClick={() => void update(item.id, { active: item.active === false })}
+              >
+                {item.active === false ? "Activar" : "Ocultar"}
+              </button>
+            </div>
+          </article>
+        ))}
       </div>
     </section>
   );

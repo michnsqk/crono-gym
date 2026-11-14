@@ -40,7 +40,15 @@ import { loadRecoverableDraft, saveDraft, type SessionDraft } from "../lib/offli
 // --------------------------------------------------------------------- mocks
 
 vi.mock("@lib/supabase", () => ({
-  supabase: { auth: {}, from: () => ({ select: () => ({ maybeSingle: async () => null }) }) },
+  supabase: {
+    auth: {},
+    from: () => ({
+      select: () => ({
+        eq: () => ({ maybeSingle: async () => ({ data: null, error: null }) }),
+        maybeSingle: async () => ({ data: null, error: null }),
+      }),
+    }),
+  },
 }));
 
 vi.mock("../lib/sessionSync", () => ({ queueAndSync: vi.fn(async () => null) }));
@@ -1036,5 +1044,26 @@ describe("ActiveWorkout supersets", () => {
     renderWorkout(planned());
 
     expect(screen.queryByText(/SUPERSET/)).toBeNull();
+  });
+});
+
+describe("1-hand quick-adjust bar and live PR pill", () => {
+  it("nudges pending set weight and reps with 1-hand quick buttons and shows Nuevo PR badge", () => {
+    renderWorkout(planned(null, 2));
+
+    const quickBar = screen.getByRole("group", { name: "Ajuste rápido a una mano" });
+    const buttons = within(quickBar).getAllByRole("button");
+    // [0]: -2.5 kg, [1]: +2.5 kg, [2]: -1 rep, [3]: +1 rep
+    fireEvent.click(buttons[1]);
+    fireEvent.click(buttons[3]);
+
+    expect((weightField(1) as HTMLInputElement).value).toBe("2.5");
+    expect(Number((repsField(1) as HTMLInputElement).value)).toBeGreaterThanOrEqual(1);
+
+    fireEvent.change(weightField(1), { target: { value: "100" } });
+    fireEvent.change(repsField(1), { target: { value: "8" } });
+    fireEvent.click(completeButton(1));
+
+    expect(screen.getByText(/Nuevo PR · 127 kg e1RM/)).toBeTruthy();
   });
 });

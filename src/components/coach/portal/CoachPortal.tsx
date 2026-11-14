@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, CloudUpload, Dumbbell, ImageIcon, Loader2, LogOut, Pencil, Plus, RotateCcw, Search, Sparkles, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, CloudUpload, Dumbbell, ImageIcon, Loader2, LogOut, Pencil, Plus, RotateCcw, Search, Sparkles, Trash2, X } from "lucide-react";
 import { useOutletContext } from "react-router-dom";
 import type { WorkspaceOutletContext } from "@/App";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -18,11 +18,16 @@ import {
   addCustomExercise,
   normaliseExerciseId,
   readCatalogOverride,
+  readCustomExercises,
   readDeletedExerciseIds,
   readOverridesSnapshot,
   subscribeCatalogOverrides,
 } from "@/lib/catalog/customExercises";
 import { loadCatalog } from "@/lib/catalog/catalogLoader";
+import {
+  ANATOMICAL_GIF_PRESETS,
+  CRONOS_MACHINERY_EXERCISES,
+} from "@/lib/catalog/machinerySeedExercises";
 import { BODYWEIGHT_EQUIPMENT_NAME } from "@/lib/catalog/types";
 import {
   NO_EQUIPMENT_ID,
@@ -41,6 +46,7 @@ import {
 } from "@/lib/catalog/coachCatalogSync";
 import { equipmentMap } from "@/data/equipmentMap";
 import { equipmentCatalog } from "@/data/equipmentCatalog";
+import { ACCENT, GLASS, STATUS, TEXT } from "@/design/tokens";
 
 type CoachTab = "clients" | "expediente" | "templates" | "exercises";
 type ExerciseRow = {
@@ -87,11 +93,19 @@ const MACHINE_CATEGORIES = [
   "Accesorio",
 ] as const;
 
-const card = "rounded-2xl border border-white/10 bg-[#1C1C1E] p-4";
-const control = "rounded-xl border border-white/10 bg-[#2C2C2E]";
+const card = "rounded-2xl border border-white/10 bg-zinc-900/90 p-4";
+const control = "rounded-xl border border-white/10 bg-zinc-800/80";
 
 /** Cards mounted per page: enough to browse, few enough to open instantly. */
 const EXERCISES_PAGE_SIZE = 60;
+
+function translateLevelLabel(level?: string | null): string {
+  const key = (level ?? "").trim().toLowerCase();
+  if (key === "beginner") return "Principiante";
+  if (key === "intermediate") return "Intermedio";
+  if (key === "advanced") return "Avanzado";
+  return level || "General";
+}
 
 /** One resolved catalog row, in the shape the panel renders. */
 function toRow(row: ResolvedCatalogExercise): ExerciseRow {
@@ -209,7 +223,7 @@ export function PortalPanel({
             <button
               type="button"
               onClick={onExit}
-              className="inline-flex h-11 items-center gap-2 rounded-xl bg-[#2C2C2E] px-3 text-sm text-white active:scale-[0.98]"
+              className="inline-flex h-11 items-center gap-2 rounded-xl bg-zinc-800 px-3 text-sm text-white active:scale-[0.98]"
             >
               <LogOut size={16} aria-hidden="true" /> Salir
             </button>
@@ -218,25 +232,33 @@ export function PortalPanel({
 
         <nav
           aria-label="Secciones del portal"
-          className={`${card} grid grid-cols-4 gap-1 p-1`}
+          className={`${card} flex items-center gap-1 overflow-x-auto p-1`}
         >
           {(
             [
-            ["clients", "Clientes"],
-            ["expediente", "Expediente"],
-            ["templates", "Plantillas"],
-            ["exercises", "Ejercicios"],
+              ["clients", "Clientes"],
+              ["expediente", "Expedientes"],
+              ["templates", "Plantillas"],
+              ["exercises", "Ejercicios"],
             ] as const
-          ).map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              onClick={() => setTab(value)}
-              className={`min-w-0 rounded-lg px-1 py-3 text-xs font-semibold transition-colors ${tab === value ? "bg-[#FF3B30] text-white" : "text-zinc-400 hover:text-white"}`}
-            >
-              <span className="block truncate">{label}</span>
-            </button>
-          ))}
+          ).map(([value, label]) => {
+            const active = tab === value;
+            return (
+              <button
+                key={value}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setTab(value)}
+                className="min-h-[44px] flex-1 shrink-0 whitespace-nowrap rounded-xl px-3 py-2.5 text-xs font-semibold transition-colors"
+                style={{
+                  backgroundColor: active ? ACCENT.base : "transparent",
+                  color: active ? TEXT.primary : TEXT.secondary,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
         </nav>
 
         {message && (
@@ -542,73 +564,141 @@ function TemplatesPanel({
 }) {
   const [builderOpen, setBuilderOpen] = useState(false);
   const [note, setNote] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   return (
     <section className="grid min-w-0 gap-4">
-    <div className={card}>
-      <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
+      <div className={card}>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
             <h2 className="text-base font-bold text-white">
               Rutinas Base Oficiales
             </h2>
             <p className="text-xs text-zinc-400">
               Plantillas base que puedes asignar a tus atletas.
             </p>
-        </div>
-        <div className="flex flex-wrap gap-2">
+          </div>
+          <div className="flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setBuilderOpen(true)}
-              className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-[#FF3B30] px-4 text-xs font-bold text-white active:scale-[0.98]"
+              className="inline-flex min-h-11 items-center gap-1 rounded-xl px-4 text-xs font-bold text-white active:scale-[0.98]"
+              style={{ backgroundColor: ACCENT.base }}
             >
               <Plus size={14} aria-hidden="true" /> Crear Rutina Base
             </button>
             <button
               type="button"
               onClick={() => void onRefresh()}
-              className="h-11 rounded-xl bg-[#2C2C2E] px-3 text-xs text-white"
+              className="h-11 rounded-xl bg-zinc-800 px-3 text-xs text-white"
             >
               Actualizar
             </button>
+          </div>
         </div>
-      </div>
         {note && (
-          <p role="status" className="mt-3 text-sm text-[#30D158]">
+          <p role="status" className="mt-3 text-sm" style={{ color: STATUS.success.text }}>
             {note}
           </p>
         )}
-      <div className="mt-4 grid gap-2">
+        <div className="mt-4 grid gap-2.5">
           {templates.length === 0 && (
             <p className="text-sm text-zinc-400">
               No hay plantillas publicadas todavía.
             </p>
           )}
-        {templates.map((template) => (
-            <div
-              key={template.id}
-              className="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-xl bg-[#2C2C2E] p-3"
-            >
-            <div className="min-w-0">
-                <strong className="block truncate text-white">
-                  {template.title}
-                </strong>
-                <span className="font-mono text-xs text-zinc-400">
-                  {template.days} días · {template.exercises} ejercicios ·{" "}
-                  {template.level}
-                  {template.category ? ` · ${template.category}` : ""}
-                </span>
-            </div>
-              <button
-                type="button"
-                onClick={() => void onClone(template.id)}
-                className="min-h-11 rounded-xl bg-[#FF3B30] px-3 text-xs font-bold text-white"
+          {templates.map((template) => {
+            const isExpanded = expandedId === template.id;
+            const detailItems: any[] = Array.isArray(template.items)
+              ? template.items
+              : Array.isArray(template.routine_exercises)
+                ? template.routine_exercises
+                : [];
+            return (
+              <div
+                key={template.id}
+                className="grid gap-2.5 rounded-xl bg-zinc-800/80 p-3"
+                style={{ border: `1px solid ${GLASS.border}` }}
               >
-                Asignar a mi cuenta
-              </button>
-          </div>
-        ))}
+                <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <strong className="block truncate text-white">
+                      {template.title}
+                    </strong>
+                    <span className="font-mono text-xs tabular-nums text-zinc-400">
+                      {template.days} días · {template.exercises} ejercicios ·{" "}
+                      {translateLevelLabel(template.level)}
+                      {template.category ? ` · ${template.category}` : ""}
+                    </span>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setExpandedId(isExpanded ? null : template.id)}
+                      className="inline-flex min-h-11 items-center gap-1 rounded-xl px-3 text-xs font-semibold text-zinc-200"
+                      style={{
+                        backgroundColor: GLASS.fillRaised,
+                        border: `1px solid ${GLASS.border}`,
+                      }}
+                    >
+                      {isExpanded ? (
+                        <>
+                          <ChevronUp size={14} aria-hidden="true" /> Ocultar detalle
+                        </>
+                      ) : (
+                        <>
+                          <ChevronDown size={14} aria-hidden="true" /> Ver ejercicios
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void onClone(template.id)}
+                      className="min-h-11 rounded-xl px-3 text-xs font-bold text-white"
+                      style={{ backgroundColor: ACCENT.base }}
+                    >
+                      Asignar a mi cuenta
+                    </button>
+                  </div>
+                </div>
+
+                {isExpanded && (
+                  <div
+                    className="grid gap-1.5 rounded-xl p-2.5 text-xs text-zinc-300"
+                    style={{
+                      backgroundColor: GLASS.fillSubtle,
+                      border: `1px solid ${GLASS.border}`,
+                    }}
+                  >
+                    {template.description ? (
+                      <p className="text-zinc-300">{template.description}</p>
+                    ) : null}
+                    {detailItems.length > 0 ? (
+                      <ul className="grid gap-1">
+                        {detailItems.map((item: any, idx: number) => (
+                          <li key={item.id ?? idx} className="flex items-center justify-between gap-2">
+                            <span className="truncate font-medium text-white">
+                              {idx + 1}. {item.name_es ?? item.name ?? item.exercise_name ?? "Ejercicio"}
+                            </span>
+                            <span className="shrink-0 font-mono text-zinc-400 tabular-nums">
+                              {item.target_sets ?? item.sets ?? 3}×{item.target_reps ?? item.reps ?? "8-12"}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <p className="text-zinc-400">
+                        Estructura de {template.days} días con {template.exercises} ejercicios programados para nivel{" "}
+                        {translateLevelLabel(template.level)}. Listo para asignar y personalizar en tu cuenta.
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
-    </div>
-    {builderOpen && (
+      {builderOpen && (
         <div
           role="presentation"
           onClick={() => setBuilderOpen(false)}
@@ -618,18 +708,18 @@ function TemplatesPanel({
             onClick={(e) => e.stopPropagation()}
             className="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-t-3xl border border-white/10 bg-black p-4 sm:rounded-3xl"
           >
-          <div className="mb-3 flex items-center justify-between gap-2">
+            <div className="mb-3 flex items-center justify-between gap-2">
               <h3 className="text-base font-bold text-white">
                 Crear Rutina Base
               </h3>
               <button
                 type="button"
                 onClick={() => setBuilderOpen(false)}
-                className="h-11 rounded-xl bg-[#2C2C2E] px-4 text-sm text-white"
+                className="h-11 rounded-xl bg-zinc-800 px-4 text-sm text-white"
               >
                 Cerrar
               </button>
-          </div>
+            </div>
           <VipRoutineBuilder
             athleteId={null}
             isTemplate
@@ -665,7 +755,7 @@ function SyncBadge({ state }: { state: SyncState }) {
   }
   if (state.kind === "online") {
     return (
-      <span className="inline-flex items-center gap-1 text-[#30D158]" role="status">
+      <span className="inline-flex items-center gap-1" style={{ color: STATUS.success.text }} role="status">
         <Check size={12} aria-hidden="true" /> Conectado a Supabase
       </span>
     );
@@ -679,7 +769,7 @@ function SyncBadge({ state }: { state: SyncState }) {
   }
   if (state.kind === "offline") {
     return (
-      <span className="inline-flex items-center gap-1 text-[#FF9F45]" role="status">
+      <span className="inline-flex items-center gap-1" style={{ color: STATUS.warning.text }} role="status">
         Sin conexión · se sincronizará al volver
       </span>
     );
@@ -740,7 +830,7 @@ function MachinePicker({
         role="dialog"
         aria-modal="true"
         aria-label={`Máquina para ${row.name}`}
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#1C1C1E] p-3"
+        className="w-full max-w-md rounded-2xl border border-white/10 bg-zinc-900 p-3"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-2">
@@ -752,7 +842,7 @@ function MachinePicker({
             type="button"
             onClick={onClose}
             aria-label="Cerrar el selector de máquina"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2C2C2E] text-zinc-300"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-zinc-300"
           >
             <X size={16} aria-hidden="true" />
           </button>
@@ -779,9 +869,11 @@ function MachinePicker({
                 type="button"
                 aria-pressed={active}
                 onClick={() => setCategory(option)}
-                className={`min-h-9 shrink-0 rounded-full px-3 text-xs font-semibold ${
-                  active ? "bg-[#FF3B30] text-white" : "bg-[#2C2C2E] text-zinc-300"
-                }`}
+                className="min-h-9 shrink-0 rounded-full px-3 text-xs font-semibold"
+                style={{
+                  backgroundColor: active ? ACCENT.base : GLASS.fillRaised,
+                  color: active ? TEXT.primary : TEXT.secondary,
+                }}
               >
                 {option === "all" ? "Todas" : option}
               </button>
@@ -793,9 +885,9 @@ function MachinePicker({
           <button
             type="button"
             onClick={() => onSelect(null)}
-            className="flex min-h-14 items-center gap-3 rounded-xl border border-white/10 bg-[#2C2C2E] p-2 text-left"
+            className="flex min-h-14 items-center gap-3 rounded-xl border border-white/10 bg-zinc-800/80 p-2 text-left"
           >
-            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-[#1C1C1E] text-zinc-400">
+            <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-zinc-400">
               <Dumbbell size={20} aria-hidden="true" />
             </span>
             <span className="min-w-0">
@@ -809,7 +901,7 @@ function MachinePicker({
               key={machine.id}
               type="button"
               onClick={() => onSelect(machine.id)}
-              className="flex min-h-14 items-center gap-3 rounded-xl border border-white/10 bg-[#2C2C2E] p-2 text-left"
+              className="flex min-h-14 items-center gap-3 rounded-xl border border-white/10 bg-zinc-800/80 p-2 text-left"
             >
               <ExerciseThumb
                 src={machine.image}
@@ -819,7 +911,7 @@ function MachinePicker({
               />
               <span className="min-w-0">
                 <span className="block truncate text-sm text-white">{machine.name}</span>
-                <span className="block truncate font-mono text-[11px] text-zinc-500">
+                <span className="block truncate font-mono text-xs text-zinc-500">
                   {machine.id} · {machine.category}
                 </span>
               </span>
@@ -835,8 +927,10 @@ function MachinePicker({
   );
 }
 
+const GIF_MUSCLE_TABS = ["Todos", "Pecho", "Espalda", "Pierna", "Hombros", "Brazos", "Core"] as const;
+
 /**
- * The GIF manager: a URL, or a file the coach has on the phone.
+ * The GIF manager: a URL, a curated anatomical GIF preset, or a file the coach has on the phone.
  *
  * The file is uploaded and the public URL is written as the override, so the
  * demonstration follows the coach to every device instead of dying with one
@@ -861,6 +955,8 @@ function GifManager({
   onFile: (file: File) => void;
   onClose: () => void;
 }) {
+  const [muscleTab, setMuscleTab] = useState<(typeof GIF_MUSCLE_TABS)[number]>("Todos");
+
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
@@ -868,6 +964,14 @@ function GifManager({
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  const presets = useMemo(
+    () =>
+      muscleTab === "Todos"
+        ? ANATOMICAL_GIF_PRESETS
+        : ANATOMICAL_GIF_PRESETS.filter((preset) => preset.muscleGroup === muscleTab),
+    [muscleTab],
+  );
 
   return (
     <div
@@ -878,19 +982,19 @@ function GifManager({
         role="dialog"
         aria-modal="true"
         aria-label={`Cambiar GIF de ${row.name}`}
-        className="w-full max-w-md rounded-2xl border border-white/10 bg-[#1C1C1E] p-3"
+        className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl border border-white/10 bg-zinc-900 p-3"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-white">{row.name}</p>
-            <p className="text-xs text-zinc-500">GIF, WebP, PNG o JPG · hasta 4 MB</p>
+            <p className="text-xs text-zinc-500">GIF anatómico, URL o archivo · hasta 4 MB</p>
           </div>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar el gestor de GIF"
-            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#2C2C2E] text-zinc-300"
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-zinc-800 text-zinc-300"
           >
             <X size={16} aria-hidden="true" />
           </button>
@@ -906,6 +1010,58 @@ function GifManager({
               aria-label="URL de la demostración"
               className={`${control} h-11 w-full px-3 text-sm text-white`}
             />
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <p className="text-xs font-semibold text-zinc-300">
+            Galería anatómica por grupo muscular
+          </p>
+          <div className="mt-1.5 flex gap-1.5 overflow-x-auto pb-1">
+            {GIF_MUSCLE_TABS.map((tabLabel) => {
+              const active = muscleTab === tabLabel;
+              return (
+                <button
+                  key={tabLabel}
+                  type="button"
+                  onClick={() => setMuscleTab(tabLabel)}
+                  className="min-h-8 shrink-0 rounded-full px-2.5 text-xs font-semibold"
+                  style={{
+                    backgroundColor: active ? ACCENT.base : GLASS.fillRaised,
+                    color: active ? TEXT.primary : TEXT.secondary,
+                  }}
+                >
+                  {tabLabel}
+                </button>
+              );
+            })}
+          </div>
+          <div className="mt-2 grid max-h-40 grid-cols-3 gap-2 overflow-y-auto pr-0.5">
+            {presets.map((preset) => {
+              const selected = url.trim() === preset.gif_url;
+              return (
+                <button
+                  key={preset.id}
+                  type="button"
+                  onClick={() => onUrlChange(preset.gif_url)}
+                  className="flex flex-col items-center gap-1 rounded-xl p-1.5 text-center transition-colors"
+                  style={{
+                    border: `1px solid ${selected ? ACCENT.base : GLASS.border}`,
+                    backgroundColor: selected ? ACCENT.subtle : GLASS.fill,
+                  }}
+                >
+                  <ExerciseThumb
+                    src={preset.gif_url}
+                    alt={preset.label}
+                    className="h-12 w-12 bg-white"
+                    fit="object-contain"
+                  />
+                  <span className="line-clamp-2 text-xs leading-tight text-zinc-200">
+                    {preset.label}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -930,14 +1086,15 @@ function GifManager({
             type="button"
             onClick={onSave}
             disabled={busy}
-            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl bg-[#FF3B30] px-3 text-xs font-semibold text-white disabled:opacity-60"
+            className="inline-flex min-h-11 flex-1 items-center justify-center rounded-xl px-3 text-xs font-semibold text-white disabled:opacity-60"
+            style={{ backgroundColor: ACCENT.base }}
           >
             Guardar URL
           </button>
           <button
             type="button"
             onClick={onClose}
-            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[#2C2C2E] px-3 text-xs text-zinc-300"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-zinc-800 px-3 text-xs text-zinc-300"
           >
             Cancelar
           </button>
@@ -978,10 +1135,14 @@ function ExercisesPanel({
   });
   const [createOpen, setCreateOpen] = useState(false);
   const [createStatus, setCreateStatus] = useState<string | null>(null);
+  const [catalogSubTab, setCatalogSubTab] = useState<"base" | "machinery">("base");
+  const [machineFilter, setMachineFilter] = useState<string>("");
   const [newExercise, setNewExercise] = useState({
     name: "",
     muscle: "",
     equipment: "",
+    equipmentId: "",
+    gifUrl: "",
     notes: "",
   });
   const [equipmentOverrides, setEquipmentOverrides] = useState<
@@ -1021,6 +1182,15 @@ function ExercisesPanel({
   /** The card waiting for a "sí, eliminar": a removal is one tap away, not two. */
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [removingId, setRemovingId] = useState<string | null>(null);
+  const [overrideTick, setOverrideTick] = useState(0);
+
+  const findResolved = useCallback(
+    (id: string) =>
+      resolvedRef.current.find((candidate) => candidate.id === id) ??
+      resolveCatalogExercises(CRONOS_MACHINERY_EXERCISES).find((candidate) => candidate.id === id) ??
+      null,
+    [],
+  );
 
   const syncPending = async () => {
     setSyncing(true);
@@ -1087,8 +1257,7 @@ function ExercisesPanel({
     setRemovingId(row.id);
     setPendingNote(null);
     try {
-      const resolved =
-        resolvedRef.current.find((candidate) => candidate.id === row.id) ?? null;
+      const resolved = findResolved(row.id);
       const result = await restoreCoachExercise(row.id, resolved);
       setDeletedIds(readDeletedExerciseIds());
       setPending(countPendingOverrides());
@@ -1115,28 +1284,57 @@ function ExercisesPanel({
       return;
     }
     const muscle = newExercise.muscle.trim();
+    const chosenMachine = newExercise.equipmentId ? equipmentMap[newExercise.equipmentId] : undefined;
+    const equipmentLabel = chosenMachine?.name || newExercise.equipment.trim() || "other";
     const exercise = {
       id: `custom-${Date.now()}`,
       name,
       name_es: name,
       body_part: muscle || "other",
       target: muscle || "other",
-      equipment: newExercise.equipment.trim() || "other",
-      gif_url: "",
-      instructions: [] as string[],
+      equipment: equipmentLabel,
+      equipment_id: newExercise.equipmentId || NO_EQUIPMENT_ID,
+      equipment_name: chosenMachine?.name,
+      gif_url: newExercise.gifUrl.trim() || "",
+      instructions: newExercise.notes.trim() ? [newExercise.notes.trim()] : ([] as string[]),
       is_active: true,
       is_hidden: false,
     };
     try {
-      await (supabase as any).from("exercises").insert(exercise);
+      await (supabase as any).from("exercises").insert({
+        id: exercise.id,
+        name: exercise.name,
+        name_es: exercise.name_es,
+        body_part: exercise.body_part,
+        target: exercise.target,
+        equipment: exercise.equipment,
+        gif_url: exercise.gif_url,
+        instructions: exercise.instructions,
+        is_active: true,
+        is_hidden: false,
+      });
       setCreateStatus("Ejercicio creado y disponible en el catálogo.");
     } catch {
       setCreateStatus("Ejercicio guardado localmente (sin conexión).");
     }
     addCustomExercise(exercise);
-    setRows((current) => [exercise as ExerciseRow, ...current]);
-    setNewExercise({ name: "", muscle: "", equipment: "", notes: "" });
+    setRows((current) => [
+      {
+        ...exercise,
+        available: true,
+      } as ExerciseRow,
+      ...current,
+    ]);
+    setNewExercise({
+      name: "",
+      muscle: "",
+      equipment: "",
+      equipmentId: "",
+      gifUrl: "",
+      notes: "",
+    });
     setCreateOpen(false);
+    setCatalogSubTab("machinery");
   };
   useEffect(() => {
     let alive = true;
@@ -1156,6 +1354,7 @@ function ExercisesPanel({
       );
       setPending(countPendingOverrides());
       setDeletedIds(readDeletedExerciseIds());
+      setOverrideTick((tick) => tick + 1);
     };
 
     const load = async () => {
@@ -1214,9 +1413,62 @@ function ExercisesPanel({
     };
   }, []);
 
+  const machineOptions = useMemo(
+    () =>
+      Object.entries(equipmentMap).map(([id, machine]) => ({
+        id,
+        name: machine.name,
+      })),
+    [],
+  );
+
+  const baseRows = useMemo(
+    () =>
+      rows.filter(
+        (row) => !row.id.startsWith("cg-mach-") && !row.id.startsWith("custom-"),
+      ),
+    [rows],
+  );
+
+  const machineryRows = useMemo(() => {
+    const snapshot = readOverridesSnapshot();
+    const seedResolved = resolveCatalogExercises(CRONOS_MACHINERY_EXERCISES).map(toRow);
+    const customRows: ExerciseRow[] = readCustomExercises().map((ex: any) => {
+      const override = snapshot.catalog[ex.id];
+      const nameOverride = snapshot.names[ex.id];
+      const customName = nameOverride || override?.customNameEs;
+      return {
+        id: ex.id,
+        name: ex.name,
+        name_es: customName ?? ex.name_es ?? ex.name,
+        body_part: ex.body_part ?? "other",
+        target: ex.target ?? ex.body_part ?? "other",
+        equipment: ex.equipment ?? "other",
+        gif_url: override?.gif_url ?? ex.gif_url ?? null,
+        equipment_id:
+          equipmentOverrides[ex.id] ??
+          override?.equipment_id ??
+          ex.equipment_id ??
+          NO_EQUIPMENT_ID,
+        customNameEs: customName,
+        available: override?.availableInCronosGym ?? true,
+      };
+    });
+    const existingMachinery = rows.filter(
+      (row) => row.id.startsWith("cg-mach-") || row.id.startsWith("custom-"),
+    );
+    const byId = new Map<string, ExerciseRow>();
+    for (const item of [...existingMachinery, ...customRows, ...seedResolved]) {
+      if (!byId.has(item.id)) byId.set(item.id, item);
+    }
+    return [...byId.values()];
+  }, [equipmentOverrides, overrideTick, rows]);
+
+  const activeSourceRows = catalogSubTab === "base" ? baseRows : machineryRows;
+
   const filtered = useMemo(() => {
     const query_ = normaliseExerciseName(query);
-    return rows.filter((row) => {
+    return activeSourceRows.filter((row) => {
       // The chips are a lens on the list, never a second query: the same rows,
       // seen from the angle the coach is working from.
       const removed = deletedIds.has(normaliseExerciseId(row.id));
@@ -1227,9 +1479,10 @@ function ExercisesPanel({
         // if it were still part of the catalog.
         return false;
       }
-      if (filter === "with_machine" && !row.equipment_id) return false;
-      if (filter === "with_machine" && row.equipment_id === "NONE") return false;
-      if (filter === "free_weight" && row.equipment_id && row.equipment_id !== "NONE") {
+      const effectiveEqId = equipmentOverrides[row.id] ?? row.equipment_id ?? "";
+      if (machineFilter && effectiveEqId !== machineFilter) return false;
+      if (filter === "with_machine" && (!effectiveEqId || effectiveEqId === "NONE")) return false;
+      if (filter === "free_weight" && effectiveEqId && effectiveEqId !== "NONE") {
         return false;
       }
       if (filter === "coach_edited" && !edited.has(row.id)) return false;
@@ -1239,14 +1492,22 @@ function ExercisesPanel({
         translateBodyPart(row.body_part).toLowerCase().includes(query_)
       );
     });
-  }, [deletedIds, edited, filter, query, rows]);
+  }, [
+    activeSourceRows,
+    deletedIds,
+    edited,
+    equipmentOverrides,
+    filter,
+    machineFilter,
+    query,
+  ]);
 
   // 1,324 cards with two images each is not a list to mount at once: the panel
   // opens on the first page and asks for more.
   const visible = filtered.slice(0, limit);
   useEffect(() => {
     setLimit(EXERCISES_PAGE_SIZE);
-  }, [filter, query]);
+  }, [catalogSubTab, filter, machineFilter, query]);
 
   const markEdited = (id: string) =>
     setEdited((current) => {
@@ -1259,8 +1520,7 @@ function ExercisesPanel({
   const renameExercise = async (id: string) => {
     const nextName = rename.trim();
     if (!nextName) return;
-    const row =
-      resolvedRef.current.find((candidate) => candidate.id === id) ?? null;
+    const row = findResolved(id);
     setRows((current) =>
       current.map((candidate) =>
         candidate.id === id
@@ -1282,6 +1542,7 @@ function ExercisesPanel({
           : { kind: "online" },
     );
     setPending(countPendingOverrides());
+    setOverrideTick((tick) => tick + 1);
   };
 
   /**
@@ -1326,7 +1587,7 @@ function ExercisesPanel({
         station_key: isFloor ? "floor_mat_area" : undefined,
         availableInCronosGym: !isFloor,
       },
-      resolvedRef.current.find((candidate) => candidate.id === row.id) ?? null,
+      findResolved(row.id),
     );
     setSync(
       result.remote === "offline"
@@ -1336,6 +1597,7 @@ function ExercisesPanel({
           : { kind: "online" },
     );
     setPending(countPendingOverrides());
+    setOverrideTick((tick) => tick + 1);
   };
   /**
    * Saves the demonstration the coach chose, from a pasted URL or an uploaded file.
@@ -1380,6 +1642,7 @@ function ExercisesPanel({
           : { kind: "online" },
     );
     setPending(countPendingOverrides());
+    setOverrideTick((tick) => tick + 1);
   };
 
   return (
@@ -1389,23 +1652,60 @@ function ExercisesPanel({
           <h2 className="text-base font-bold text-white">
             Gobernanza de ejercicios
           </h2>
-          <button
-            type="button"
-            onClick={() => setRequestOpen(!requestOpen)}
-            className="min-h-11 rounded-xl bg-[#FF3B30] px-3 text-xs font-bold text-white"
-          >
-            <Plus size={14} className="mr-1 inline" />
-            Solicitar ejercicio
-          </button>
-          <button
-            type="button"
-            onClick={() => setCreateOpen(!createOpen)}
-            className="min-h-11 rounded-xl bg-[#30D158] px-3 text-xs font-bold text-black"
-          >
-            <Plus size={14} className="mr-1 inline" />
-            Crear ejercicio
-          </button>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => setRequestOpen(!requestOpen)}
+              className="min-h-11 rounded-xl px-3 text-xs font-bold text-white"
+              style={{ backgroundColor: ACCENT.base }}
+            >
+              <Plus size={14} className="mr-1 inline" />
+              Solicitar ejercicio
+            </button>
+            <button
+              type="button"
+              onClick={() => setCreateOpen(!createOpen)}
+              className="min-h-11 rounded-xl px-3 text-xs font-bold"
+              style={{ backgroundColor: STATUS.success.base, color: TEXT.onAccent }}
+            >
+              <Plus size={14} className="mr-1 inline" />
+              Crear ejercicio
+            </button>
+          </div>
         </div>
+
+        <div
+          role="tablist"
+          aria-label="Tipo de catálogo"
+          className="mt-3 flex items-center gap-1 rounded-xl p-1"
+          style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
+        >
+          {(
+            [
+              ["base", `Catálogo Base (${baseRows.length})`],
+              ["machinery", `Nuevos & Maquinaria (${machineryRows.length})`],
+            ] as const
+          ).map(([key, label]) => {
+            const active = catalogSubTab === key;
+            return (
+              <button
+                key={key}
+                type="button"
+                role="tab"
+                aria-selected={active}
+                onClick={() => setCatalogSubTab(key)}
+                className="min-h-10 flex-1 whitespace-nowrap rounded-lg px-3 text-xs font-semibold transition-colors"
+                style={{
+                  backgroundColor: active ? ACCENT.base : "transparent",
+                  color: active ? TEXT.primary : TEXT.secondary,
+                }}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
         {requestOpen && (
           <div className="mt-3 grid gap-2">
             <input
@@ -1440,7 +1740,8 @@ function ExercisesPanel({
             />
             <button
               type="button"
-              className="h-11 rounded-xl bg-[#30D158] font-semibold text-black"
+              className="h-11 rounded-xl font-semibold"
+              style={{ backgroundColor: STATUS.success.base, color: TEXT.onAccent }}
               onClick={async () => {
                 await coachEcosystemService.requestExercise(coachId, request);
                 setRequest({
@@ -1457,7 +1758,10 @@ function ExercisesPanel({
           </div>
         )}
         {createOpen && (
-      <div className="mt-3 grid gap-2">
+          <div
+            className="mt-3 grid gap-2.5 rounded-2xl p-3"
+            style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
+          >
             <input
               className={`${control} h-11 px-3 text-white`}
               placeholder="Nombre del ejercicio (español)"
@@ -1467,27 +1771,93 @@ function ExercisesPanel({
               }
               aria-label="Nombre del ejercicio"
             />
-            <input
-              className={`${control} h-11 px-3 text-white`}
-              placeholder="Músculo principal"
-              value={newExercise.muscle}
-              onChange={(e) =>
-                setNewExercise({ ...newExercise, muscle: e.target.value })
-              }
-              aria-label="Músculo principal"
-            />
-            <input
-              className={`${control} h-11 px-3 text-white`}
-              placeholder="Equipo"
-              value={newExercise.equipment}
-              onChange={(e) =>
-                setNewExercise({ ...newExercise, equipment: e.target.value })
-              }
-              aria-label="Equipo"
-            />
+            <div className="grid gap-2 sm:grid-cols-2">
+              <input
+                className={`${control} h-11 px-3 text-white`}
+                placeholder="Músculo principal (ej. chest, back, upper legs)"
+                value={newExercise.muscle}
+                onChange={(e) =>
+                  setNewExercise({ ...newExercise, muscle: e.target.value })
+                }
+                aria-label="Músculo principal"
+              />
+              <input
+                className={`${control} h-11 px-3 text-white`}
+                placeholder="Equipo"
+                value={newExercise.equipment}
+                onChange={(e) =>
+                  setNewExercise({ ...newExercise, equipment: e.target.value })
+                }
+                aria-label="Equipo"
+              />
+            </div>
+            <select
+              aria-label="Máquina asignada CG-EQP"
+              className={`${control} h-11 px-3 text-xs text-white`}
+              value={newExercise.equipmentId}
+              onChange={(e) => {
+                const eqId = e.target.value;
+                const mapped = eqId ? equipmentMap[eqId] : undefined;
+                setNewExercise({
+                  ...newExercise,
+                  equipmentId: eqId,
+                  equipment: mapped?.name ?? newExercise.equipment,
+                });
+              }}
+            >
+              <option value="">NONE · Peso libre / Piso</option>
+              {machineOptions.map((machine) => (
+                <option key={machine.id} value={machine.id}>
+                  {machine.id} · {machine.name}
+                </option>
+              ))}
+            </select>
+            <div className="grid gap-1.5">
+              <p className="text-xs font-medium text-zinc-300">
+                Demostración anatómica (elige un GIF o pega una URL)
+              </p>
+              <div className="flex gap-2 overflow-x-auto pb-1">
+                {ANATOMICAL_GIF_PRESETS.slice(0, 12).map((preset) => {
+                  const selected = newExercise.gifUrl === preset.gif_url;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() =>
+                        setNewExercise({ ...newExercise, gifUrl: preset.gif_url })
+                      }
+                      className="flex w-20 shrink-0 flex-col items-center gap-1 rounded-xl p-1.5 text-center"
+                      style={{
+                        border: `1px solid ${selected ? ACCENT.base : GLASS.border}`,
+                        backgroundColor: selected ? ACCENT.subtle : GLASS.fillRaised,
+                      }}
+                    >
+                      <ExerciseThumb
+                        src={preset.gif_url}
+                        alt={preset.label}
+                        className="h-10 w-10 bg-white"
+                        fit="object-contain"
+                      />
+                      <span className="line-clamp-2 text-xs leading-tight text-zinc-200">
+                        {preset.label}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              <input
+                className={`${control} h-11 px-3 text-xs text-white`}
+                placeholder="URL de GIF (opcional)"
+                value={newExercise.gifUrl}
+                onChange={(e) =>
+                  setNewExercise({ ...newExercise, gifUrl: e.target.value })
+                }
+                aria-label="URL de GIF del nuevo ejercicio"
+              />
+            </div>
             <textarea
               className={`${control} min-h-20 p-3 text-white`}
-              placeholder="Notas (opcional)"
+              placeholder="Notas técnicas (opcional)"
               value={newExercise.notes}
               onChange={(e) =>
                 setNewExercise({ ...newExercise, notes: e.target.value })
@@ -1496,12 +1866,13 @@ function ExercisesPanel({
             />
             <button
               type="button"
-              className="h-11 rounded-xl bg-[#30D158] font-semibold text-black"
+              className="h-11 rounded-xl font-semibold"
+              style={{ backgroundColor: STATUS.success.base, color: TEXT.onAccent }}
               onClick={() => void createExercise()}
             >
               Crear ejercicio
             </button>
-      </div>
+          </div>
         )}
         {createStatus && (
           <p role="status" className="mt-2 text-sm text-zinc-300">
@@ -1516,7 +1887,46 @@ function ExercisesPanel({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
-        </label>{" "}
+        </label>
+
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <select
+            aria-label="Filtrar por máquina CG-EQP"
+            value={machineFilter}
+            onChange={(event) => setMachineFilter(event.target.value)}
+            className={`${control} h-11 min-w-0 flex-1 px-3 text-xs text-white`}
+          >
+            <option value="">
+              Todas las {machineOptions.length} máquinas (CG-EQP)
+            </option>
+            {machineOptions.map((machine) => (
+              <option key={machine.id} value={machine.id}>
+                {machine.id} · {machine.name}
+              </option>
+            ))}
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              const chosen = machineFilter ? equipmentMap[machineFilter] : undefined;
+              setNewExercise((current) => ({
+                ...current,
+                equipmentId: machineFilter,
+                equipment: chosen?.name ?? current.equipment,
+              }));
+              setCreateOpen(true);
+            }}
+            className="inline-flex min-h-11 shrink-0 items-center gap-1 rounded-xl px-3 text-xs font-semibold text-white"
+            style={{
+              backgroundColor: GLASS.fillRaised,
+              border: `1px solid ${GLASS.border}`,
+            }}
+          >
+            <Plus size={14} aria-hidden="true" />
+            {machineFilter ? `Crear en ${machineFilter}` : "Crear ejercicio en esta máquina"}
+          </button>
+        </div>
+
         <div className="mt-2 flex flex-wrap items-center gap-2">
           {EXERCISE_FILTERS.map((option) => {
             const active = filter === option.id;
@@ -1526,11 +1936,11 @@ function ExercisesPanel({
                 type="button"
                 aria-pressed={active}
                 onClick={() => setFilter(option.id)}
-                className={`min-h-9 rounded-full px-3 text-xs font-semibold ${
-                  active
-                    ? "bg-[#FF3B30] text-white"
-                    : "bg-[#2C2C2E] text-zinc-300"
-                }`}
+                className="min-h-9 rounded-full px-3 text-xs font-semibold"
+                style={{
+                  backgroundColor: active ? ACCENT.base : GLASS.fillRaised,
+                  color: active ? TEXT.primary : TEXT.secondary,
+                }}
               >
                 {option.id === "deleted" ? `Eliminados (${deletedIds.size})` : option.label}
               </button>
@@ -1538,8 +1948,8 @@ function ExercisesPanel({
           })}
         </div>
         <p className="mt-2 flex flex-wrap items-center gap-2 text-xs text-zinc-500">
-          <span>
-            {filtered.length} de {rows.length} ejercicios del catálogo local
+          <span className="font-mono tabular-nums">
+            {filtered.length} de {activeSourceRows.length} ejercicios del catálogo local
           </span>
           <SyncBadge state={sync} />
         </p>
@@ -1548,15 +1958,22 @@ function ExercisesPanel({
           finish, it says how much, and it is the one action that settles it.
         */}
         {pending > 0 && (
-          <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-[#FF9F0A]/40 bg-[#FF9F0A]/10 p-3">
-            <p className="text-xs font-semibold text-[#FFB340]" role="status">
+          <div
+            className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-2xl p-3"
+            style={{
+              border: `1px solid ${STATUS.warning.border}`,
+              backgroundColor: STATUS.warning.muted,
+            }}
+          >
+            <p className="text-xs font-semibold" style={{ color: STATUS.warning.text }} role="status">
               {pending} {pending === 1 ? "cambio sin confirmar" : "cambios sin confirmar"} en Supabase
             </p>
             <button
               type="button"
               onClick={() => void syncPending()}
               disabled={syncing}
-              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-[#FF9F0A] px-3 text-xs font-bold text-black disabled:opacity-60"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-xs font-bold disabled:opacity-60"
+              style={{ backgroundColor: STATUS.warning.base, color: TEXT.onAccent }}
             >
               {syncing ? <Loader2 size={14} className="animate-spin" aria-hidden="true" /> : <CloudUpload size={14} aria-hidden="true" />}
               Guardar y sincronizar cambios ({pending})
@@ -1585,7 +2002,7 @@ function ExercisesPanel({
             const pendingRow = Boolean(overrideState) && !synced;
             const removed = deletedIds.has(normaliseExerciseId(row.id));
             return (
-              <div key={row.id} className="space-y-3 overflow-hidden rounded-2xl border border-white/10 bg-[#1C1C1E] p-3">
+              <div key={row.id} className="space-y-3 overflow-hidden rounded-2xl border border-white/10 bg-zinc-900/90 p-3">
                 {/* Row 1: the real GIF, the full name, the catalog id and muscle. */}
                 <div className="flex min-w-0 items-start gap-3">
                   <ExerciseThumb
@@ -1598,17 +2015,23 @@ function ExercisesPanel({
                     <strong className="block break-words text-sm font-semibold leading-snug text-white">
                       {getExerciseDisplayName({ name: row.name, name_es: row.name_es })}
                     </strong>
-                    <span className="mt-1 block break-words font-mono text-[11px] leading-snug text-zinc-400">
+                    <span className="mt-1 block break-words font-mono text-xs leading-snug text-zinc-400">
                       {row.id} · {translateBodyPart(row.body_part)}
                     </span>
                     {/* Where the change stands: everywhere, or only on this device. */}
                     {synced && (
-                      <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[#30D158]">
+                      <span
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-semibold"
+                        style={{ color: STATUS.success.text }}
+                      >
                         <Check size={12} aria-hidden="true" /> Guardado globalmente
                       </span>
                     )}
                     {pendingRow && (
-                      <span className="mt-1 inline-flex items-center gap-1 text-[11px] font-semibold text-[#FFB340]">
+                      <span
+                        className="mt-1 inline-flex items-center gap-1 text-xs font-semibold"
+                        style={{ color: STATUS.warning.text }}
+                      >
                         <CloudUpload size={12} aria-hidden="true" /> Guardado en este dispositivo
                       </span>
                     )}
@@ -1665,14 +2088,15 @@ function ExercisesPanel({
                       <button
                         type="button"
                         onClick={() => void renameExercise(row.id)}
-                        className="inline-flex h-11 shrink-0 items-center rounded-xl bg-[#FF3B30] px-3 text-xs font-semibold text-white"
+                        className="inline-flex h-11 shrink-0 items-center rounded-xl px-3 text-xs font-semibold text-white"
+                        style={{ backgroundColor: ACCENT.base }}
                       >
                         Guardar
                       </button>
                       <button
                         type="button"
                         onClick={() => setRenameId(null)}
-                        className="inline-flex h-11 shrink-0 items-center rounded-xl bg-[#2C2C2E] px-3 text-xs text-zinc-300"
+                        className="inline-flex h-11 shrink-0 items-center rounded-xl bg-zinc-800 px-3 text-xs text-zinc-300"
                       >
                         Cancelar
                       </button>
@@ -1685,7 +2109,7 @@ function ExercisesPanel({
                           setRenameId(row.id);
                           setRename(row.customNameEs || row.name_es || row.name);
                         }}
-                        className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-[#2C2C2E] px-3 text-xs text-white"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-zinc-800 px-3 text-xs text-white"
                       >
                         <Pencil size={14} aria-hidden="true" /> Renombrar
                       </button>
@@ -1697,18 +2121,19 @@ function ExercisesPanel({
                           setGifStatus(null);
                         }}
                         aria-label={`Cambiar GIF de ${row.name}`}
-                        className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-[#2C2C2E] px-3 text-xs text-white"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-zinc-800 px-3 text-xs text-white"
                       >
                         <ImageIcon size={14} aria-hidden="true" /> GIF
                       </button>
                     </>
                   )}
                   <span
-                    className={`inline-flex min-h-7 items-center rounded-full px-2 py-1 text-[11px] font-semibold ${
+                    className="inline-flex min-h-7 items-center rounded-full px-2.5 py-1 text-xs font-semibold"
+                    style={
                       removed || row.available === false
-                        ? "bg-[#FF3B30]/15 text-[#FF6961]"
-                        : "bg-[#30D158]/15 text-[#30D158]"
-                    }`}
+                        ? { backgroundColor: STATUS.error.muted, color: STATUS.error.text }
+                        : { backgroundColor: STATUS.success.muted, color: STATUS.success.text }
+                    }
                   >
                     {removed ? "Eliminado" : row.available === false ? "No disponible" : "Disponible"}
                   </span>
@@ -1726,7 +2151,8 @@ function ExercisesPanel({
                       type="button"
                       onClick={() => void restoreExercise(row)}
                       disabled={removingId === row.id}
-                      className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-[#30D158]/15 px-3 text-xs font-semibold text-[#30D158] disabled:opacity-60"
+                      className="inline-flex min-h-11 items-center gap-1 rounded-xl px-3 text-xs font-semibold disabled:opacity-60"
+                      style={{ backgroundColor: STATUS.success.muted, color: STATUS.success.text }}
                     >
                       {removingId === row.id ? (
                         <Loader2 size={14} className="animate-spin" aria-hidden="true" />
@@ -1742,7 +2168,8 @@ function ExercisesPanel({
                         type="button"
                         onClick={() => void removeExercise(row)}
                         disabled={removingId === row.id}
-                        className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-[#FF3B30] px-3 text-xs font-semibold text-white disabled:opacity-60"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-xl px-3 text-xs font-semibold text-white disabled:opacity-60"
+                        style={{ backgroundColor: ACCENT.base }}
                       >
                         {removingId === row.id ? (
                           <Loader2 size={14} className="animate-spin" aria-hidden="true" />
@@ -1754,7 +2181,7 @@ function ExercisesPanel({
                       <button
                         type="button"
                         onClick={() => setConfirmDeleteId(null)}
-                        className="inline-flex min-h-11 items-center rounded-xl bg-[#2C2C2E] px-3 text-xs text-zinc-300"
+                        className="inline-flex min-h-11 items-center rounded-xl bg-zinc-800 px-3 text-xs text-zinc-300"
                       >
                         Cancelar
                       </button>
@@ -1764,7 +2191,8 @@ function ExercisesPanel({
                       type="button"
                       onClick={() => setConfirmDeleteId(row.id)}
                       aria-label={`Eliminar ${row.name} del catálogo`}
-                      className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-[#2C2C2E] px-3 text-xs text-[#FF6961]"
+                      className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-zinc-800 px-3 text-xs"
+                      style={{ color: STATUS.error.text }}
                     >
                       <Trash2 size={14} aria-hidden="true" /> Eliminar
                     </button>
@@ -1784,7 +2212,7 @@ function ExercisesPanel({
             <button
               type="button"
               onClick={() => setLimit((current) => current + EXERCISES_PAGE_SIZE)}
-              className="min-h-11 rounded-xl bg-[#2C2C2E] px-4 text-sm font-semibold text-white"
+              className="min-h-11 rounded-xl bg-zinc-800 px-4 text-sm font-semibold text-white"
             >
               Mostrar más ({filtered.length - visible.length} restantes)
             </button>
@@ -1850,10 +2278,10 @@ function ExerciseThumb({
   }, [src]);
   if (broken)
     return (
-      <span className={`flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-white/10 bg-[#2C2C2E] text-zinc-400 ${className}`}>
+      <span className={`flex shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-white/10 bg-zinc-800 text-zinc-400 ${className}`}>
         <Dumbbell size={20} aria-hidden="true" />
         {fallbackLabel && (
-          <span className="font-mono text-[9px] leading-none tracking-wider text-zinc-500">
+          <span className="font-mono text-xs leading-none tracking-wider text-zinc-500">
             {fallbackLabel}
           </span>
         )}

@@ -124,4 +124,60 @@ describe("SmartOverloadModal (3-engine Apple submenu)", () => {
     });
     expect(onClose).toHaveBeenCalled();
   });
+
+  it("renders plate breakdown and live e1RM / Rank projection in Tab 1", () => {
+    render(
+      <SmartOverloadModal
+        isOpen
+        onClose={vi.fn()}
+        exerciseName="Press de banca"
+        weightKg={100}
+        reps={8}
+        bodyweightKg={80}
+        isBodyweight={false}
+        hasHistory
+        category="barbell"
+        movementPattern="horizontal_push"
+        bodyPart="chest"
+        onApply={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/e1RM est\.: 127 kg/)).toBeTruthy();
+    expect(screen.getByText(/Rango /)).toBeTruthy();
+    expect(screen.getByText("Barra 20 kg")).toBeTruthy();
+    expect(screen.getAllByText("20 kg").length).toBe(2);
+  });
+
+  it("offers quick target-weight chips in Tab 2 when starting at 0 kg and toggles mobility checks in Tab 3", () => {
+    render(
+      <SmartOverloadModal
+        isOpen
+        onClose={vi.fn()}
+        exerciseName="Sentadilla"
+        weightKg={0}
+        reps={8}
+        bodyweightKg={75}
+        isBodyweight={false}
+        hasHistory={false}
+        category="barbell"
+        movementPattern="squat"
+        bodyPart="upper legs"
+        onApply={vi.fn()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("tab", { name: "Aproximación" }));
+    fireEvent.click(screen.getByRole("button", { name: "60 kg" }));
+    expect(screen.getByText(/W1 · 50%/)).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("tab", { name: "Calentamiento" }));
+    const stepButtons = screen
+      .getAllByRole("button")
+      .filter((btn) => btn.hasAttribute("aria-pressed"));
+    expect(stepButtons.length).toBeGreaterThan(0);
+    expect(stepButtons[0].getAttribute("aria-pressed")).toBe("false");
+    fireEvent.click(stepButtons[0]);
+    expect(stepButtons[0].getAttribute("aria-pressed")).toBe("true");
+  });
 });

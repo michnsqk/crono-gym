@@ -19,6 +19,7 @@ import { resolveMediaUrl } from "@/lib/media/mediaResolver";
 import { repairMojibake } from "@/lib/text/mojibake";
 import { getExerciseDisplayName } from "@/utils/exerciseTranslation";
 import { peekLoadedCatalog } from "./catalogRegistry";
+import { CRONOS_MACHINERY_EXERCISES } from "./machinerySeedExercises";
 import {
   readCatalogOverride,
   readNameOverride,
@@ -80,7 +81,7 @@ export function resolveCatalogExerciseWithOverrides(
 ): ResolvedCatalogExercise | null {
   const wanted = (idOrName ?? "").trim();
   if (wanted === "") return null;
-  const pool = rows ?? peekLoadedCatalog();
+  const pool = rows ?? [...peekLoadedCatalog(), ...CRONOS_MACHINERY_EXERCISES];
   const row =
     pool.find((candidate) => candidate.id === wanted) ??
     pool.find(

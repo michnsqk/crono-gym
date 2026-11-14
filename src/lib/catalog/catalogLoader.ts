@@ -27,6 +27,7 @@ import {
 } from "./catalogCache";
 import { resetCatalogRegistry, setLoadedCatalog } from "./catalogRegistry";
 import { filterDeletedExercises } from "./customExercises";
+import { mergeMachineryExercises } from "./machinerySeedExercises";
 import { isCatalogExercise, type CatalogExercise } from "./types";
 
 const DEFAULT_CATALOG_URL = import.meta.env.VITE_EXERCISES_CATALOG_URL ?? catalogAssetUrl;
@@ -82,28 +83,34 @@ export async function loadCatalog(options: LoadCatalogOptions = {}): Promise<Cat
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const store = options.cache ?? indexedDbCatalogCache;
   const keepDeleted = options.includeDeleted === true;
+  const includeMachinerySeed = !options.url && !options.fetchImpl && !options.cache;
+  const withMachinery = (rows: CatalogExercise[]) =>
+    includeMachinerySeed ? mergeMachineryExercises(rows) : rows;
 
   inFlight = (async () => {
     const stored = await readStored(store);
     if (stored?.fresh) {
-      cache = stored.rows;
-      setLoadedCatalog(stored.rows);
-      return stored.rows;
+      const merged = withMachinery(stored.rows);
+      cache = merged;
+      setLoadedCatalog(merged);
+      return merged;
     }
 
     try {
-      const rows = await fetchCatalog(url, fetchImpl);
-      cache = rows;
-      setLoadedCatalog(rows);
+      const baseRows = await fetchCatalog(url, fetchImpl);
+      const merged = withMachinery(baseRows);
+      cache = merged;
+      setLoadedCatalog(merged);
       // The write must not delay the picker: it happens in the background and
       // a failure to store is not a failure to show the catalog.
-      void store.write(rows).catch(() => undefined);
-      return rows;
+      void store.write(baseRows).catch(() => undefined);
+      return merged;
     } catch (err) {
       if (stored) {
-        cache = stored.rows;
-        setLoadedCatalog(stored.rows);
-        return stored.rows;
+        const merged = withMachinery(stored.rows);
+        cache = merged;
+        setLoadedCatalog(merged);
+        return merged;
       }
       throw err;
     }

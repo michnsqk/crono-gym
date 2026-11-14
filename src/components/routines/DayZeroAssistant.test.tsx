@@ -89,4 +89,21 @@ describe("DayZeroAssistant (2-to-6 days + anatomical day selector)", () => {
     expect(createdPlan.frequency).toBe(6);
     expect(createdPlan.days).toHaveLength(6);
   });
+
+  it("starts collapsed when defaultExpanded={false} and toggles with Configurar and Minimizar", async () => {
+    render(<DayZeroAssistant defaultExpanded={false} onCreated={vi.fn()} />);
+
+    const configureBtn = screen.getByRole("button", { name: "Configurar" });
+    expect(screen.queryByRole("button", { name: "6 días" })).toBeNull();
+
+    fireEvent.click(configureBtn);
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Minimizar" })).toBeTruthy();
+      expect(screen.getByRole("button", { name: "6 días" })).toBeTruthy();
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Minimizar" }));
+    expect(screen.getByRole("button", { name: "Configurar" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "6 días" })).toBeNull();
+  });
 });

@@ -14,9 +14,15 @@ import type { CatalogExercise } from "./types";
 import {
   CATALOG_OVERRIDES_KEY,
   EXERCISE_NAME_OVERRIDES_KEY,
+  LEGACY_EXERCISE_OVERRIDES_KEY,
   invalidateOverridesSnapshot,
+  mergeOverridesFromRemote,
   readOverridesSnapshot,
 } from "./customExercises";
+import {
+  CRONOS_MACHINERY_EXERCISES,
+  mergeMachineryExercises,
+} from "./machinerySeedExercises";
 import { resetCatalogRegistry, setLoadedCatalog } from "./catalogRegistry";
 import {
   COACH_GIF_BUCKET,
@@ -647,5 +653,61 @@ describe("uploadOrResolveCoachGif", () => {
     const file = new File([new Uint8Array(64)], "demo.png", { type: "image/png" });
     const result = await uploadOrResolveCoachGif(file, "0001");
     expect(result).toEqual({ ok: false, error: "bucket not found" });
+  });
+});
+
+describe("Coach overrides shield & 77-machine curated seed", () => {
+  it("falls back non-destructively to legacy cronos_exercise_overrides_v1 key", () => {
+    window.localStorage.setItem(
+      LEGACY_EXERCISE_OVERRIDES_KEY,
+      JSON.stringify({ "0001": { equipment_id: "CG-EQP-0003" } }),
+    );
+    invalidateOverridesSnapshot();
+    expect(readOverridesSnapshot().catalog["0001"]?.equipment_id).toBe("CG-EQP-0003");
+  });
+
+  it("adopts rename-only remote updates without erasing clean or dirty local protection", () => {
+    const base = new Map([["0001", { name: "Push-up", name_es: null, equipment_id: "NONE" }]]);
+    const changed = mergeOverridesFromRemote({ "0001": { customNameEs: "Lagartija Cronos" } }, base);
+    expect(changed).toBe(1);
+    expect(readOverridesSnapshot().names["0001"]).toBe("Lagartija Cronos");
+
+    // Local dirty rename stays protected against non-dirty remote overwrite.
+    window.localStorage.setItem(
+      CATALOG_OVERRIDES_KEY,
+      JSON.stringify({ "0001": { dirty: true } }),
+    );
+    window.localStorage.setItem(
+      EXERCISE_NAME_OVERRIDES_KEY,
+      JSON.stringify({ "0001": "Mi Nombre Local" }),
+    );
+    invalidateOverridesSnapshot();
+    mergeOverridesFromRemote({ "0001": { customNameEs: "Remoto Anterior" } }, base);
+    expect(readOverridesSnapshot().names["0001"]).toBe("Mi Nombre Local");
+  });
+
+  it("parses CG-EQP-XXXX::Name base column fallback during remote hydration", async () => {
+    setLoadedCatalog([row({ id: "0001", name: "Push-up", equipment_id: "NONE" })]);
+    state.rows = [
+      {
+        id: "0001",
+        name: "Press Cronos",
+        equipment: "CG-EQP-0003::Press de Pecho Vertical",
+        available_in_cronos_gym: true,
+        gif_url: "https://cdn.example/shipped.gif",
+      },
+    ];
+    await hydrateOverridesFromSupabase();
+    expect(readOverridesSnapshot().catalog["0001"]?.equipment_id).toBe("CG-EQP-0003");
+    expect(readOverridesSnapshot().names["0001"]).toBe("Press Cronos");
+  });
+
+  it("ships at least 40 unique curated Spanish machinery exercises without duplicates", () => {
+    expect(CRONOS_MACHINERY_EXERCISES.length).toBeGreaterThanOrEqual(40);
+    const ids = new Set(CRONOS_MACHINERY_EXERCISES.map((ex) => ex.id));
+    expect(ids.size).toBe(CRONOS_MACHINERY_EXERCISES.length);
+    const mergedOnce = mergeMachineryExercises([], CRONOS_MACHINERY_EXERCISES);
+    const mergedTwice = mergeMachineryExercises(mergedOnce, CRONOS_MACHINERY_EXERCISES);
+    expect(mergedTwice.length).toBe(mergedOnce.length);
   });
 });
