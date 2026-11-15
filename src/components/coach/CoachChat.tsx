@@ -630,14 +630,21 @@ export function CoachChat({
     setProposedRoutineError(null);
   };
 
+  const savingProposedRef = useRef(false);
+
   const saveProposed = async () => {
-    if (!proposedRoutine) return;
-    const ok = await saveGeneratedRoutine(userId, proposedRoutine);
-    if (ok) {
-      setProposedRoutine(null);
-      setProposedRoutineError(null);
-    } else {
-      setProposedRoutineError("No se pudo guardar la rutina en tu cuenta. Inténtalo de nuevo.");
+    if (!proposedRoutine || savingProposedRef.current) return;
+    savingProposedRef.current = true;
+    try {
+      const ok = await saveGeneratedRoutine(userId, proposedRoutine);
+      if (ok) {
+        setProposedRoutine(null);
+        setProposedRoutineError(null);
+      } else {
+        setProposedRoutineError("No se pudo guardar la rutina en tu cuenta. Inténtalo de nuevo.");
+      }
+    } finally {
+      savingProposedRef.current = false;
     }
   };
 

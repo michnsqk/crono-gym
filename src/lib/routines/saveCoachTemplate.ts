@@ -35,21 +35,29 @@ export async function saveCoachTemplate(
     if (inserted.error || !inserted.data) return false;
     routineId = inserted.data.id;
 
-    const rows = draft.days.flatMap((day, dayIndex) =>
-      day.exercises
-        .filter((exercise) => exercise.exerciseId !== "")
-        .map((exercise, index) => ({
-          routine_id: routineId as string,
-          exercise_id: exercise.exerciseId,
-          target_sets: exercise.sets,
-          rest_seconds: exercise.restSeconds,
-          order_index: index,
-          day_index: dayIndex,
-          day_label: day.label,
-          target_reps_min: exercise.repsMin,
-          target_reps_max: exercise.repsMax,
-        })),
-    );
+    const rows = draft.days.flatMap((day, dayIndex) => {
+      const seenInDay = new Set<string>();
+      const validExercises = day.exercises.filter((exercise) => {
+        const id = exercise.exerciseId.trim();
+        if (!id || seenInDay.has(id)) return false;
+        seenInDay.add(id);
+        return true;
+      });
+      return validExercises.map((exercise, index) => ({
+        routine_id: routineId as string,
+        exercise_id: exercise.exerciseId.trim(),
+        target_sets: Math.max(1, Math.round(Number.isFinite(exercise.sets) ? exercise.sets : 3)),
+        rest_seconds: Math.max(
+          0,
+          Math.round(Number.isFinite(exercise.restSeconds) ? exercise.restSeconds : 90),
+        ),
+        order_index: index,
+        day_index: dayIndex,
+        day_label: day.label,
+        target_reps_min: exercise.repsMin,
+        target_reps_max: exercise.repsMax,
+      }));
+    });
 
     if (rows.length === 0) return false;
 

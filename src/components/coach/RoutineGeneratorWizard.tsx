@@ -146,7 +146,7 @@ export function RoutineGeneratorWizard({
   };
 
   const persist = async () => {
-    if (routine === null) return;
+    if (routine === null || saving) return;
     setSaving(true);
     setSaveError(false);
     // Named so the default is one indirection away rather than a mock in every test.

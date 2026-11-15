@@ -60,15 +60,50 @@ export async function saveGeneratedRoutine(
      * `routine_exercises` has no reps columns, so a generated 8-10 becomes a routine that
      * records only the sets. Recorded as a TODO in the wizard's save path comment.
      */
-    const rows = routine.days.flatMap((day) =>
-      day.exercises.map((exercise, index) => ({
-        routine_id: routineId as string,
-        exercise_id: exercise.exerciseId,
-        target_sets: exercise.sets,
-        rest_seconds: exercise.restSeconds,
-        order_index: index,
-      })),
-    );
+    const rawExercises = routine.days.flatMap((day) => day.exercises);
+    const seenExerciseIds = new Set<string>();
+    const dedupedExercises: typeof rawExercises = [];
+
+    for (const exercise of rawExercises) {
+      const id = typeof exercise.exerciseId === "string" ? exercise.exerciseId.trim() : "";
+      if (!id || seenExerciseIds.has(id)) continue;
+      seenExerciseIds.add(id);
+      dedupedExercises.push({ ...exercise, exerciseId: id });
+    }
+
+    let validIds: Set<string> | null = null;
+    if (dedupedExercises.length > 0) {
+      try {
+        const check = await supabase
+          .from("exercises")
+          .select("id")
+          .in(
+            "id",
+            dedupedExercises.map((e) => e.exerciseId),
+          );
+        if (check && !check.error && Array.isArray(check.data)) {
+          validIds = new Set(check.data.map((row: { id: string }) => row.id));
+        }
+      } catch {
+        // Test mocks or offline clients may not implement `exercises` lookup; proceed with deduped rows.
+      }
+    }
+
+    const filteredExercises =
+      validIds === null
+        ? dedupedExercises
+        : dedupedExercises.filter((e) => validIds!.has(e.exerciseId));
+
+    const rows = filteredExercises.map((exercise, index) => ({
+      routine_id: routineId as string,
+      exercise_id: exercise.exerciseId,
+      target_sets: Math.max(1, Math.round(Number.isFinite(exercise.sets) ? exercise.sets : 3)),
+      rest_seconds: Math.max(
+        0,
+        Math.round(Number.isFinite(exercise.restSeconds) ? exercise.restSeconds : 90),
+      ),
+      order_index: index,
+    }));
 
     if (rows.length === 0) {
       await deleteRoutine(routineId);
