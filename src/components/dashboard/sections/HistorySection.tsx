@@ -21,7 +21,9 @@ export function HistorySection({
   className,
   maxVisible = 3,
 }: { sessions: readonly DashboardSession[]; className?: string; maxVisible?: number }) {
-  const visible = sessions.slice(0, Math.min(maxVisible, 3));
+  const nonEmptySessions = sessions.filter((s) => s.sets.length > 0);
+  const filteredSessions = nonEmptySessions.length > 0 ? nonEmptySessions : sessions;
+  const visible = filteredSessions.slice(0, Math.min(maxVisible, 3));
   return (
     <section aria-label="Historial reciente" className={className}>
       <header className="mb-3 flex items-center justify-between gap-3">

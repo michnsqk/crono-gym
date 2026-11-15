@@ -118,6 +118,7 @@ export function recordWeightEntry(
   };
   const next = [...existing, entry];
   saveWeightHistory(next, userId);
+  safeWriteJson("cronos_latest_weight_kg_v1", { weightKg: rounded, date });
   return next;
 }
 

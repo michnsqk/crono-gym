@@ -33,6 +33,7 @@ import {
   ArrowDown,
   ArrowUp,
   History,
+  Layers,
   Plus,
   Sparkles,
   Square,
@@ -41,21 +42,34 @@ import {
   Trash2,
   X,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { ACCENT, GLASS, MOTION, RADIUS, SCRIM, SOLID, SPACE, STATUS, SURFACE, TEXT, TYPE } from "@/design/tokens";
 import { GlassButton } from "@/components/ui";
 import { COACH_LABELS as T } from "@/lib/i18n";
 import { useAuthModal } from "@/context/AuthModalContext";
+import { useActiveSession } from "@/context/ActiveSessionContext";
+import { ROUTINES_PATH, TRAIN_PATH } from "@/components/shell/navItems";
 import { useExerciseCatalog } from "@/hooks/useExerciseCatalog";
 import { RecommendedExerciseCard } from "@/components/coach/RecommendedExerciseCard";
+import { GeneratedRoutineCard } from "@/components/coach/GeneratedRoutineCard";
 import {
+  ROUTINE_DURATION_OPTIONS,
+  ROUTINE_FOCUS_OPTIONS,
+  buildGuidedRoutineFromChat,
   createNewThread,
+  detectRoutineIntent,
   getActiveThreadId,
   loadChatThreads,
   resolveRecommendedExercisesFromAIResponse,
   saveChatThreads,
+  saveGuidedRoutineToUserLibrary,
   setActiveThreadId,
   stripExerciseTags,
+  swapGuidedRoutineExercise,
   type CronosChatThread,
+  type GuidedRoutineResult,
+  type RoutineDurationStyleId,
+  type RoutineFocusId,
 } from "@/lib/ai/cronosIntelligence";
 import type { GymSettings } from "@/context/GymSettingsContext";
 import type { CoachContext } from "@/lib/coach/types";
@@ -145,7 +159,16 @@ export function CoachChat({
   );
   const [feedbackByMsgId, setFeedbackByMsgId] = useState<Record<string, "up" | "down" | null>>({});
   const [showScrollBottom, setShowScrollBottom] = useState(false);
+  const [builderFocus, setBuilderFocus] = useState<RoutineFocusId | null>(null);
+  const [builderStepByMsgId, setBuilderStepByMsgId] = useState<
+    Record<string, "choose_focus" | "choose_duration">
+  >({});
+  const [guidedRoutinesByMsgId, setGuidedRoutinesByMsgId] = useState<
+    Record<string, GuidedRoutineResult>
+  >({});
   const { exercises: catalog } = useExerciseCatalog();
+  const navigate = useNavigate();
+  const { start } = useActiveSession();
 
   const abortRef = useRef<AbortController | null>(null);
   const listEndRef = useRef<HTMLDivElement | null>(null);
@@ -297,10 +320,193 @@ export function CoachChat({
     [syncThread],
   );
 
+  const appendRoutineBuilderResult = useCallback(
+    (focus: RoutineFocusId, durationStyle: RoutineDurationStyleId, userPromptText?: string) => {
+      const generated = buildGuidedRoutineFromChat({
+        focus,
+        durationStyle,
+        catalog,
+        userId,
+      });
+      const assistantId = crypto.randomUUID();
+      const jointText =
+        generated.jointNotes.length > 0
+          ? ` He adaptado la selección cuidando tus molestias (${generated.jointNotes.join(", ")}).`
+          : "";
+      const assistantMsg: ChatMessage = {
+        id: assistantId,
+        role: "assistant",
+        content: `Listo. Diseñé **${generated.name}** con ${generated.exercises.length} ejercicios del catálogo Cronos Gym (${generated.styleLabel}).${jointText}\n\n1. Revisa los GIFs y presiona "Cambiar" si quieres rotar algún ejercicio.\n2. Guárdala directo en "Mis Rutinas" o inicia el entreno ahora mismo.\n\nClave biomecánica: respeta los descansos prescritos y controla 2 a 3 segundos la fase excéntrica en los compuestos.`,
+        timestamp: Date.now(),
+        isStreaming: false,
+      };
+      setGuidedRoutinesByMsgId((prev) => ({ ...prev, [assistantId]: generated }));
+      setMessages((prev) => {
+        const base = userPromptText
+          ? [
+              ...prev,
+              {
+                id: crypto.randomUUID(),
+                role: "user" as const,
+                content: userPromptText,
+                timestamp: Date.now(),
+              },
+            ]
+          : prev;
+        const next = [...base, assistantMsg];
+        persist(next);
+        return next;
+      });
+    },
+    [catalog, persist, userId],
+  );
+
+  const startGuidedRoutineWizard = useCallback(
+    (userText?: string) => {
+      const assistantId = crypto.randomUUID();
+      const userMsg: ChatMessage | null = userText
+        ? {
+            id: crypto.randomUUID(),
+            role: "user",
+            content: userText,
+            timestamp: Date.now(),
+          }
+        : null;
+      const promptMsg: ChatMessage = {
+        id: assistantId,
+        role: "assistant",
+        content:
+          "Paso 1 de 3 · ¿Qué enfoque o grupos musculares quieres entrenar hoy? Elige una opción con un toque:",
+        timestamp: Date.now(),
+        isStreaming: false,
+      };
+      setBuilderFocus(null);
+      setBuilderStepByMsgId((prev) => ({ ...prev, [assistantId]: "choose_focus" }));
+      setMessages((prev) => {
+        const next = userMsg ? [...prev, userMsg, promptMsg] : [...prev, promptMsg];
+        persist(next);
+        return next;
+      });
+    },
+    [persist],
+  );
+
+  const handleSelectBuilderFocus = useCallback(
+    (focusId: RoutineFocusId, label: string) => {
+      const assistantId = crypto.randomUUID();
+      setBuilderFocus(focusId);
+      setBuilderStepByMsgId((prev) => ({ ...prev, [assistantId]: "choose_duration" }));
+      const userMsg: ChatMessage = {
+        id: crypto.randomUUID(),
+        role: "user",
+        content: label,
+        timestamp: Date.now(),
+      };
+      const step2Msg: ChatMessage = {
+        id: assistantId,
+        role: "assistant",
+        content:
+          "Paso 2 de 3 · Perfecto. Ya tomé en cuenta tu Ficha 360° (peso, nivel y cuidado articular). ¿Qué duración y estilo prefieres?",
+        timestamp: Date.now(),
+        isStreaming: false,
+      };
+      setMessages((prev) => {
+        const next = [...prev, userMsg, step2Msg];
+        persist(next);
+        return next;
+      });
+    },
+    [persist],
+  );
+
+  const handleSelectBuilderDuration = useCallback(
+    (durationStyle: RoutineDurationStyleId, label: string, explicitFocus?: RoutineFocusId) => {
+      const focus = explicitFocus ?? builderFocus ?? "push";
+      appendRoutineBuilderResult(focus, durationStyle, label);
+    },
+    [appendRoutineBuilderResult, builderFocus],
+  );
+
+  const handleStartGeneratedRoutine = useCallback(
+    (routine: GuidedRoutineResult) => {
+      const result = start({
+        routine: { id: routine.id, title: routine.name },
+        planned: routine.exercises.map((ex, idx) => {
+          const found = catalog.find((c) => c.id === ex.exerciseId);
+          return {
+            exercise: found ?? {
+              id: ex.exerciseId,
+              name: ex.name,
+              name_es: ex.name,
+              body_part: ex.muscleGroup,
+              target: ex.muscleGroup,
+              equipment: ex.equipmentName,
+              gif_url: ex.gifUrl,
+              instructions: [],
+              is_active: true,
+              is_hidden: false,
+              equipment_id: ex.equipmentId,
+              equipment_name: ex.equipmentName,
+            },
+            target_sets: ex.sets,
+            rest_seconds: ex.restSeconds,
+            rowId: ex.id,
+            order_index: idx,
+            target_reps_min: ex.repsMin,
+            target_reps_max: ex.repsMax,
+            dayIndex: 1,
+            dayLabel: routine.focusLabel,
+          };
+        }),
+      });
+      if (result.ok) {
+        onClose?.();
+        navigate(TRAIN_PATH);
+      }
+    },
+    [catalog, navigate, onClose, start],
+  );
+
   const send = useCallback(
     (text: string) => {
       const trimmed = text.trim();
       if (trimmed === "" || busy) return;
+
+      const intent = detectRoutineIntent(trimmed);
+      if (intent.isRoutineRequest) {
+        setDraft("");
+        if (intent.focus && intent.durationStyle) {
+          appendRoutineBuilderResult(intent.focus, intent.durationStyle, trimmed);
+          return;
+        }
+        if (intent.focus) {
+          const assistantId = crypto.randomUUID();
+          setBuilderFocus(intent.focus);
+          setBuilderStepByMsgId((prev) => ({ ...prev, [assistantId]: "choose_duration" }));
+          const userMsg: ChatMessage = {
+            id: crypto.randomUUID(),
+            role: "user",
+            content: trimmed,
+            timestamp: Date.now(),
+          };
+          const step2Msg: ChatMessage = {
+            id: assistantId,
+            role: "assistant",
+            content:
+              "Paso 2 de 3 · Perfecto. Ya consideré tu Ficha 360°. ¿Qué duración y estilo prefieres para esta rutina?",
+            timestamp: Date.now(),
+            isStreaming: false,
+          };
+          setMessages((prev) => {
+            const next = [...prev, userMsg, step2Msg];
+            persist(next);
+            return next;
+          });
+          return;
+        }
+        startGuidedRoutineWizard(trimmed);
+        return;
+      }
 
       const controller = new AbortController();
       abortRef.current = controller;
@@ -790,6 +996,35 @@ export function CoachChat({
                   recommended={recommended}
                   feedback={feedbackByMsgId[message.id] ?? null}
                   onFeedback={(vote) => handleFeedback(message.id, vote)}
+                  builderStep={builderStepByMsgId[message.id] ?? null}
+                  onSelectFocus={handleSelectBuilderFocus}
+                  onSelectDuration={handleSelectBuilderDuration}
+                  guidedRoutine={guidedRoutinesByMsgId[message.id] ?? null}
+                  onRenameGuidedRoutine={(nextName) => {
+                    setGuidedRoutinesByMsgId((prev) => {
+                      const cur = prev[message.id];
+                      if (!cur) return prev;
+                      return { ...prev, [message.id]: { ...cur, name: nextName } };
+                    });
+                  }}
+                  onSwapGuidedExercise={(exIdx) => {
+                    setGuidedRoutinesByMsgId((prev) => {
+                      const cur = prev[message.id];
+                      if (!cur) return prev;
+                      return {
+                        ...prev,
+                        [message.id]: swapGuidedRoutineExercise(cur, exIdx, catalog),
+                      };
+                    });
+                  }}
+                  onSaveGuidedRoutine={async (r) => {
+                    await saveGuidedRoutineToUserLibrary(userId, r);
+                  }}
+                  onStartGuidedRoutine={handleStartGeneratedRoutine}
+                  onGoToRoutines={() => {
+                    onClose?.();
+                    navigate(ROUTINES_PATH);
+                  }}
                 />
               );
             })
@@ -818,6 +1053,21 @@ export function CoachChat({
       </div>
 
       <div style={chipsStyle}>
+        <button
+          type="button"
+          onClick={() => startGuidedRoutineWizard("Crear rutina paso a paso")}
+          aria-label="Crear rutina paso a paso"
+          style={{
+            ...chipStyle(),
+            borderColor: ACCENT.border,
+            backgroundColor: ACCENT.subtle,
+            color: ACCENT.text,
+            fontWeight: 600,
+          }}
+        >
+          <Layers size={13} aria-hidden="true" />
+          <span>Crear rutina paso a paso</span>
+        </button>
         {T.chatSuggestions.map((suggestion) => (
           <button
             key={suggestion}
@@ -970,11 +1220,29 @@ function Bubble({
   recommended = [],
   feedback = null,
   onFeedback,
+  builderStep = null,
+  onSelectFocus,
+  onSelectDuration,
+  guidedRoutine = null,
+  onRenameGuidedRoutine,
+  onSwapGuidedExercise,
+  onSaveGuidedRoutine,
+  onStartGuidedRoutine,
+  onGoToRoutines,
 }: {
   message: ChatMessage;
   recommended?: ReturnType<typeof resolveRecommendedExercisesFromAIResponse>;
   feedback?: "up" | "down" | null;
   onFeedback?: (vote: "up" | "down") => void;
+  builderStep?: "choose_focus" | "choose_duration" | null;
+  onSelectFocus?: (focusId: RoutineFocusId, label: string) => void;
+  onSelectDuration?: (durationStyle: RoutineDurationStyleId, label: string) => void;
+  guidedRoutine?: GuidedRoutineResult | null;
+  onRenameGuidedRoutine?: (nextName: string) => void;
+  onSwapGuidedExercise?: (index: number) => void;
+  onSaveGuidedRoutine?: (routine: GuidedRoutineResult) => Promise<void> | void;
+  onStartGuidedRoutine?: (routine: GuidedRoutineResult) => void;
+  onGoToRoutines?: () => void;
 }) {
   const authModal = useAuthModal();
 
@@ -1062,6 +1330,46 @@ function Bubble({
           )}
         </p>
 
+        {builderStep === "choose_focus" && onSelectFocus ? (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {ROUTINE_FOCUS_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onSelectFocus(opt.id, opt.label)}
+                className="px-3 py-2 rounded-full text-xs font-medium text-left"
+                style={{
+                  backgroundColor: SOLID.card,
+                  color: TEXT.primary,
+                  border: `1px solid ${GLASS.borderStrong}`,
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {builderStep === "choose_duration" && onSelectDuration ? (
+          <div className="flex flex-wrap gap-1.5 mt-3">
+            {ROUTINE_DURATION_OPTIONS.map((opt) => (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => onSelectDuration(opt.id, opt.label)}
+                className="px-3 py-2 rounded-full text-xs font-medium text-left"
+                style={{
+                  backgroundColor: SOLID.card,
+                  color: TEXT.primary,
+                  border: `1px solid ${GLASS.borderStrong}`,
+                }}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
         {message.action && message.action.type !== "routine_proposal" && (
           <div
             style={{
@@ -1118,6 +1426,17 @@ function Bubble({
           </div>
         ) : null}
       </div>
+
+      {guidedRoutine && onSaveGuidedRoutine && onStartGuidedRoutine ? (
+        <GeneratedRoutineCard
+          routine={guidedRoutine}
+          onRename={onRenameGuidedRoutine}
+          onSwapExercise={onSwapGuidedExercise}
+          onSaveToRoutines={onSaveGuidedRoutine}
+          onStartNow={onStartGuidedRoutine}
+          onGoToRoutines={onGoToRoutines}
+        />
+      ) : null}
     </div>
   );
 }
