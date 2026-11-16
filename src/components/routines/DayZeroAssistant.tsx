@@ -305,7 +305,7 @@ export function DayZeroAssistant({ onCreated, defaultExpanded = true }: DayZeroA
                       border: `1px solid ${active ? ACCENT.base : GLASS.border}`,
                     }}
                   >
-                    <span className="text-sm font-bold leading-tight" style={{ fontVariantNumeric: NUMERIC.transform }}>
+                    <span className="whitespace-nowrap font-mono text-xs font-bold tabular-nums leading-tight sm:text-sm">
                       {value} días
                     </span>
                   </button>

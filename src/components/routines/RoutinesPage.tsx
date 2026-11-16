@@ -172,6 +172,7 @@ export function RoutinesPage() {
   const visibleCatalog = catalog.filter((template) => catalogLevel === "all" || template.level === catalogLevel);
 
   const routineRows = routines as RoutineWithMode[];
+  const [routineTypeFilter, setRoutineTypeFilter] = useState<"all" | "single" | "weekly">("all");
 
   const summary = useMemo(
     () => ({
@@ -182,6 +183,11 @@ export function RoutinesPage() {
     }),
     [routineRows],
   );
+
+  const visibleRoutineRows = useMemo(() => {
+    if (routineTypeFilter === "all") return routineRows;
+    return routineRows.filter((r) => r.routineMode === routineTypeFilter);
+  }, [routineRows, routineTypeFilter]);
 
   const openNew = useCallback(() => {
     setEditingRoutine(null);
@@ -417,20 +423,47 @@ export function RoutinesPage() {
           )}
           renderVip={() =>
             vipOffer ? (
-              <section className="rounded-2xl border border-[#FF3B30]/30 bg-[#1C1C1E] p-4">
-                <div className="flex min-w-0 flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#FF3B30]">Coach VIP</p>
-                    <h2 className="mt-1 truncate text-base font-bold text-white">Entrena 1-a-1 con {vipOffer.coachName}</h2>
-                    <p className="mt-1 font-mono text-sm text-zinc-300">${vipOffer.priceMxn} MXN / {vipOffer.billingCycle}</p>
-                    <div className="mt-2 grid gap-1 text-xs text-zinc-400">{vipOffer.benefits.map((benefit) => <span key={benefit}>· {benefit}</span>)}</div>
+              <section className="rounded-3xl border border-white/[0.06] bg-[#1C1C1E] p-5">
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <span className="inline-flex items-center gap-1.5 font-mono text-[11px] font-semibold uppercase tracking-wider text-[#FF3B30]">
+                        COACH VIP · RUTINA PERSONALIZADA
+                      </span>
+                      <h2 className="mt-1 text-lg font-bold tracking-tight text-white">
+                        Entrena 1-a-1 con {vipOffer.coachName}
+                      </h2>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-white/[0.06] bg-[#2C2C2E] px-3 py-1 font-mono text-xs font-semibold tabular-nums text-white">
+                      ${vipOffer.priceMxn} MXN / {vipOffer.billingCycle}
+                    </span>
                   </div>
+
+                  <ul className="divide-y divide-white/[0.06] rounded-2xl border border-white/[0.06] bg-black/40 px-3.5 text-xs text-zinc-300">
+                    {vipOffer.benefits.map((benefit) => (
+                      <li key={benefit} className="flex items-center gap-2.5 py-2.5">
+                        <span className="font-mono text-[#FF3B30]" aria-hidden="true">✓</span>
+                        <span>{benefit}</span>
+                      </li>
+                    ))}
+                  </ul>
+
                   {vipRequestStatus === "active" ? (
-                    <span className="rounded-full border border-[#30D158]/30 bg-[#30D158]/15 px-3 py-2 text-xs font-bold text-[#30D158]">MIEMBRO VIP ACTIVO</span>
+                    <div className="rounded-2xl border border-[#30D158]/30 bg-[#30D158]/10 px-4 py-3 text-center font-mono text-xs font-bold text-[#30D158]">
+                      MIEMBRO VIP ACTIVO
+                    </div>
                   ) : vipRequestStatus === "pending_cash_payment" ? (
-                    <span className="max-w-48 text-right text-xs text-zinc-300">Solicitud enviada · Paga en efectivo directamente con tu Coach en el gym.</span>
+                    <div className="rounded-2xl border border-white/[0.06] bg-[#2C2C2E] px-4 py-3 text-center text-xs font-medium text-zinc-200">
+                      Solicitud enviada · Paga en efectivo directamente con tu Coach en el gym.
+                    </div>
                   ) : (
-                    <button type="button" onClick={() => void requestVip()} className="min-h-11 rounded-xl bg-[#FF3B30] px-4 text-xs font-bold text-white active:scale-[0.98]">Solicitar Rutina Personalizada</button>
+                    <button
+                      type="button"
+                      onClick={() => void requestVip()}
+                      className="flex h-12 w-full items-center justify-center rounded-2xl bg-[#FF3B30] px-4 text-sm font-semibold text-white transition-transform active:scale-[0.98]"
+                    >
+                      Solicitar Rutina Personalizada
+                    </button>
                   )}
                 </div>
               </section>
@@ -722,11 +755,42 @@ export function RoutinesPage() {
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md }}>
           {summary.total > 0 ? (
-            <p style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
-              {routineRows.length} {routineRows.length === 1 ? "rutina" : "rutinas"}
-            </p>
+            <div className="flex flex-col gap-2.5">
+              <div
+                role="tablist"
+                aria-label="Filtrar tipo de rutina"
+                className="grid grid-cols-3 gap-1 rounded-full border border-white/[0.06] bg-[#1C1C1E] p-1"
+              >
+                {(
+                  [
+                    { id: "all", label: `Todas (${summary.total})` },
+                    { id: "single", label: `Individual (${summary.single})` },
+                    { id: "weekly", label: `Semanal (${summary.weekly})` },
+                  ] as const
+                ).map((item) => {
+                  const active = routineTypeFilter === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      role="tab"
+                      aria-selected={active}
+                      onClick={() => setRoutineTypeFilter(item.id)}
+                      className={`min-h-9 rounded-full px-2 text-xs font-semibold transition-colors ${
+                        active ? "bg-[#2C2C2E] text-white" : "text-zinc-400"
+                      }`}
+                    >
+                      {item.label}
+                    </button>
+                  );
+                })}
+              </div>
+              <p style={{ margin: 0, fontSize: TYPE.caption.size, color: TEXT.tertiary }}>
+                {visibleRoutineRows.length} {visibleRoutineRows.length === 1 ? "rutina" : "rutinas"}
+              </p>
+            </div>
           ) : null}
-          {routineRows.map((routine) => (
+          {visibleRoutineRows.map((routine) => (
             <RoutineCard
               key={routine.id}
               routine={routine}

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   ArrowLeft,
   Check,
@@ -176,7 +177,7 @@ export function BiomechanicalGripStanceModal({
     onClose();
   };
 
-  return (
+  const modalContent = (
     <div
       role="dialog"
       aria-modal="true"
@@ -185,12 +186,12 @@ export function BiomechanicalGripStanceModal({
       style={{
         backgroundColor: SCRIM.modal,
         backdropFilter: GLASS.blurPlain20,
-        zIndex: Z_INDEX.modal,
+        zIndex: Math.max(Z_INDEX.modal, 110),
       }}
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl max-h-[92vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-4 sm:p-5 space-y-3"
+        className="w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-t-3xl sm:rounded-3xl p-4 pb-8 sm:p-5 space-y-3"
         style={{
           backgroundColor: SURFACE.elevated,
           border: `1px solid ${GLASS.borderStrong}`,
@@ -505,10 +506,10 @@ export function BiomechanicalGripStanceModal({
                 </div>
 
                 <div
-                  className="w-full h-40 mx-auto my-1 overflow-hidden flex justify-center items-start rounded-xl"
+                  className="w-full h-44 mx-auto my-1 overflow-hidden flex justify-center items-end rounded-xl"
                   data-testid="lower-body-zoom-frame"
                 >
-                  <div className="w-36 shrink-0 scale-[1.85] -translate-y-[43%] origin-top">
+                  <div className="w-36 shrink-0 scale-[1.8] translate-y-[4%] origin-bottom">
                     <MuscleReadonlyMap
                       counts={activeMuscleCounts}
                       side={stanceMapSide}
@@ -1055,4 +1056,6 @@ export function BiomechanicalGripStanceModal({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(modalContent, document.body) : modalContent;
 }
