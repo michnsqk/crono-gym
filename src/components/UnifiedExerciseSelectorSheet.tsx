@@ -680,15 +680,14 @@ export function UnifiedExerciseSelectorSheet({
           {tab === "warmup" && (
             <div
               data-testid="warmup-muscle-chips"
+              className="no-scrollbar"
               style={{
                 display: "flex",
-                flexWrap: "wrap",
+                alignItems: "center",
                 gap: 6,
+                overflowX: "auto",
                 marginBottom: SPACE.sm,
-                padding: `${SPACE.xs}px`,
-                borderRadius: RADIUS.control,
-                border: `1px solid ${GLASS.border}`,
-                background: GLASS.fillSubtle,
+                padding: "2px 0",
               }}
             >
               {WARMUP_MUSCLE_CHIPS.map((chip) => {
@@ -703,16 +702,17 @@ export function UnifiedExerciseSelectorSheet({
                       setPage(1);
                     }}
                     style={{
-                      minHeight: 32,
-                      padding: `0 ${SPACE.sm}px`,
-                      borderRadius: RADIUS.pill,
-                      border: `1px solid ${active ? ACCENT.base : GLASS.border}`,
-                      background: active ? ACCENT.base : SOLID.popover,
+                      minHeight: 34,
+                      padding: "0 14px",
+                      borderRadius: 9999,
+                      border: `1px solid ${active ? ACCENT.base : "rgba(255,255,255,0.06)"}`,
+                      background: active ? ACCENT.base : "#1C1C1E",
                       color: active ? TEXT.onAccent : TEXT.secondary,
                       fontSize: TYPE.caption.size,
-                      fontWeight: active ? 700 : 600,
+                      fontWeight: active ? 700 : 500,
                       cursor: "pointer",
                       whiteSpace: "nowrap",
+                      flexShrink: 0,
                     }}
                   >
                     {chip.label}
@@ -786,8 +786,8 @@ export function UnifiedExerciseSelectorSheet({
           </div>
 
           {isEquipmentOpen && (
-            <div id="equipment-chips" style={{ marginBottom: SPACE.sm, maxHeight: "176px", overflowY: "auto" }}>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: SPACE.xs, padding: SPACE.xs }}>
+            <div id="equipment-chips" style={{ marginBottom: SPACE.sm, maxHeight: "220px", overflowY: "auto" }}>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(2, minmax(0, 1fr))", gap: 8, padding: "4px 0" }}>
                 {availableEquipmentCategories.map((cat) => (
                   <button
                     key={cat}
@@ -795,19 +795,21 @@ export function UnifiedExerciseSelectorSheet({
                     aria-pressed={selectedEquipmentCategory === cat}
                     onClick={() => { setSelectedEquipmentCategory(selectedEquipmentCategory === cat ? null : cat); setPage(1); setIsEquipmentOpen(false); }}
                     style={{
-                      display: "inline-flex",
+                      display: "flex",
                       alignItems: "center",
-                      gap: SPACE.xs,
-                      minHeight: 36,
-                      padding: `0 ${SPACE.md}px`,
-                      borderRadius: RADIUS.pill,
-                      border: `1px solid ${selectedEquipmentCategory === cat ? ACCENT.base : "rgba(255,255,255,0.1)"}`,
-                      background: selectedEquipmentCategory === cat ? ACCENT.base : "rgba(44,44,46,0.8)",
+                      justifyContent: "center",
+                      minHeight: 40,
+                      padding: "0 12px",
+                      borderRadius: 12,
+                      border: `1px solid ${selectedEquipmentCategory === cat ? ACCENT.base : "rgba(255,255,255,0.06)"}`,
+                      background: selectedEquipmentCategory === cat ? ACCENT.base : "#1C1C1E",
                       color: selectedEquipmentCategory === cat ? "#FFFFFF" : TEXT.secondary,
                       fontSize: TYPE.caption.size,
                       fontWeight: selectedEquipmentCategory === cat ? 600 : 500,
                       cursor: "pointer",
                       whiteSpace: "nowrap",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
                       transition: "all 150ms ease",
                     }}
                   >

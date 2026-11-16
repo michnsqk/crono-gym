@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import Body from "react-muscle-highlighter";
 import type { ExtendedBodyPart, Slug } from "react-muscle-highlighter";
 import { X } from "lucide-react";
@@ -67,7 +68,7 @@ export function AnatomicalMusclePickerSheet({
     }
   };
 
-  return (
+  const sheet = (
     <div
       role="dialog"
       aria-modal="true"
@@ -195,4 +196,6 @@ export function AnatomicalMusclePickerSheet({
       </div>
     </div>
   );
+
+  return typeof document !== "undefined" ? createPortal(sheet, document.body) : sheet;
 }

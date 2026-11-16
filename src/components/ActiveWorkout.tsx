@@ -254,14 +254,12 @@ function SessionHeader({
         {exerciseLabel && (
           <div
             style={{
-              fontSize: TYPE.caption.size,
+              fontSize: "12px",
               fontWeight: 600,
               fontVariantNumeric: "tabular-nums",
               color: TEXT.secondary,
               whiteSpace: "nowrap",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              maxWidth: 200,
+              flexShrink: 0,
             }}
           >
             {exerciseLabel}
@@ -278,7 +276,7 @@ function SessionHeader({
       </div>
 
       {/* Right: Settings + Terminar Button */}
-      <div style={{ display: "flex", alignItems: "center", gap: SPACE.sm }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
         <button
           type="button"
           aria-label={GEAR}
@@ -286,8 +284,8 @@ function SessionHeader({
             display: "inline-flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 40,
-            height: 40,
+            width: 36,
+            height: 36,
             borderRadius: RADIUS.round,
             border: `1px solid ${GLASS.border}`,
             background: "rgba(255, 255, 255, 0.05)",
@@ -296,7 +294,7 @@ function SessionHeader({
           }}
           onClick={onGear}
         >
-          <Settings size={20} strokeWidth={1.5} aria-hidden="true" />
+          <Settings size={18} strokeWidth={1.5} aria-hidden="true" />
         </button>
         {onTerminate && (
           <GlassButton
@@ -304,14 +302,15 @@ function SessionHeader({
             onClick={onTerminate}
             aria-label="Terminar entrenamiento"
           style={{
-            height: 40,
-            minWidth: 40,
-            padding: "0 14px",
+            height: 36,
+            minHeight: 36,
+            minWidth: 36,
+            padding: "0 12px",
             borderRadius: 9999,
             background: "rgba(255, 59, 48, 0.12)",
             color: ACCENT.text,
             border: `1px solid ${ACCENT.border}`,
-            fontSize: TYPE.subhead.size,
+            fontSize: "13px",
             fontWeight: 600,
           }}
         >
@@ -1092,7 +1091,10 @@ function ExerciseStage({
         The buttons carry words, not only icons: at the rack, an icon the
         athlete has to decode is a tap they will not make.
       */}
-      <div className="flex w-full items-center gap-2 overflow-x-auto rounded-full border border-white/10 bg-neutral-900/90 py-1 px-2 backdrop-blur-md">
+      <div
+        className="flex w-full items-center gap-1.5 overflow-x-auto rounded-full border border-white/[0.06] py-1.5 px-2 backdrop-blur-xl"
+        style={{ backgroundColor: "rgba(28, 28, 30, 0.80)" }}
+      >
         <span className="sr-only">
           {completedSets} / {totalSets} series
         </span>
@@ -3122,37 +3124,37 @@ export function ActiveWorkout({
                             <button
                               type="button"
                               onClick={() => nudgePendingWeight(-2.5)}
-                              className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-white/[0.06] px-2 font-mono text-xs font-semibold tabular-nums text-white transition-transform active:scale-95"
+                              className="inline-flex min-h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/[0.06] px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform active:scale-95"
                               style={{ background: SURFACE.l1 }}
                             >
-                              <Minus size={12} aria-hidden="true" />
+                              <Minus size={11} aria-hidden="true" />
                               2.5 kg
                             </button>
                             <button
                               type="button"
                               onClick={() => nudgePendingWeight(2.5)}
-                              className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-white/[0.06] px-2 font-mono text-xs font-semibold tabular-nums text-white transition-transform active:scale-95"
+                              className="inline-flex min-h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/[0.06] px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform active:scale-95"
                               style={{ background: SURFACE.l1 }}
                             >
-                              <Plus size={12} aria-hidden="true" />
+                              <Plus size={11} aria-hidden="true" />
                               2.5 kg
                             </button>
                             <button
                               type="button"
                               onClick={() => nudgePendingReps(-1)}
-                              className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-white/[0.06] px-2 font-mono text-xs font-semibold tabular-nums text-white transition-transform active:scale-95"
+                              className="inline-flex min-h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/[0.06] px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform active:scale-95"
                               style={{ background: SURFACE.l1 }}
                             >
-                              <Minus size={12} aria-hidden="true" />
+                              <Minus size={11} aria-hidden="true" />
                               1 rep
                             </button>
                             <button
                               type="button"
                               onClick={() => nudgePendingReps(1)}
-                              className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-white/[0.06] px-2 font-mono text-xs font-semibold tabular-nums text-white transition-transform active:scale-95"
+                              className="inline-flex min-h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/[0.06] px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform active:scale-95"
                               style={{ background: SURFACE.l1 }}
                             >
-                              <Plus size={12} aria-hidden="true" />
+                              <Plus size={11} aria-hidden="true" />
                               1 rep
                             </button>
                           </div>
