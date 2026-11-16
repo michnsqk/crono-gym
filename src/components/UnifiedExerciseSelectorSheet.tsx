@@ -22,7 +22,6 @@ import {
   matchesWarmupMuscleFilter,
   type WarmupMuscleFilter,
 } from "@/lib/catalog/machinerySeedExercises";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useFrequentExercises } from "@/hooks/useFrequentExercises";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { useCatalogOverridesVersion } from "@/hooks/useCatalogOverrides";
@@ -39,7 +38,6 @@ import { filterByMuscles, muscleCounts, selectionLabels } from "@/lib/muscleFilt
 import { enabledSlugs as getEnabledSlugs } from "@/lib/muscleMap";
 
 const PAGE_SIZE = 12;
-const DEBOUNCE_MS = 150;
 const MOBILE_MAX_WIDTH = 767;
 const ENABLED_MUSCLE_SLUGS = getEnabledSlugs();
 
@@ -121,28 +119,6 @@ function inferWarmupMuscleFromContext(
   return "all";
 }
 
-function normaliseTokens(value: string): string[] {
-  return normaliseExerciseName(value).split(/\s+/).filter(Boolean);
-}
-
-function buildSearchIndex(exercises: Exercise[]): Map<string, Set<string>> {
-  const index = new Map<string, Set<string>>();
-  for (const ex of exercises) {
-    const tokens = new Set([
-      ...normaliseTokens(ex.name),
-      ...normaliseTokens(ex.body_part),
-      ...normaliseTokens(ex.equipment),
-      ...normaliseTokens(ex.target),
-    ]);
-    for (const token of tokens) {
-      const set = index.get(token) ?? new Set();
-      set.add(ex.id);
-      index.set(token, set);
-    }
-  }
-  return index;
-}
-
 const EQUIPMENT_CATEGORY_MAP: Record<string, string> = {
   cable: "Polea / Cable",
   pulley: "Polea / Cable",
@@ -198,7 +174,6 @@ export function UnifiedExerciseSelectorSheet({
   const catalogRevision = useCatalogOverridesVersion();
   const { frequentIds, addBatch } = useFrequentExercises();
   const [query, setQuery] = useState("");
-  const debouncedQuery = useDebouncedValue(query, DEBOUNCE_MS);
   const [page, setPage] = useState(1);
   const [tab, setTab] = useState<Tab>(initialTab);
   const [warmupMuscleFilter, setWarmupMuscleFilter] = useState<WarmupMuscleFilter>(() =>
@@ -293,11 +268,6 @@ export function UnifiedExerciseSelectorSheet({
     return () => document.removeEventListener("keydown", onKey);
   }, [isOpen, mode, onClose, handleConfirm]);
 
-  const ensureIndex = useCallback((): Map<string, Set<string>> => {
-    if (!searchIndexRef.current) searchIndexRef.current = buildSearchIndex(localExercises);
-    return searchIndexRef.current;
-  }, [localExercises]);
-
   const baseRows = useMemo(() => {
     const rows = localExercises.filter((ex) => !excluded.has(ex.id) && ex.is_active && !ex.is_hidden);
     if (tab === "frequent") {
@@ -315,38 +285,27 @@ export function UnifiedExerciseSelectorSheet({
   useEffect(() => { if (exercises.length === 0) return; setLocalExercises(exercises); }, [exercises]);
 
   const filtered = useMemo(() => {
-    const q = normaliseExerciseName(debouncedQuery);
+    const q = normaliseExerciseName(query);
     if (!q && !selectedEquipmentCategory && selectedMuscles.length === 0) return baseRows;
-    const index = ensureIndex();
-    let ids: Set<string> | null = null;
-    if (q) {
-      for (const token of normaliseTokens(debouncedQuery)) {
-        const set = index.get(token);
-        if (!set) { ids = new Set(); break; }
-        const next = new Set<string>();
-        if (ids) { for (const id of ids) if (set.has(id)) next.add(id); }
-        else { for (const id of set) next.add(id); }
-        ids = next;
-      }
-    }
+
     const foldSearch = (s: string) =>
       s
         .normalize("NFD")
         .replace(/[\u0300-\u036f]/g, "")
-        .toLowerCase();
-    const queryTokens = foldSearch(debouncedQuery)
+        .toLowerCase()
+        .trim();
+    const queryTokens = foldSearch(query)
       .split(/\s+/)
       .filter((t) => t.length > 0);
 
     const attributeFiltered = baseRows.filter((ex) => {
       if (q) {
-        const exactTokenMatch = ids ? ids.has(ex.id) : false;
         const haystack = foldSearch(
           `${ex.name_es ?? ""} ${ex.name ?? ""} ${ex.body_part ?? ""} ${ex.target ?? ""} ${ex.equipment ?? ""}`,
         );
         const partialTokenMatch =
           queryTokens.length > 0 && queryTokens.every((tk) => haystack.includes(tk));
-        if (!exactTokenMatch && !partialTokenMatch && !matchesSemanticExerciseSearch(ex, debouncedQuery)) {
+        if (!partialTokenMatch && !matchesSemanticExerciseSearch(ex, query)) {
           return false;
         }
       }
@@ -355,7 +314,7 @@ export function UnifiedExerciseSelectorSheet({
     });
     if (tab === "warmup" || selectedMuscles.length === 0) return attributeFiltered;
     return filterByMuscles(attributeFiltered, selectedMuscles).results;
-  }, [baseRows, debouncedQuery, selectedEquipmentCategory, selectedMuscles, ensureIndex, tab]);
+  }, [baseRows, query, selectedEquipmentCategory, selectedMuscles, tab]);
 
   const visibleCount = page * PAGE_SIZE;
   const displayed = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
