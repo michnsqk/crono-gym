@@ -23,6 +23,7 @@ import { coachEcosystemService, sanitizeCoachName } from "@/lib/coach/coachEcosy
 import { DayZeroAssistant } from "./DayZeroAssistant";
 import { RoutineArchitectPanel } from "@/components/routines/RoutineArchitectPanel";
 import { RoutineCreationSubmenu } from "@/components/routines/RoutineCreationSubmenu";
+import { useAdvancedMode } from "@/hooks/useAdvancedMode";
 import { useCatalogOverridesVersion } from "@/hooks/useCatalogOverrides";
 import { dayZeroDraft, dayZeroRoutineRow, type DayZeroPlan } from "@/lib/routines/dayZeroPlan";
 
@@ -71,6 +72,8 @@ export function RoutinesPage() {
   const [catalogLevel, setCatalogLevel] = useState<"all" | "beginner" | "intermediate" | "advanced">("all");
   const [vipOffer, setVipOffer] = useState<{ coachId: string; coachUserId: string; coachName: string; priceMxn: number; billingCycle: string; benefits: string[] } | null>(null);
   const [vipRequestStatus, setVipRequestStatus] = useState<string | null>(null);
+  const [advancedMode] = useAdvancedMode();
+  const [simpleQuickOpen, setSimpleQuickOpen] = useState(false);
   const [biomechanicsOpen, setBiomechanicsOpen] = useState(false);
   const { isActive, start, session, discardRecoverableDraft } = useActiveSession();
   const navigate = useNavigate();
@@ -359,7 +362,40 @@ export function RoutinesPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md, paddingBottom: SPACE.lg }}>
-      {showMainHeader && (
+      {showMainHeader && !advancedMode && (
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-3">
+            <button
+              type="button"
+              onClick={() => setSimpleQuickOpen((prev) => !prev)}
+              className="flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-[#1C1C1E] px-3 text-sm font-semibold text-white active:scale-[0.98] transition-transform duration-150"
+            >
+              Usar plantilla rápida
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setEditingRoutine(null);
+                setEditorOpen(true);
+              }}
+              className="flex h-12 items-center justify-center rounded-2xl bg-[#FF3B30] px-3 text-sm font-semibold text-white active:scale-[0.98] transition-transform duration-150"
+            >
+              Armar mi rutina
+            </button>
+          </div>
+          {simpleQuickOpen && (
+            <RoutineArchitectPanel
+              simpleMode
+              onCreatePlan={async (plan) => {
+                await handleDayZeroCreated(plan);
+                setSimpleQuickOpen(false);
+              }}
+            />
+          )}
+        </div>
+      )}
+
+      {showMainHeader && advancedMode && (
         <RoutineCreationSubmenu
           hasVipOffer={Boolean(vipOffer)}
           renderSmart={(collapse) => (

@@ -12,6 +12,7 @@ import type { CatalogExercise } from "@/lib/catalog/types";
 import type { Exercise } from "@/types/supabase";
 
 interface RoutineArchitectPanelProps {
+  simpleMode?: boolean;
   onCreatePlan: (plan: DayZeroPlan) => void | Promise<void>;
 }
 
@@ -34,7 +35,10 @@ function matchPresetDayExercises(
   return picked;
 }
 
-export function RoutineArchitectPanel({ onCreatePlan }: RoutineArchitectPanelProps) {
+export function RoutineArchitectPanel({
+  simpleMode = false,
+  onCreatePlan,
+}: RoutineArchitectPanelProps) {
   const { exercises: catalog } = useExerciseCatalog();
   const [selectedPreset, setSelectedPreset] = useState<RoutineTemplatePreset>(
     ROUTINE_TEMPLATE_PRESETS[0],
@@ -197,20 +201,22 @@ export function RoutineArchitectPanel({ onCreatePlan }: RoutineArchitectPanelPro
         </div>
       )}
 
-      {/* Auditor summary */}
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
-        <span style={{ color: TEXT.secondary }}>
-          Auditor ({activeDay?.label}):{" "}
-          <strong className="font-mono tabular-nums text-white">
-            {dayAudit.totalSets} series · ~{dayAudit.estimatedMinutes} min
-          </strong>
-        </span>
-        <span className="font-mono text-xs tabular-nums" style={{ color: ACCENT.text }}>
-          {dayAudit.junkVolumeWarnings.length === 0
-            ? "Volumen efectivo óptimo (MEV/MAV)"
-            : dayAudit.junkVolumeWarnings[0]}
-        </span>
-      </div>
+      {/* Auditor summary (hidden in Simple Mode) */}
+      {!simpleMode && (
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2 text-xs">
+          <span style={{ color: TEXT.secondary }}>
+            Auditor ({activeDay?.label}):{" "}
+            <strong className="font-mono tabular-nums text-white">
+              {dayAudit.totalSets} series · ~{dayAudit.estimatedMinutes} min
+            </strong>
+          </span>
+          <span className="font-mono text-xs tabular-nums" style={{ color: ACCENT.text }}>
+            {dayAudit.junkVolumeWarnings.length === 0
+              ? "Volumen efectivo óptimo (MEV/MAV)"
+              : dayAudit.junkVolumeWarnings[0]}
+          </span>
+        </div>
+      )}
 
       {/* Real Save CTAs */}
       <div className="mt-3 flex flex-col gap-2 sm:flex-row">

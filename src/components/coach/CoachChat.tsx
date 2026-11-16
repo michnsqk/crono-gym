@@ -1075,7 +1075,12 @@ export function CoachChat({
           <Layers size={13} aria-hidden="true" />
           <span>Crear rutina paso a paso</span>
         </button>
-        {T.chatSuggestions.map((suggestion) => (
+        {[
+          "¿Cómo uso esta máquina?",
+          "Dame una variante para pecho",
+          "¿Qué me toca hoy?",
+          ...T.chatSuggestions,
+        ].map((suggestion) => (
           <button
             key={suggestion}
             type="button"

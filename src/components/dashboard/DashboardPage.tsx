@@ -13,7 +13,10 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { RefreshCw, AlertTriangle } from "lucide-react";
+import { RefreshCw, AlertTriangle, Menu, ChevronDown, ChevronUp, Megaphone, Zap, X } from "lucide-react";
+import { useAdvancedMode } from "@/hooks/useAdvancedMode";
+import { TopMenuDrawer } from "@/components/shell/TopMenuDrawer";
+import { WelcomeTourModal, hasSeenWelcomeTour } from "@/components/onboarding/WelcomeTourModal";
 
 import { useDashboardHome } from "@/lib/dashboard/dashboardHomeModel";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
@@ -162,6 +165,11 @@ export function DashboardPage({ userId }: DashboardPageProps) {
   const [tipIndex, setTipIndex] = useState(0);
   const coachId: string | null = null;
   const [requestOpen, setRequestOpen] = useState(false);
+  const [advancedMode] = useAdvancedMode();
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [storeOpen, setStoreOpen] = useState(false);
+  const [tourOpen, setTourOpen] = useState(() => !hasSeenWelcomeTour());
+  const [metricsExpanded, setMetricsExpanded] = useState(false);
 
   const sessionState = useMemo<SessionState>(() => {
     if (data.isSessionActive) return "in-progress";
@@ -368,34 +376,84 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         aria-label="Encabezado de Today"
       >
         <div className="min-w-0">
-          <p className="hidden sm:inline" style={{ ...TYPE.label, color: ACCENT.text, margin: 0, textTransform: "uppercase", letterSpacing: "0.1em" }}>
-            Cronos
-          </p>
+          <h1 className="truncate text-2xl font-bold tracking-tight text-white">
+            {data.greeting}
+          </h1>
           <p style={{ ...TYPE.caption, color: TEXT.tertiary, margin: 0, textTransform: "capitalize" }}>
             {todayLabel}
           </p>
         </div>
-        <Link
-          to={PROFILE_PATH}
-          aria-label="Abrir perfil"
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: SPACE.sm,
-            textDecoration: "none",
-            color: TEXT.primary,
-            padding: `${SPACE.xs} ${SPACE.sm}`,
-            borderRadius: RADIUS.pill,
-            border: `1px solid ${GLASS.border}`,
-            background: GLASS.fill,
-          }}
-        >
-          <span className="hidden sm:inline" style={{ ...TYPE.caption, color: TEXT.secondary, maxWidth: 120, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-            {data.displayName ?? "Perfil"}
-          </span>
-          <UserAvatar name={data.displayName ?? userId} size={32} />
-        </Link>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setMenuOpen(true)}
+            aria-label="Abrir menú principal"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-full border border-white/10 bg-[#1C1C1E] text-white active:scale-[0.98] transition-transform duration-150"
+          >
+            <Menu size={20} aria-hidden="true" />
+          </button>
+          <Link
+            to={PROFILE_PATH}
+            aria-label="Abrir perfil"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: SPACE.sm,
+              textDecoration: "none",
+              color: TEXT.primary,
+              padding: `${SPACE.xs} ${SPACE.sm}`,
+              borderRadius: RADIUS.pill,
+              border: `1px solid ${GLASS.border}`,
+              background: GLASS.fill,
+            }}
+          >
+            <UserAvatar name={data.displayName ?? userId} size={32} />
+          </Link>
+        </div>
       </header>
+
+      {/* 1. Avisos del Gimnasio (Prioridad Alta) */}
+      {announcements.length > 0 && (
+        <section className="rounded-2xl border border-white/10 bg-[#1C1C1E] p-4">
+          <div className="mb-2 flex items-center gap-2">
+            <Megaphone size={16} color={ACCENT.base} aria-hidden="true" />
+            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
+              Avisos del Gimnasio
+            </span>
+          </div>
+          <div className="divide-y divide-white/10">
+            {announcements.slice(0, 2).map((a) => (
+              <div key={a.id} className="py-2 first:pt-0 last:pb-0">
+                <p className="text-sm font-semibold text-white">{a.title}</p>
+                {a.body && <p className="mt-0.5 text-xs text-zinc-400">{a.body}</p>}
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* 2. CTA Principal en Thumb Zone */}
+      <button
+        type="button"
+        onClick={() => {
+          if (hasRoutine || todayPlan || data.isSessionActive || data.recoverableDraft) {
+            handlePrimary();
+          } else {
+            navigate("/rutinas");
+          }
+        }}
+        className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF3B30] px-5 text-base font-bold text-white active:scale-[0.98] transition-transform duration-150"
+      >
+        <Zap size={20} fill="currentColor" aria-hidden="true" />
+        <span>Empezar entrenamiento de hoy</span>
+      </button>
+
+      {/* 3. Tienda / Productos (Vista Previa) */}
+      <GymClubHubSection
+        userId={userId}
+        compactPreview
+        onViewAll={() => setStoreOpen(true)}
+      />
 
       {firstError !== null && (
         <GlassCard raised style={{ border: `1px solid ${STATUS.error.border}` }}>
@@ -432,103 +490,138 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         </GlassCard>
       )}
 
-      <div
-        data-testid="today-command-center"
-        className="grid grid-cols-1 gap-5 md:gap-6 xl:grid-cols-12 items-start"
-      >
-        {/* Columna principal superior: Hero + acciones condicionales del contexto.
-             En móvil va primero (order-1); en escritorio se coloca con xl:col-span-8 xl:row-start-1. */}
-        <div
-          className="flex flex-col gap-5 md:gap-6 min-w-0 xl:col-span-8 xl:row-start-1 order-1 sm:order-auto"
+      {/* 4. Métricas Avanzadas Plegadas (acordeón cerrado por defecto en Modo Simple) */}
+      <section className="rounded-2xl border border-white/10 bg-[#1C1C1E]">
+        <button
+          type="button"
+          aria-expanded={advancedMode || metricsExpanded}
+          onClick={() => setMetricsExpanded((prev) => !prev)}
+          className="flex h-12 w-full items-center justify-between px-4 text-sm font-semibold text-white active:scale-[0.98]"
         >
-          <DailyReadinessBanner
-            sessionsLast7Days={weeklyCompleted}
-            weeklyTargetDays={weeklyGoal}
-            workoutsThisMonth={data.recentSessions.length}
-          />
-          <TrainingHeroSection
-            greeting={data.greeting}
-            hasRoutine={hasRoutine}
-            routineTitle={resolveRoutineTitle(routine, data.dailyFocus.dayLabel)}
-            exerciseCount={hasRoutine ? routine!.exerciseCount : 0}
-            estimatedDurationMin={hasRoutine ? routine!.estimatedDurationMin : 0}
-            muscleCounts={data.muscleCounts}
-            ctaLabel={ctaLabel}
-            rehydrating={data.rehydrating}
-            onPrimary={handlePrimary}
-            focusLabel={hasRoutine ? data.dailyFocus.dayLabel : null}
-            isCompleted={sessionState === "completed"}
-            completedSummary={data.completedToday}
-            coachAssigned={Boolean(data.heroRoutineSummary?.assignedByCoach)}
-            onExtra={() => navigate(TRAIN_PATH)}
-            isRecoverable={!!data.recoverableDraft}
-            compact={isMobile}
-          />
+          <span>Ver resumen de rendimiento</span>
+          {advancedMode || metricsExpanded ? (
+            <ChevronUp size={18} className="text-zinc-400" aria-hidden="true" />
+          ) : (
+            <ChevronDown size={18} className="text-zinc-400" aria-hidden="true" />
+          )}
+        </button>
 
-          {coachId && (
-            <>
-              <CoachBanner coachId={coachId} onRequestRoutine={() => setRequestOpen(true)} />
-              <RequestRoutineModal
-                coachId={coachId}
-                open={requestOpen}
-                onClose={() => setRequestOpen(false)}
-                onSuccess={() => setRequestOpen(false)}
+        {(advancedMode || metricsExpanded) && (
+          <div
+            data-testid="today-command-center"
+            className="grid grid-cols-1 gap-5 border-t border-white/10 p-4 md:gap-6 xl:grid-cols-12 items-start"
+          >
+            <div className="flex flex-col gap-5 md:gap-6 min-w-0 xl:col-span-8">
+              <DailyReadinessBanner
+                sessionsLast7Days={weeklyCompleted}
+                weeklyTargetDays={weeklyGoal}
+                workoutsThisMonth={data.recentSessions.length}
               />
-            </>
-          )}
+              <TrainingHeroSection
+                greeting={data.greeting}
+                hasRoutine={hasRoutine}
+                routineTitle={resolveRoutineTitle(routine, data.dailyFocus.dayLabel)}
+                exerciseCount={hasRoutine ? routine!.exerciseCount : 0}
+                estimatedDurationMin={hasRoutine ? routine!.estimatedDurationMin : 0}
+                muscleCounts={data.muscleCounts}
+                ctaLabel={ctaLabel}
+                rehydrating={data.rehydrating}
+                onPrimary={handlePrimary}
+                focusLabel={hasRoutine ? data.dailyFocus.dayLabel : null}
+                isCompleted={sessionState === "completed"}
+                completedSummary={data.completedToday}
+                coachAssigned={Boolean(data.heroRoutineSummary?.assignedByCoach)}
+                onExtra={() => navigate(TRAIN_PATH)}
+                isRecoverable={!!data.recoverableDraft}
+                compact={isMobile}
+              />
+              {coachId && (
+                <>
+                  <CoachBanner coachId={coachId} onRequestRoutine={() => setRequestOpen(true)} />
+                  <RequestRoutineModal
+                    coachId={coachId}
+                    open={requestOpen}
+                    onClose={() => setRequestOpen(false)}
+                    onSuccess={() => setRequestOpen(false)}
+                  />
+                </>
+              )}
+              {showConflictNotice && data.activeSession && (
+                <GlassCard raised style={{ padding: SPACE.card, border: `1px solid ${GLASS.borderStrong}` }}>
+                  <p style={{ ...TYPE.body, color: TEXT.secondary, margin: 0 }}>
+                    Entrenamiento activo: <strong style={{ color: TEXT.primary }}>{data.activeSession.title}</strong>.
+                    La rutina programada no se ha iniciado para proteger la sesión actual.
+                  </p>
+                </GlassCard>
+              )}
+              {data.recoverableDraft && (
+                <RecoverableDraftSection
+                  routineTitle={data.recoverableDraft.routineTitle}
+                  onContinue={() => {
+                    data.restoreDraft();
+                    navigate(TRAIN_PATH);
+                  }}
+                  onDiscard={data.discardDraft}
+                />
+              )}
+              <WeeklyProgressSection
+                weeklyCompleted={weeklyCompleted}
+                weeklyGoal={weeklyGoal}
+                weeklyPlan={data.weeklyPlan}
+                streakStats={data.streakStats}
+              />
+            </div>
 
-          {showConflictNotice && data.activeSession && (
-            <GlassCard raised style={{ padding: SPACE.card, border: `1px solid ${GLASS.borderStrong}` }}>
-              <p style={{ ...TYPE.body, color: TEXT.secondary, margin: 0 }}>
-                Entrenamiento activo: <strong style={{ color: TEXT.primary }}>{data.activeSession.title}</strong>.
-                La rutina programada no se ha iniciado para proteger la sesión actual.
-              </p>
-            </GlassCard>
-          )}
+            <div className="flex flex-col gap-5 md:gap-6 min-w-0 xl:col-span-4">
+              <HistorySection
+                sessions={data.recentSessions}
+                maxVisible={isMobile ? 3 : 4}
+              />
+              <PRSection topRecords={data.topRecords} recentPRs={data.recentPRs} compact={isMobile} />
+              <TipSection
+                tip={TIP_CATALOG[tipIndex]}
+                onNext={nextTip}
+                announcements={announcements}
+                onPublish={publishAnnouncement}
+                onDelete={deleteAnnouncement}
+              />
+            </div>
+          </div>
+        )}
+      </section>
 
-          {data.recoverableDraft && (
-            <RecoverableDraftSection
-              routineTitle={data.recoverableDraft.routineTitle}
-              onContinue={() => {
-                data.restoreDraft();
-                navigate(TRAIN_PATH);
-              }}
-              onDiscard={data.discardDraft}
-            />
-          )}
-        </div>
+      <TopMenuDrawer
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        onOpenStore={() => setStoreOpen(true)}
+        onOpenTour={() => setTourOpen(true)}
+      />
 
-        {/* Progreso semanal: en móvil va segundo (order-2); en escritorio xl:col-span-8 xl:row-start-2. */}
-        <WeeklyProgressSection
-          weeklyCompleted={weeklyCompleted}
-          weeklyGoal={weeklyGoal}
-          weeklyPlan={data.weeklyPlan}
-          streakStats={data.streakStats}
-          className="xl:col-span-8 xl:row-start-2 order-2 sm:order-auto"
-        />
+      <WelcomeTourModal open={tourOpen} onClose={() => setTourOpen(false)} />
 
-        {/* Historial reciente: en móvil va tercero (order-3), máximo 3 filas;
-             en escritorio xl:col-span-4 xl:row-start-2. */}
-        <HistorySection
-          sessions={data.recentSessions}
-          maxVisible={isMobile ? 3 : 4}
-          className="xl:col-span-4 xl:row-start-2 order-3 sm:order-auto"
-        />
-
-        {/* Columna lateral superior: Cronos IA y Récords.
-             En móvil: Cronos IA primero (order-1 dentro), Récords después (order-2 dentro).
-             En escritorio: Récords primero, Cronos IA después; xl:col-span-4 xl:row-start-1. */}
-        <div className="flex flex-col gap-5 md:gap-6 min-w-0 xl:col-span-4 xl:row-start-1 order-4 sm:order-auto">
-          {/* Cronos IA: primera en móvil, segunda en escritorio. */}
-          <div className="order-1 sm:order-2">
-            <TipSection tip={TIP_CATALOG[tipIndex]} onNext={nextTip} announcements={announcements} onPublish={publishAnnouncement} onDelete={deleteAnnouncement} />
+      {storeOpen && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="Tienda y Clases del Gimnasio"
+          className="fixed inset-0 z-[95] flex items-end justify-center bg-black/85 p-4 sm:items-center"
+        >
+          <div className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-white/10 bg-[#09090B] p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <span className="text-base font-bold text-white">Tienda y Clases</span>
+              <button
+                type="button"
+                onClick={() => setStoreOpen(false)}
+                aria-label="Cerrar tienda"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-full bg-[#1C1C1E] text-zinc-300"
+              >
+                <X size={18} />
+              </button>
+            </div>
             <GymClubHubSection userId={userId} />
           </div>
-
-          {/* Récords personales: segunda en móvil, primera en escritorio. */}
-          <PRSection topRecords={data.topRecords} recentPRs={data.recentPRs} compact={isMobile} className="order-2 sm:order-1" />
         </div>
-      </div>
+      )}
     </div>
   );
 }

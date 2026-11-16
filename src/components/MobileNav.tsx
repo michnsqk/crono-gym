@@ -1,15 +1,12 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import {
   Home,
-  Layers,
-  User,
   Zap,
   TrendingUp,
 } from "lucide-react";
 import { useActiveSession } from "@/context/ActiveSessionContext";
 import {
   ACCENT,
-  GLASS,
   MOTION,
   RADIUS,
   SPACE,
@@ -22,7 +19,6 @@ import {
   HOME_PATH,
   ROUTINES_PATH,
   TRAIN_PATH,
-  PROFILE_PATH,
   PROGRESS_PATH,
   RANGES_PATH,
 } from "@/components/shell/navItems";
@@ -38,9 +34,7 @@ type NavItem = {
 
 const NAV_ITEMS: readonly NavItem[] = [
   { id: "home", path: HOME_PATH, label: NAV_LABELS.home, ariaLabel: NAV_LABELS.home, icon: Home },
-  { id: "routines", path: ROUTINES_PATH, label: NAV_LABELS.routines, ariaLabel: NAV_LABELS.routines, icon: Layers },
-  { id: "train", path: TRAIN_PATH, label: NAV_LABELS.train, ariaLabel: NAV_LABELS.train, icon: Zap, primary: true },
-  { id: "profile", path: PROFILE_PATH, label: NAV_LABELS.profile, ariaLabel: NAV_LABELS.profile, icon: User },
+  { id: "routines", path: ROUTINES_PATH, label: NAV_LABELS.routines, ariaLabel: NAV_LABELS.routines, icon: Zap, primary: true },
   { id: "progress", path: PROGRESS_PATH, label: NAV_LABELS.progress, ariaLabel: NAV_LABELS.progress, icon: TrendingUp },
 ];
 
@@ -84,15 +78,12 @@ export function MobileNav() {
         style={{ pointerEvents: "auto", marginInline: SPACE.md, marginBottom: SPACE.md }}
       >
         <div
+          className="backdrop-blur-xl bg-black/70 border-t border-white/10"
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-around",
             borderRadius: RADIUS.pill,
-            border: `1px solid ${GLASS.border}`,
-            background: GLASS.fill,
-            backdropFilter: "blur(24px)",
-            WebkitBackdropFilter: "blur(24px)",
             padding: `${SPACE.xs} ${SPACE.sm}`,
           }}
         >

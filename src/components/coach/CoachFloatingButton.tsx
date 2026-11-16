@@ -14,7 +14,6 @@ import { useActiveSession } from "@/context/ActiveSessionContext";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { ACCENT, TEXT } from "@/design/tokens";
 import { CRONOS_LABELS as T } from "@/lib/i18n";
-import { HOME_PATH } from "@/components/shell/navItems";
 import { CronosBottomSheet } from "./CronosBottomSheet";
 
 export const COACH_PORTAL_PATH = "/coach/portal";
@@ -53,7 +52,6 @@ export function CoachFloatingButton({ userId }: CoachFloatingButtonProps = {}) {
 
   if (answer === undefined || answer === null) return null;
   if (pathname === COACH_PORTAL_PATH) return null;
-  if (pathname === HOME_PATH) return null;
 
   return (
     <>
@@ -61,10 +59,10 @@ export function CoachFloatingButton({ userId }: CoachFloatingButtonProps = {}) {
         type="button"
         className={[
           "fixed right-4 z-[55]",
-          "bottom-[calc(24px+var(--cronos-nav-height,56px)+16px)]",
+          "bottom-[calc(env(safe-area-inset-bottom,0px)+96px)]",
           "bg-neutral-900/95 border border-white/15 backdrop-blur-xl",
-          "rounded-full px-4 py-2 flex items-center gap-2",
-          "transition-colors cursor-pointer",
+          "rounded-full px-4 h-11 flex items-center gap-2",
+          "active:scale-[0.98] transition-transform duration-150 cursor-pointer",
           !reducedMotion ? "" : "animate-none",
         ]
           .filter(Boolean)
