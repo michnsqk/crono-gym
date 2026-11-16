@@ -3,6 +3,7 @@ import { Award, CalendarDays, Dumbbell, TrendingUp } from "lucide-react";
 import { formatVolume, formatWeight, type ProgressStats } from "@/hooks/useGymData";
 import { ACCENT, GLASS, RADIUS, SURFACE, SPACE, TEXT, TYPE } from "@/design/tokens";
 import { PROGRESS_LABELS } from "@/lib/i18n";
+import { HypertrophyInsightsPanel } from "./HypertrophyInsightsPanel";
 
 export interface ProgressChartsProps {
   stats: ProgressStats;
@@ -44,31 +45,35 @@ const hintStyle: React.CSSProperties = {
 
 export const ProgressCharts: FC<ProgressChartsProps> = ({ stats }) => {
   return (
-    <div className="grid gap-3 grid-cols-2">
-      <MetricCard
-        icon={<CalendarDays className="h-4 w-4 shrink-0" style={{ color: ACCENT.text }} />}
-        label={PROGRESS_LABELS.metrics.workouts}
-        value={String(stats.workoutsThisMonth)}
-        hint={PROGRESS_LABELS.hints.thisMonth}
-      />
-      <MetricCard
-        icon={<Award className="h-4 w-4 shrink-0" style={{ color: ACCENT.text }} />}
-        label={PROGRESS_LABELS.metrics.bestWeight}
-        value={formatWeight(stats.bestWeight)}
-        hint={PROGRESS_LABELS.hints.validSet}
-      />
-      <MetricCard
-        icon={<Dumbbell className="h-4 w-4 shrink-0" style={{ color: ACCENT.text }} />}
-        label={PROGRESS_LABELS.metrics.volume}
-        value={formatVolume(stats.monthlyVolume)}
-        hint={PROGRESS_LABELS.hints.thisMonth}
-      />
-      <MetricCard
-        icon={<TrendingUp className="h-4 w-4 shrink-0" style={{ color: ACCENT.text }} />}
-        label={PROGRESS_LABELS.metrics.total}
-        value={String(stats.totalWorkouts)}
-        hint={PROGRESS_LABELS.hints.completed}
-      />
+    <div className="space-y-6">
+      <div className="grid gap-3 grid-cols-2">
+        <MetricCard
+          icon={<CalendarDays className="h-4 w-4 shrink-0" style={{ color: ACCENT.text }} />}
+          label={PROGRESS_LABELS.metrics.workouts}
+          value={String(stats.workoutsThisMonth)}
+          hint={PROGRESS_LABELS.hints.thisMonth}
+        />
+        <MetricCard
+          icon={<Award className="h-4 w-4 shrink-0" style={{ color: ACCENT.text }} />}
+          label={PROGRESS_LABELS.metrics.bestWeight}
+          value={formatWeight(stats.bestWeight)}
+          hint={PROGRESS_LABELS.hints.validSet}
+        />
+        <MetricCard
+          icon={<Dumbbell className="h-4 w-4 shrink-0" style={{ color: ACCENT.text }} />}
+          label={PROGRESS_LABELS.metrics.volume}
+          value={formatVolume(stats.monthlyVolume)}
+          hint={PROGRESS_LABELS.hints.thisMonth}
+        />
+        <MetricCard
+          icon={<TrendingUp className="h-4 w-4 shrink-0" style={{ color: ACCENT.text }} />}
+          label={PROGRESS_LABELS.metrics.total}
+          value={String(stats.totalWorkouts)}
+          hint={PROGRESS_LABELS.hints.completed}
+        />
+      </div>
+
+      <HypertrophyInsightsPanel workoutsThisMonth={stats.workoutsThisMonth} />
     </div>
   );
 };

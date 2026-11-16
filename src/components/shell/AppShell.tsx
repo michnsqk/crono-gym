@@ -19,6 +19,7 @@ import { SURFACE } from "@/design/tokens";
 import { useActiveSession } from "@/context/ActiveSessionContext";
 import { useAuth } from "@/context/AuthContext";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
+import { usePwaUpdateVault } from "@/services/pwaUpdateVault";
 import { BottomNav } from "./BottomNav";
 import { MobileNav } from "../MobileNav";
 import { ActiveWorkoutPill } from "./ActiveWorkoutPill";
@@ -69,6 +70,7 @@ export function AppShell() {
     gap beside it.
   */
   const { collapsed, toggle } = useSideNavCollapsed();
+  const { updateReady, applySafeUpdate } = usePwaUpdateVault();
 
   // Immersive mode: hide chrome on /entrenar (active or pre-workout) for Apple Fitness+ focus.
   const isImmersive = pathname === "/entrenar";
@@ -98,6 +100,22 @@ export function AppShell() {
       >
         <Outlet />
       </div>
+
+      {updateReady && (
+        <div
+          className="fixed left-1/2 top-3 z-50 -translate-x-1/2"
+          role="status"
+          aria-live="polite"
+        >
+          <button
+            type="button"
+            onClick={() => void applySafeUpdate()}
+            className="h-10 rounded-full border border-white/15 bg-[#1C1C1E] px-4 text-xs font-semibold text-white shadow-lg active:scale-[0.98]"
+          >
+            Actualización lista · Aplicar sin perder tu sesión
+          </button>
+        </div>
+      )}
 
       {!isImmersive && (
         <>

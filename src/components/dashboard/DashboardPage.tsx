@@ -27,6 +27,7 @@ import { GlassButton } from "@/components/ui/GlassButton";
 import { useAnnouncements } from "@/hooks/useAnnouncements";
 import { CoachBanner } from "@/components/coach/portal/CoachBanner";
 import { WeeklyProgressSection } from "@/components/dashboard/sections/WeeklyProgressSection";
+import { DailyReadinessBanner } from "@/components/dashboard/sections/DailyReadinessBanner";
 import { TipSection } from "@/components/dashboard/sections/TipSection";
 import { TrainingHeroSection } from "@/components/dashboard/sections/TrainingHeroSection";
 import { PRSection } from "@/components/dashboard/sections/PRSection";
@@ -440,6 +441,11 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         <div
           className="flex flex-col gap-5 md:gap-6 min-w-0 xl:col-span-8 xl:row-start-1 order-1 sm:order-auto"
         >
+          <DailyReadinessBanner
+            sessionsLast7Days={weeklyCompleted}
+            weeklyTargetDays={weeklyGoal}
+            workoutsThisMonth={data.recentSessions.length}
+          />
           <TrainingHeroSection
             greeting={data.greeting}
             hasRoutine={hasRoutine}

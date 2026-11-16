@@ -4,11 +4,13 @@ import { ACCENT, GLASS, RADIUS, STATUS, SURFACE, TEXT, TYPE } from "@/design/tok
 import { equipmentMap } from "@/data/equipmentMap";
 import { CRONOS_MACHINERY_EXERCISES } from "@/lib/catalog/machinerySeedExercises";
 import { readCustomExercises } from "@/lib/catalog/customExercises";
+import { useExerciseCatalog } from "@/hooks/useExerciseCatalog";
 import { AnnouncementsManager } from "./sections/AnnouncementsManager";
 import { StoreManager } from "./sections/StoreManager";
 import { ClassesManager } from "./sections/ClassesManager";
 import { UsersRolesManager } from "./sections/UsersRolesManager";
 import { ExerciseRequestsManager } from "./sections/ExerciseRequestsManager";
+import { OperationsRoiSection } from "./sections/OperationsRoiSection";
 
 const TABS = [
   ["avisos", "Avisos"],
@@ -16,16 +18,17 @@ const TABS = [
   ["clases", "Clases"],
   ["usuarios", "Usuarios"],
   ["ejercicios", "Catálogo"],
+  ["operacion", "Operación"],
 ] as const;
 type AdminTab = (typeof TABS)[number][0];
 
-const BASE_CATALOG_COUNT = 1324;
-
 export function AdminHub() {
   const [tab, setTab] = useState<AdminTab>("avisos");
+  const { exercises: catalog } = useExerciseCatalog();
   const machineCount = Object.keys(equipmentMap).length;
-  const totalExercises =
-    BASE_CATALOG_COUNT + CRONOS_MACHINERY_EXERCISES.length + readCustomExercises().length;
+  const totalExercises = catalog.length > 0
+    ? catalog.length
+    : CRONOS_MACHINERY_EXERCISES.length + readCustomExercises().length;
 
   return (
     <main
@@ -103,7 +106,7 @@ export function AdminHub() {
 
         {/* Barra de 5 Pestañas Apple Segmented Control visible al 100% en 390px */}
         <nav
-          className="grid w-full grid-cols-5 gap-1 rounded-2xl p-1"
+          className="grid w-full grid-cols-6 gap-1 rounded-2xl p-1"
           style={{
             borderRadius: RADIUS.surface,
             border: `1px solid ${GLASS.border}`,
@@ -138,6 +141,7 @@ export function AdminHub() {
           {tab === "clases" && <ClassesManager />}
           {tab === "usuarios" && <UsersRolesManager />}
           {tab === "ejercicios" && <ExerciseRequestsManager />}
+          {tab === "operacion" && <OperationsRoiSection />}
         </section>
       </div>
     </main>

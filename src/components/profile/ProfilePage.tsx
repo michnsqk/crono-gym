@@ -46,6 +46,7 @@ import { GymSettingsTrigger } from "@/components/workout/GymSettingsTrigger";
 import { ImportWizard } from "@/components/import/ImportWizard";
 import { DeveloperGate } from "@/components/profile/DeveloperGate";
 import { FeatureFlagSwitch } from "@/components/profile/FeatureFlagSwitch";
+import { WorkoutDataTransferCard } from "@/components/profile/WorkoutDataTransferCard";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import { useProfile, useBodyMetrics } from "@/hooks/useProfile";
 import { useGymSettings } from "@/context/GymSettingsContext";
@@ -308,6 +309,7 @@ export function ProfilePage() {
 
       {activeTab === "preferences" && (
         <PreferencesTabContent
+          userId={userId}
           activeRole={activeRole}
           onRoleChange={handleRoleChange}
           roleNotice={roleNotice}
@@ -977,6 +979,7 @@ function GymTabContent({
 }
 
 interface PreferencesTabContentProps {
+  userId: string;
   activeRole: "athlete" | "coach" | "admin" | "developer";
   onRoleChange: (role: "athlete" | "coach" | "admin" | "developer") => void;
   roleNotice: string | null;
@@ -991,6 +994,7 @@ interface PreferencesTabContentProps {
 }
 
 function PreferencesTabContent({
+  userId,
   activeRole,
   onRoleChange,
   roleNotice,
@@ -1123,7 +1127,8 @@ function PreferencesTabContent({
       </GroupedSection>
 
       <GroupedSection title={PROFILE_LABELS.exportTitle}>
-        <p style={{ ...mutedStyle, margin: `0 0 ${SPACE.md}` }}>{PROFILE_LABELS.exportHint}</p>
+        <WorkoutDataTransferCard userId={userId} />
+        <p style={{ ...mutedStyle, margin: `${SPACE.md} 0 ${SPACE.sm}` }}>{PROFILE_LABELS.exportHint}</p>
         <GlassButton variant="secondary" icon={<Upload size={16} aria-hidden="true" />} onClick={onExport}>
           {PROFILE_LABELS.exportButton}
         </GlassButton>

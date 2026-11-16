@@ -21,6 +21,7 @@ import { hapticLight } from "@/lib/haptics";
 import { ROUTINES_UI_LABELS, translateBodyPart, translateTarget } from "@/lib/i18n";
 import { coachEcosystemService, sanitizeCoachName } from "@/lib/coach/coachEcosystemService";
 import { DayZeroAssistant } from "./DayZeroAssistant";
+import { RoutineArchitectPanel } from "@/components/routines/RoutineArchitectPanel";
 import { useCatalogOverridesVersion } from "@/hooks/useCatalogOverrides";
 import { dayZeroDraft, dayZeroRoutineRow, type DayZeroPlan } from "@/lib/routines/dayZeroPlan";
 
@@ -377,6 +378,7 @@ export function RoutinesPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md, paddingBottom: SPACE.lg }}>
+      {showMainHeader && <RoutineArchitectPanel />}
       {vipOffer && (
         <section className="rounded-2xl border border-[#FF3B30]/30 bg-[#1C1C1E]">
           {vipCollapsed ? (

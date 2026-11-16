@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { CoachFloorPulseStrip, type RetentionFilter } from "./CoachFloorPulseStrip";
 import { Check, ChevronDown, ChevronUp, CloudUpload, Compass, Dumbbell, ImageIcon, Loader2, LogOut, Pencil, Plus, RotateCcw, Search, Sparkles, Trash2, X } from "lucide-react";
 import { BiomechanicalGripStanceModal } from "@/components/workout/BiomechanicalGripStanceModal";
 import { CRONOS_ATTACHMENTS_GUIDE, FOOT_STANCE_MATRIX } from "@/lib/workout/biomechanicalGripStance";
@@ -191,6 +192,7 @@ export function PortalPanel({
     [ecosystem],
   );
 
+  const [retentionFilter, setRetentionFilter] = useState<RetentionFilter>("all");
   const selectAthlete = useCallback((athlete: CoachAthlete) => {
     setSelectedAthlete(athlete);
     setTab("expediente");
@@ -232,6 +234,12 @@ export function PortalPanel({
             </button>
           </div>
         </header>
+
+        <CoachFloorPulseStrip
+          activeAthletesCount={activeCount}
+          retentionFilter={retentionFilter}
+          onRetentionFilterChange={setRetentionFilter}
+        />
 
         <nav
           aria-label="Secciones del portal"
