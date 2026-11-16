@@ -76,7 +76,7 @@ export function RoutineArchitectPanel({
       (ex) =>
         !ex.is_hidden &&
         ex.is_active &&
-        ex.primary_muscle === current.primary_muscle &&
+        (ex.target === current.target || ex.body_part === current.body_part) &&
         !usedIds.has(ex.id),
     );
     if (candidates.length === 0) return;
