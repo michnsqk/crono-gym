@@ -214,7 +214,7 @@ function SessionHeader({
       }}
     >
       {/* Left: Live Timer Capsule + Progress Text */}
-      <div style={{ display: "flex", alignItems: "center", gap: SPACE.md, minWidth: 0 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flex: 1 }}>
         {startedAt && (
           <div
             style={{
@@ -259,7 +259,9 @@ function SessionHeader({
               fontVariantNumeric: "tabular-nums",
               color: TEXT.secondary,
               whiteSpace: "nowrap",
-              flexShrink: 0,
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
             }}
           >
             {exerciseLabel}

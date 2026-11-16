@@ -388,12 +388,11 @@ export function SmartOverloadModal({
                 role="tab"
                 aria-selected={selected}
                 onClick={() => setActiveTab(id)}
-                className="flex min-h-10 items-center justify-center gap-1.5 rounded-full px-2 text-xs font-semibold transition-colors"
+                className="flex min-h-10 items-center justify-center gap-1 whitespace-nowrap rounded-full px-1.5 text-[11px] font-semibold transition-colors sm:text-xs"
                 style={{
-                  background: selected ? GLASS.fillImmersive : "transparent",
+                  background: selected ? "#2C2C2E" : "transparent",
                   color: selected ? TEXT.primary : TEXT.secondary,
-                  border: `1px solid ${selected ? GLASS.borderStrong : "transparent"}`,
-                  boxShadow: selected ? GLASS.shadow : undefined,
+                  border: `1px solid ${selected ? "rgba(255, 255, 255, 0.08)" : "transparent"}`,
                   cursor: "pointer",
                 }}
               >

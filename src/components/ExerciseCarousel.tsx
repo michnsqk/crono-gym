@@ -187,24 +187,24 @@ export function ExerciseCarousel({
                   width: 60,
                   height: 60,
                   overflow: "visible",
-                  borderRadius: RADIUS.round,
+                  borderRadius: 18,
                   border: selected
                     ? `2px solid ${CRIMSON.base}`
                     : complete
-                    ? "3px solid #30D158"
-                    : `2px solid ${DIAGRAM.inert}`,
+                    ? "2px solid #30D158"
+                    : "1px solid rgba(255, 255, 255, 0.08)",
                   background: selected
-                    ? CRIMSON.subtle
+                    ? "rgba(255, 59, 48, 0.14)"
                     : complete
                     ? "rgba(48, 209, 88, 0.10)"
-                    : "rgba(255, 255, 255, 0.04)",
+                    : "#1C1C1E",
                   boxShadow: selected
-                    ? `0 0 20px ${CRIMSON.glow}, 0 0 0 1px ${CRIMSON.base}`
+                    ? `0 0 18px ${CRIMSON.glow}`
                     : complete
-                    ? "0 0 12px rgba(48, 209, 88, 0.35)"
+                    ? "0 0 12px rgba(48, 209, 88, 0.25)"
                     : "none",
-                  transform: selected ? "scale(1.08)" : "scale(1)",
-                  opacity: selected || complete ? 1 : 0.6,
+                  transform: selected ? "scale(1.06)" : "scale(1)",
+                  opacity: selected || complete ? 1 : 0.72,
                   transition: reducedMotion
                     ? undefined
                     : `transform ${MOTION.fast} ${MOTION.spring}, border-color ${MOTION.fast} ${MOTION.standard}, box-shadow ${MOTION.fast} ${MOTION.standard}, opacity ${MOTION.fast} ${MOTION.standard}`,
@@ -214,7 +214,7 @@ export function ExerciseCarousel({
                   style={{
                     width: 52,
                     height: 52,
-                    borderRadius: RADIUS.round,
+                    borderRadius: 14,
                     overflow: "hidden",
                     display: "flex",
                     alignItems: "center",

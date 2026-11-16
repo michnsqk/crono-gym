@@ -329,10 +329,26 @@ export function UnifiedExerciseSelectorSheet({
         ids = next;
       }
     }
+    const foldSearch = (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase();
+    const queryTokens = foldSearch(debouncedQuery)
+      .split(/\s+/)
+      .filter((t) => t.length > 0);
+
     const attributeFiltered = baseRows.filter((ex) => {
       if (q) {
         const exactTokenMatch = ids ? ids.has(ex.id) : false;
-        if (!exactTokenMatch && !matchesSemanticExerciseSearch(ex, debouncedQuery)) return false;
+        const haystack = foldSearch(
+          `${ex.name_es ?? ""} ${ex.name ?? ""} ${ex.body_part ?? ""} ${ex.target ?? ""} ${ex.equipment ?? ""}`,
+        );
+        const partialTokenMatch =
+          queryTokens.length > 0 && queryTokens.every((tk) => haystack.includes(tk));
+        if (!exactTokenMatch && !partialTokenMatch && !matchesSemanticExerciseSearch(ex, debouncedQuery)) {
+          return false;
+        }
       }
       if (selectedEquipmentCategory && getEquipmentCategory(ex.equipment) !== selectedEquipmentCategory) return false;
       return true;

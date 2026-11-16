@@ -165,6 +165,11 @@ export function isBodyweightExercise(
 ): boolean {
   if (!input) return false;
 
+  const name = foldName(`${input.name ?? ""} ${input.name_es ?? ""}`);
+  if (name.trim() && LOADED_NAME_HINTS.some((hint) => name.includes(hint))) {
+    return false;
+  }
+
   const equipmentId = (input.equipment_id ?? "").trim();
   if (equipmentId === "NONE") return true;
   if (BODYWEIGHT_EQUIPMENT_IDS.has(equipmentId.toUpperCase())) return true;
@@ -174,9 +179,7 @@ export function isBodyweightExercise(
     return true;
   }
 
-  const name = foldName(`${input.name ?? ""} ${input.name_es ?? ""}`);
   if (!name.trim()) return false;
-  if (LOADED_NAME_HINTS.some((hint) => name.includes(hint))) return false;
   return BODYWEIGHT_NAME_HINTS.some((hint) => name.includes(hint));
 }
 
