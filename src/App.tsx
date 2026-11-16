@@ -1,17 +1,30 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import { supabase } from "@lib/supabase";
-import { ActiveWorkoutView } from "./components/workout/ActiveWorkoutView";
 import { AuthModal } from "./components/AuthModal";
 import { BrandLockup } from "./components/shell/BrandLockup";
 import { DashboardPage } from "./components/dashboard/DashboardPage";
 import { Onboarding } from "./components/Onboarding";
 import { SegmentedControl } from "./components/ui/SegmentedControl";
-import { ProgressCharts } from "./components/progress/ProgressCharts";
-import { ConsistencyTracker } from "./components/progress/ConsistencyTracker";
-import { WorkoutHistory } from "./components/progress/WorkoutHistory";
-import { AnatomicalRanksPage } from "./components/ranks/AnatomicalRanksPage";
-import { CoachHub } from "./components/coach/CoachHub";
+
+const ActiveWorkoutView = lazy(() =>
+  import("./components/workout/ActiveWorkoutView").then((m) => ({ default: m.ActiveWorkoutView })),
+);
+const ProgressCharts = lazy(() =>
+  import("./components/progress/ProgressCharts").then((m) => ({ default: m.ProgressCharts })),
+);
+const ConsistencyTracker = lazy(() =>
+  import("./components/progress/ConsistencyTracker").then((m) => ({ default: m.ConsistencyTracker })),
+);
+const WorkoutHistory = lazy(() =>
+  import("./components/progress/WorkoutHistory").then((m) => ({ default: m.WorkoutHistory })),
+);
+const AnatomicalRanksPage = lazy(() =>
+  import("./components/ranks/AnatomicalRanksPage").then((m) => ({ default: m.AnatomicalRanksPage })),
+);
+const CoachHub = lazy(() =>
+  import("./components/coach/CoachHub").then((m) => ({ default: m.CoachHub })),
+);
 import { useActiveSession } from "./context/ActiveSessionContext";
 import { HOME_PATH, NAV_DESTINATIONS } from "./components/shell/navItems";
 import { MUSCLE_PARAM } from "./lib/muscleFilter";
@@ -472,13 +485,15 @@ const [libraryLoaded, setLibraryLoaded] = useState(false);
   }
 
   return (
-    <ActiveWorkoutView
-      userId={userId}
-      routineId={session.routineId}
-      routineTitle={session.title}
-      planned={session.planned ?? []}
-      onFinished={end}
-    />
+    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando entrenamiento…</p>}>
+      <ActiveWorkoutView
+        userId={userId}
+        routineId={session.routineId}
+        routineTitle={session.title}
+        planned={session.planned ?? []}
+        onFinished={end}
+      />
+    </Suspense>
   );
 }
 
@@ -515,11 +530,13 @@ export function ProgressView() {
             }}
             ariaLabel="Vista de progreso"
           />
-          <ProgressCharts stats={stats} />
-          <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
-            <ConsistencyTracker week={stats.week} />
-            <WorkoutHistory recent={stats.recent} />
-          </div>
+          <Suspense fallback={<p className="text-sm text-neutral-500">Cargando gráficas…</p>}>
+            <ProgressCharts stats={stats} />
+            <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
+              <ConsistencyTracker week={stats.week} />
+              <WorkoutHistory recent={stats.recent} />
+            </div>
+          </Suspense>
         </div>
       )}
     </>
@@ -595,7 +612,9 @@ export function RangosView() {
           ejercicios de este músculo.
         </p>
       )}
-      <AnatomicalRanksPage userId={userId} onBrowseMuscle={browseMuscle} />
+      <Suspense fallback={<p className="text-sm text-neutral-500">Cargando rangos…</p>}>
+        <AnatomicalRanksPage userId={userId} onBrowseMuscle={browseMuscle} />
+      </Suspense>
     </div>
   );
 }
@@ -614,5 +633,9 @@ export function RangosView() {
  */
 export function CoachView() {
   const { userId } = useOutletContext<WorkspaceOutletContext>();
-  return <CoachHub userId={userId} />;
+  return (
+    <Suspense fallback={<p className="text-sm text-neutral-500">Cargando Coach IA…</p>}>
+      <CoachHub userId={userId} />
+    </Suspense>
+  );
 }

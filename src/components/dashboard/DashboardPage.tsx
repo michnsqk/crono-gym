@@ -456,6 +456,10 @@ export function DashboardPage({ userId }: DashboardPageProps) {
                     <img
                       src={a.imageUrl}
                       alt={a.title}
+                      width={56}
+                      height={56}
+                      loading="lazy"
+                      decoding="async"
                       className="h-full w-full object-cover"
                     />
                   </button>
