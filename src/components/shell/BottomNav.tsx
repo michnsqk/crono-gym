@@ -29,7 +29,7 @@ import { useState } from "react";
 import type { CSSProperties } from "react";
 import { NavLink } from "react-router-dom";
 import { hapticLight } from "@/lib/haptics";
-import { ACCENT, GLASS, MOTION, RADIUS, TEXT, TYPE, Z_INDEX } from "@/design/tokens";
+import { ACCENT, MOTION, RADIUS, TEXT, TYPE, Z_INDEX } from "@/design/tokens";
 import { SHELL_LABELS } from "@/lib/i18n";
 import { useActiveSession } from "@/context/ActiveSessionContext";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
@@ -59,30 +59,27 @@ export function BottomNav() {
   return (
     <nav
       aria-label={SHELL_LABELS.navAriaLabel}
-      className="cronos-bottom-nav"
+      className="cronos-bottom-nav rounded-full bg-[#1C1C1E]/60 backdrop-blur-xl border border-white/[0.06]"
       style={{
         position: "fixed",
-        left: 0,
-        right: 0,
-        bottom: 0,
+        left: 12,
+        right: 12,
+        bottom: "calc(10px + env(safe-area-inset-bottom, 0px))",
+        margin: "0 auto",
+        maxWidth: 520,
         /*
          * Below every surface the user summoned on purpose. This used to be 60, the
          * modal's own index, which meant a modal opened *from* the navigation painted
          * underneath it and the athlete tapped the bar instead of the dialog.
          */
         zIndex: Z_INDEX.nav,
-        height: `calc(${NAV_CONTENT_HEIGHT}px + env(safe-area-inset-bottom, 0px))`,
-        paddingBottom: `calc(0.5rem + env(safe-area-inset-bottom, 0px))`,
-        /*
-         * Opaque rather than glass. The bar sits directly on a page whose content
-         * changes as the athlete scrolls, and a 6% white fill over moving content reads
-         * as a rendering fault on a black screen rather than as depth. The blur is what
-         * sells it; the fill only has to hide what is behind.
-         */
-        backgroundColor: GLASS.fillRaised,
-        borderTop: `1px solid ${GLASS.border}`,
+        height: NAV_CONTENT_HEIGHT,
+        borderRadius: 9999,
+        backgroundColor: "rgba(28, 28, 30, 0.60)",
+        border: "1px solid rgba(255, 255, 255, 0.06)",
         backdropFilter: "blur(24px) saturate(140%)",
         WebkitBackdropFilter: "blur(24px) saturate(140%)",
+        boxShadow: "0 12px 32px rgba(0, 0, 0, 0.55)",
       }}
     >
       <ul

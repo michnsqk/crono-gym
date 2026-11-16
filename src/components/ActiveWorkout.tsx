@@ -472,12 +472,12 @@ function SetTrackerTable({
         gridTemplateColumns: "30px 44px minmax(0, 1fr) minmax(0, 1fr) 36px 32px 32px",
         alignItems: "center",
         gap: 4,
-        padding: "4px 6px",
-        borderBottom: index > 0 ? "1px solid rgba(255, 255, 255, 0.04)" : "none",
+        padding: "6px 6px",
+        borderBottom: index > 0 ? "1px solid rgba(255, 255, 255, 0.06)" : "none",
         background: isCompleted ? "rgba(48, 209, 88, 0.06)" : "transparent",
         borderRadius: 10,
         transition: "background 200ms ease",
-        minHeight: 42,
+        minHeight: 44,
       }}
     >
       {/* Serie Badge - Tap to open type selector */}
@@ -798,16 +798,17 @@ function SetTrackerTable({
           }
           onChange(index, { ...entry, completed: !entry.completed });
         }}
+        className="rounded-full active:scale-95 transition-transform"
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           width: 32,
           height: 32,
-          borderRadius: 10,
+          borderRadius: 9999,
           background: isCompleted ? "#30D158" : "#2C2C2E",
-          color: isCompleted ? "#000" : "rgba(255, 255, 255, 0.4)",
-          border: isCompleted ? "1px solid #30D158" : "1px solid rgba(255, 255, 255, 0.10)",
+          color: isCompleted ? "#000" : "rgba(255, 255, 255, 0.45)",
+          border: isCompleted ? "1px solid #30D158" : "1px solid rgba(255, 255, 255, 0.06)",
           cursor: "pointer",
           flexShrink: 0,
           transition: "all 150ms ease",
@@ -3112,65 +3113,66 @@ export function ActiveWorkout({
                         updateSet(selected.key, pendingIdx, { ...pendingEntry, reps: String(nextReps) });
                       };
                       return (
-                        <div
-                          className="mt-2 flex flex-wrap items-center justify-center gap-1.5"
-                          role="group"
-                          aria-label="Ajuste rápido a una mano"
-                        >
-                          <button
-                            type="button"
-                            onClick={() => nudgePendingWeight(-2.5)}
-                            className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-neutral-900 px-3 font-mono text-xs font-semibold text-neutral-200 transition-colors"
-                            style={{ fontVariantNumeric: "tabular-nums" }}
+                        <div className="mt-2.5 space-y-2">
+                          <div
+                            className="grid w-full grid-cols-4 gap-1.5"
+                            role="group"
+                            aria-label="Ajuste rápido a una mano"
                           >
-                            <Minus size={12} aria-hidden="true" />
-                            2.5 kg
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => nudgePendingWeight(2.5)}
-                            className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-neutral-900 px-3 font-mono text-xs font-semibold text-neutral-200 transition-colors"
-                            style={{ fontVariantNumeric: "tabular-nums" }}
-                          >
-                            <Plus size={12} aria-hidden="true" />
-                            2.5 kg
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => nudgePendingReps(-1)}
-                            className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-neutral-900 px-3 font-mono text-xs font-semibold text-neutral-200 transition-colors"
-                            style={{ fontVariantNumeric: "tabular-nums" }}
-                          >
-                            <Minus size={12} aria-hidden="true" />
-                            1 rep
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => nudgePendingReps(1)}
-                            className="inline-flex min-h-9 items-center gap-1 rounded-full border border-white/10 bg-neutral-900 px-3 font-mono text-xs font-semibold text-neutral-200 transition-colors"
-                            style={{ fontVariantNumeric: "tabular-nums" }}
-                          >
-                            <Plus size={12} aria-hidden="true" />
-                            1 rep
-                          </button>
-                          {matchSource && (
                             <button
                               type="button"
-                              onClick={() =>
-                                updateSet(selected.key, pendingIdx, {
-                                  ...pendingEntry,
-                                  weight: matchSource.weight,
-                                  reps: matchSource.reps,
-                                })
-                              }
-                              className="inline-flex min-h-9 items-center rounded-full border px-3 text-xs font-semibold text-white transition-colors"
-                              style={{
-                                borderColor: GLASS.border,
-                                background: GLASS.fillSubtle,
-                              }}
+                              onClick={() => nudgePendingWeight(-2.5)}
+                              className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-white/[0.06] px-2 font-mono text-xs font-semibold tabular-nums text-white transition-transform active:scale-95"
+                              style={{ background: SURFACE.l1 }}
                             >
-                              Igualar anterior
+                              <Minus size={12} aria-hidden="true" />
+                              2.5 kg
                             </button>
+                            <button
+                              type="button"
+                              onClick={() => nudgePendingWeight(2.5)}
+                              className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-white/[0.06] px-2 font-mono text-xs font-semibold tabular-nums text-white transition-transform active:scale-95"
+                              style={{ background: SURFACE.l1 }}
+                            >
+                              <Plus size={12} aria-hidden="true" />
+                              2.5 kg
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => nudgePendingReps(-1)}
+                              className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-white/[0.06] px-2 font-mono text-xs font-semibold tabular-nums text-white transition-transform active:scale-95"
+                              style={{ background: SURFACE.l1 }}
+                            >
+                              <Minus size={12} aria-hidden="true" />
+                              1 rep
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => nudgePendingReps(1)}
+                              className="inline-flex min-h-10 items-center justify-center gap-1 rounded-xl border border-white/[0.06] px-2 font-mono text-xs font-semibold tabular-nums text-white transition-transform active:scale-95"
+                              style={{ background: SURFACE.l1 }}
+                            >
+                              <Plus size={12} aria-hidden="true" />
+                              1 rep
+                            </button>
+                          </div>
+                          {matchSource && (
+                            <div className="flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  updateSet(selected.key, pendingIdx, {
+                                    ...pendingEntry,
+                                    weight: matchSource.weight,
+                                    reps: matchSource.reps,
+                                  })
+                                }
+                                className="inline-flex min-h-9 items-center rounded-full border border-white/[0.06] px-3.5 text-xs font-semibold text-white transition-transform active:scale-95"
+                                style={{ background: SURFACE.l1 }}
+                              >
+                                Igualar anterior
+                              </button>
+                            </div>
                           )}
                         </div>
                       );

@@ -30,7 +30,7 @@ export function ActiveWorkoutHeader({
       }}
     >
       <div
-        className="backdrop-blur-xl bg-neutral-950/95 border border-neutral-50/10 rounded-full px-4 py-2 shadow-xl"
+        className="rounded-full bg-[#1C1C1E]/60 backdrop-blur-xl border border-white/[0.06] px-4 py-2.5 shadow-xl"
         style={{
           display: "flex",
           justifyContent: "space-between",
@@ -39,6 +39,7 @@ export function ActiveWorkoutHeader({
         }}
       >
         <span
+          className="tracking-tight"
           style={{
             fontSize: TYPE.subhead.size,
             fontWeight: 500,
@@ -59,6 +60,7 @@ export function ActiveWorkoutHeader({
           }}
         >
           <span
+            className="font-mono tabular-nums"
             style={{
               fontFamily: TYPE.mono.font,
               fontSize: TYPE.caption.size,

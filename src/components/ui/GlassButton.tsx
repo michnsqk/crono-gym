@@ -88,7 +88,13 @@ export function GlassButton({
   return (
     <button
       type={type}
-      className={className ? `gbtn ${className}` : "gbtn"}
+      className={
+        variant === "primary"
+          ? `gbtn rounded-2xl font-semibold active:scale-[0.98] transition-transform ${className ?? ""}`.trim()
+          : className
+            ? `gbtn ${className}`
+            : "gbtn"
+      }
       style={
         {
           display: block ? "flex" : "inline-flex",
@@ -98,7 +104,7 @@ export function GlassButton({
           justifyContent: "center",
           gap: "8px",
           padding: "10px 18px",
-          borderRadius: RADIUS.control,
+          borderRadius: variant === "primary" ? "1rem" : RADIUS.control,
           borderWidth: "1px",
           borderStyle: "solid",
           fontSize: TYPE.body.size,
@@ -110,7 +116,10 @@ export function GlassButton({
           borderColor: recipe.border,
           // A hairline top highlight, so a translucent button still reads as a
           // lit surface rather than a hole in the card.
-          boxShadow: `inset 0 1px 0 ${variant === "primary" ? ACCENT.text : SOLID.border}`,
+          boxShadow:
+            variant === "primary"
+              ? "0 10px 25px -5px rgba(255, 59, 48, 0.20)"
+              : `inset 0 1px 0 ${SOLID.border}`,
           ...style,
         } satisfies CSSProperties
       }

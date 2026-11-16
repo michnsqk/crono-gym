@@ -46,7 +46,7 @@
 
   body {
     /* True black base for OLED, with clean near-white body copy. */
-    @apply bg-neutral-950 text-neutral-100 antialiased;
+    @apply bg-black text-neutral-100 antialiased;
     font-synthesis-weight: none;
     text-rendering: optimizeLegibility;
   }
@@ -403,12 +403,17 @@ background: radial-gradient(
    * the states entirely would leave a control that gives no response at all,
    * which is worse for everyone than a filter that does not animate.
    */
+  .gbtn {
+    transition: transform 120ms ease, filter 120ms ease, background-color 150ms ease;
+  }
+
   .gbtn:hover:not(:disabled) {
-    filter: brightness(1.12);
+    filter: brightness(1.08);
   }
 
   .gbtn:active:not(:disabled) {
     filter: brightness(0.92);
+    transform: scale(0.98);
   }
 
   /*
