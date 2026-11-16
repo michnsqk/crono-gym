@@ -148,9 +148,9 @@ export function WorkoutPreStartView({
             border: "1px solid rgba(255, 255, 255, 0.1)",
           }}
         >
-          {/* Compact Header Row: badge + title + metrics left, DualMiniMuscleMap right */}
-          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: SPACE.lg, flexWrap: "wrap" }}>
-            <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md, minWidth: 0, flex: 1 }}>
+          {/* Compact Header Row + Centered Anatomical Selector */}
+          <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md, minWidth: 0 }}>
               <div style={{ display: "flex", alignItems: "center", gap: SPACE.sm, flexWrap: "wrap" }}>
                 <span
                   style={{
@@ -202,7 +202,9 @@ export function WorkoutPreStartView({
               </div>
             </div>
 
-            <DualMiniMuscleMap counts={counts} />
+            <div style={{ display: "flex", justifyContent: "center", width: "100%" }}>
+              <DualMiniMuscleMap counts={counts} />
+            </div>
           </div>
 
           {/* Integrated Muscle Distribution */}

@@ -13,7 +13,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { RefreshCw, AlertTriangle, Menu, ChevronDown, ChevronUp, Megaphone, Zap, X } from "lucide-react";
+import { RefreshCw, AlertTriangle, Menu, ChevronDown, Megaphone, Zap, X } from "lucide-react";
 import { useAdvancedMode } from "@/hooks/useAdvancedMode";
 import { TopMenuDrawer } from "@/components/shell/TopMenuDrawer";
 import { WelcomeTourModal, hasSeenWelcomeTour } from "@/components/onboarding/WelcomeTourModal";
@@ -490,26 +490,33 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         </GlassCard>
       )}
 
-      {/* 4. Métricas Avanzadas Plegadas (acordeón cerrado por defecto en Modo Simple) */}
-      <section className="rounded-2xl border border-white/10 bg-[#1C1C1E]">
+      {/* 4. Métricas Avanzadas Plegadas (acordeón full-width cerrado por defecto en Modo Simple) */}
+      <section className="w-full rounded-2xl border border-white/[0.06] bg-[#1C1C1E]">
         <button
           type="button"
           aria-expanded={advancedMode || metricsExpanded}
           onClick={() => setMetricsExpanded((prev) => !prev)}
-          className="flex h-12 w-full items-center justify-between px-4 text-sm font-semibold text-white active:scale-[0.98]"
+          className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold tracking-tight text-white transition-transform active:scale-[0.98]"
         >
           <span>Ver resumen de rendimiento</span>
-          {advancedMode || metricsExpanded ? (
-            <ChevronUp size={18} className="text-zinc-400" aria-hidden="true" />
-          ) : (
-            <ChevronDown size={18} className="text-zinc-400" aria-hidden="true" />
-          )}
+          <div className="flex items-center gap-2.5">
+            <span className="font-mono text-xs font-medium tabular-nums text-zinc-400">
+              {weeklyCompleted}/{weeklyGoal} ses.
+            </span>
+            <ChevronDown
+              size={18}
+              className={`text-zinc-400 transition-transform duration-200 ${
+                advancedMode || metricsExpanded ? "rotate-180" : "rotate-0"
+              }`}
+              aria-hidden="true"
+            />
+          </div>
         </button>
 
         {(advancedMode || metricsExpanded) && (
           <div
             data-testid="today-command-center"
-            className="grid grid-cols-1 gap-5 border-t border-white/10 p-4 md:gap-6 xl:grid-cols-12 items-start"
+            className="grid grid-cols-1 gap-5 border-t border-white/[0.06] p-4 md:gap-6 xl:grid-cols-12 items-start"
           >
             <div className="flex flex-col gap-5 md:gap-6 min-w-0 xl:col-span-8">
               <DailyReadinessBanner

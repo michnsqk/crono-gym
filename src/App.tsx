@@ -193,12 +193,12 @@ export function AuthGate() {
             />
           )
         ) : (
-          <>
+          <div key={location.pathname} className="cronos-page-transition w-full">
             {/* Only the user id and email travel through outlet context now: the
                 session lives in `ActiveSessionContext` because `AppShell` has to
                 read it too. */}
             <Outlet context={{ userId, email }} />
-          </>
+          </div>
         )}
       </main>
 

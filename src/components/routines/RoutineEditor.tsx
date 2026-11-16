@@ -73,126 +73,142 @@ interface RoutineEditorProps {
 }
 
 /**
- * DualMiniMuscleMap — Capsula contenedora con dos mapas anatómicos escalados
- * FRENTE (anterior) y ESPALDA (posterior) en un contenedor fijo de 144x136px.
+ * DualMiniMuscleMap — Cápsula contenedora con dos mapas anatómicos escalados
+ * FRONTAL (anterior) y POSTERIOR (espalda) en un contenedor de hasta 358x152px.
  */
 export function DualMiniMuscleMap({ counts }: { counts: Map<Slug, number> }) {
   return (
     <div
       style={{
         position: "relative",
-        width: 144,
-        height: 136,
+        width: "100%",
+        maxWidth: 358,
+        height: 152,
         flexShrink: 0,
-        borderRadius: "24px",
-        background: "rgba(0,0,0,0.5)",
-        border: "1px solid rgba(255,255,255,0.08)",
-        overflow: "hidden",
+        borderRadius: "20px",
+        background: "#1C1C1E",
+        border: "1px solid rgba(255, 255, 255, 0.06)",
         display: "flex",
         alignItems: "center",
         justifyContent: "center",
-        gap: 2,
-        padding: "5px 5px",
+        gap: 44,
+        padding: "10px 16px",
       }}
     >
-      {/* Mapa Anterior (FRENTE) */}
+      {/* Mapa Anterior (FRONTAL) */}
       <div
         style={{
-          width: 64,
-          height: 126,
-          position: "relative",
-          overflow: "hidden",
           display: "flex",
-          alignItems: "flex-start",
+          flexDirection: "column",
+          alignItems: "center",
           justifyContent: "center",
+          gap: 6,
         }}
       >
         <div
           style={{
-            width: 150,
-            height: 290,
-            transform: "scale(0.42)",
-            transformOrigin: "top center",
-            pointerEvents: "none",
+            width: 68,
+            height: 112,
+            position: "relative",
+            overflow: "visible",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <MuscleReadonlyMap
-            counts={counts}
-            side="front"
-            aspectRatio={150 / 290}
-            label="Vista frontal"
-            backgroundColor="transparent"
-            caption={null}
-            overflow="visible"
-            inertFill="rgba(255,255,255,0.03)"
-            litFill="#FF3B30"
-            mostLitFill="rgba(255,59,48,0.3)"
-          />
+          <div
+            style={{
+              width: 150,
+              height: 290,
+              transform: "scale(0.38)",
+              transformOrigin: "center center",
+              pointerEvents: "none",
+            }}
+          >
+            <MuscleReadonlyMap
+              counts={counts}
+              side="front"
+              aspectRatio={150 / 290}
+              label="Vista frontal"
+              backgroundColor="transparent"
+              caption={null}
+              overflow="visible"
+              inertFill="rgba(255,255,255,0.06)"
+              litFill="#FF3B30"
+              mostLitFill="rgba(255,59,48,0.35)"
+            />
+          </div>
         </div>
-        <div
+        <span
           style={{
-            position: "absolute",
-            bottom: 4,
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            pointerEvents: "none",
+            fontSize: "10px",
+            fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "rgba(235, 235, 245, 0.30)",
           }}
         >
-          <span style={{ fontSize: "8px", fontFamily: "ui-monospace, SFMono-Regular, monospace", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#52525B" }}>
-            FRENTE
-          </span>
-        </div>
+          FRONTAL
+        </span>
       </div>
 
-      {/* Mapa Posterior (ESPALDA) */}
+      {/* Mapa Posterior (POSTERIOR) */}
       <div
         style={{
-          width: 64,
-          height: 126,
-          position: "relative",
-          overflow: "hidden",
           display: "flex",
-          alignItems: "flex-start",
+          flexDirection: "column",
+          alignItems: "center",
           justifyContent: "center",
+          gap: 6,
         }}
       >
         <div
           style={{
-            width: 150,
-            height: 290,
-            transform: "scale(0.42)",
-            transformOrigin: "top center",
-            pointerEvents: "none",
+            width: 68,
+            height: 112,
+            position: "relative",
+            overflow: "visible",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
           }}
         >
-          <MuscleReadonlyMap
-            counts={counts}
-            side="back"
-            aspectRatio={150 / 290}
-            label="Vista posterior"
-            backgroundColor="transparent"
-            caption={null}
-            overflow="visible"
-            inertFill="rgba(255,255,255,0.03)"
-            litFill="#FF3B30"
-            mostLitFill="rgba(255,59,48,0.3)"
-          />
+          <div
+            style={{
+              width: 150,
+              height: 290,
+              transform: "scale(0.38)",
+              transformOrigin: "center center",
+              pointerEvents: "none",
+            }}
+          >
+            <MuscleReadonlyMap
+              counts={counts}
+              side="back"
+              aspectRatio={150 / 290}
+              label="Vista posterior"
+              backgroundColor="transparent"
+              caption={null}
+              overflow="visible"
+              inertFill="rgba(255,255,255,0.06)"
+              litFill="#FF3B30"
+              mostLitFill="rgba(255,59,48,0.35)"
+            />
+          </div>
         </div>
-        <div
+        <span
           style={{
-            position: "absolute",
-            bottom: 4,
-            left: 0,
-            right: 0,
-            textAlign: "center",
-            pointerEvents: "none",
+            fontSize: "10px",
+            fontFamily: "'JetBrains Mono', ui-monospace, SFMono-Regular, monospace",
+            fontWeight: 600,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: "rgba(235, 235, 245, 0.30)",
           }}
         >
-          <span style={{ fontSize: "8px", fontFamily: "ui-monospace, SFMono-Regular, monospace", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#52525B" }}>
-            ESPALDA
-          </span>
-        </div>
+          POSTERIOR
+        </span>
       </div>
     </div>
   );
