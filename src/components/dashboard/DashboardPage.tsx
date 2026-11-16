@@ -11,7 +11,7 @@
  *   Récords, Historial, Cronos IA, Navegación inferior.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { RefreshCw, AlertTriangle, Menu, ChevronDown, Megaphone, Zap, X } from "lucide-react";
 import { useAdvancedMode } from "@/hooks/useAdvancedMode";
@@ -169,7 +169,15 @@ export function DashboardPage({ userId }: DashboardPageProps) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [storeOpen, setStoreOpen] = useState(false);
   const [tourOpen, setTourOpen] = useState(() => !hasSeenWelcomeTour());
-  const [metricsExpanded, setMetricsExpanded] = useState(false);
+  const [metricsExpanded, setMetricsExpanded] = useState(() => advancedMode);
+  const [announcementImagePreview, setAnnouncementImagePreview] = useState<{
+    url: string;
+    title: string;
+  } | null>(null);
+
+  useEffect(() => {
+    setMetricsExpanded(advancedMode);
+  }, [advancedMode]);
 
   const sessionState = useMemo<SessionState>(() => {
     if (data.isSessionActive) return "in-progress";
@@ -412,20 +420,46 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         </div>
       </header>
 
-      {/* 1. Avisos del Gimnasio (Prioridad Alta) */}
+      {/* 1. Avisos del Gimnasio (Estilo Apple + Google Pixel At-a-Glance con foto opcional) */}
       {announcements.length > 0 && (
-        <section className="rounded-2xl border border-white/10 bg-[#1C1C1E] p-4">
-          <div className="mb-2 flex items-center gap-2">
-            <Megaphone size={16} color={ACCENT.base} aria-hidden="true" />
-            <span className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-              Avisos del Gimnasio
+        <section className="rounded-3xl border border-white/[0.06] bg-[#1C1C1E] p-4">
+          <div className="mb-2.5 flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Megaphone size={15} color={ACCENT.base} aria-hidden="true" />
+              <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
+                Avisos del Gimnasio
+              </span>
+            </div>
+            <span className="font-mono text-[11px] tabular-nums text-zinc-500">
+              {announcements.length}
             </span>
           </div>
-          <div className="divide-y divide-white/10">
+          <div className="divide-y divide-white/[0.06]">
             {announcements.slice(0, 2).map((a) => (
-              <div key={a.id} className="py-2 first:pt-0 last:pb-0">
-                <p className="text-sm font-semibold text-white">{a.title}</p>
-                {a.body && <p className="mt-0.5 text-xs text-zinc-400">{a.body}</p>}
+              <div
+                key={a.id}
+                className="flex items-start justify-between gap-3 py-2.5 first:pt-0 last:pb-0"
+              >
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-semibold tracking-tight text-white">{a.title}</p>
+                  {a.body && <p className="mt-0.5 text-xs leading-relaxed text-zinc-400">{a.body}</p>}
+                </div>
+                {a.imageUrl && (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setAnnouncementImagePreview({ url: a.imageUrl!, title: a.title })
+                    }
+                    aria-label={`Ver imagen del aviso ${a.title}`}
+                    className="h-14 w-14 shrink-0 overflow-hidden rounded-2xl border border-white/[0.06] bg-black transition-transform active:scale-95"
+                  >
+                    <img
+                      src={a.imageUrl}
+                      alt={a.title}
+                      className="h-full w-full object-cover"
+                    />
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -490,11 +524,11 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         </GlassCard>
       )}
 
-      {/* 4. Métricas Avanzadas Plegadas (acordeón full-width cerrado por defecto en Modo Simple) */}
-      <section className="w-full rounded-2xl border border-white/[0.06] bg-[#1C1C1E]">
+      {/* 4. Métricas Avanzadas Plegadas (siempre colapsable, full-width Apple + Pixel) */}
+      <section className="w-full rounded-3xl border border-white/[0.06] bg-[#1C1C1E]">
         <button
           type="button"
-          aria-expanded={advancedMode || metricsExpanded}
+          aria-expanded={metricsExpanded}
           onClick={() => setMetricsExpanded((prev) => !prev)}
           className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold tracking-tight text-white transition-transform active:scale-[0.98]"
         >
@@ -506,17 +540,17 @@ export function DashboardPage({ userId }: DashboardPageProps) {
             <ChevronDown
               size={18}
               className={`text-zinc-400 transition-transform duration-200 ${
-                advancedMode || metricsExpanded ? "rotate-180" : "rotate-0"
+                metricsExpanded ? "rotate-180" : "rotate-0"
               }`}
               aria-hidden="true"
             />
           </div>
         </button>
 
-        {(advancedMode || metricsExpanded) && (
+        {metricsExpanded && (
           <div
             data-testid="today-command-center"
-            className="grid grid-cols-1 gap-5 border-t border-white/[0.06] p-4 md:gap-6 xl:grid-cols-12 items-start"
+            className="grid grid-cols-1 gap-5 border-t border-white/[0.06] p-4 pb-6 md:gap-6 xl:grid-cols-12 items-start"
           >
             <div className="flex flex-col gap-5 md:gap-6 min-w-0 xl:col-span-8">
               <DailyReadinessBanner
@@ -626,6 +660,40 @@ export function DashboardPage({ userId }: DashboardPageProps) {
               </button>
             </div>
             <GymClubHubSection userId={userId} />
+          </div>
+        </div>
+      )}
+
+      {announcementImagePreview && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label={`Imagen del aviso: ${announcementImagePreview.title}`}
+          onClick={() => setAnnouncementImagePreview(null)}
+          className="fixed inset-0 z-[98] flex items-center justify-center bg-black/90 p-4 backdrop-blur-xl"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md overflow-hidden rounded-3xl border border-white/[0.06] bg-[#1C1C1E] p-3"
+          >
+            <div className="mb-2.5 flex items-center justify-between gap-2 px-1">
+              <span className="truncate text-sm font-semibold tracking-tight text-white">
+                {announcementImagePreview.title}
+              </span>
+              <button
+                type="button"
+                onClick={() => setAnnouncementImagePreview(null)}
+                aria-label="Cerrar imagen del aviso"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-[#2C2C2E] text-zinc-300"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <img
+              src={announcementImagePreview.url}
+              alt={announcementImagePreview.title}
+              className="max-h-[75vh] w-full rounded-2xl bg-black object-contain"
+            />
           </div>
         </div>
       )}
