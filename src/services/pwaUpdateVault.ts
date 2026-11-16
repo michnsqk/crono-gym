@@ -163,8 +163,12 @@ export function usePwaUpdateVault() {
 
   const applySafeUpdate = useCallback(async () => {
     await sealEmergencyVault();
-    if (waitingWorker) {
-      waitingWorker.postMessage({ type: "SKIP_WAITING" });
+    if (typeof navigator !== "undefined" && "serviceWorker" in navigator && waitingWorker) {
+      try {
+        waitingWorker.postMessage({ type: "SKIP_WAITING" });
+      } catch {
+        // Ignore if worker already terminated or detached.
+      }
     }
     if (typeof window !== "undefined") {
       window.location.reload();

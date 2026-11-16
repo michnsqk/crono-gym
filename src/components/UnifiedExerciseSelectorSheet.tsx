@@ -10,7 +10,7 @@
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Activity, Check, CheckCircle2, ChevronDown, Dumbbell, Flame, Minus, Search, Sparkles, X } from "lucide-react";
+import { Activity, Check, ChevronDown, Dumbbell, Flame, Minus, Search, Sparkles, X } from "lucide-react";
 import type { CSSProperties } from "react";
 import type { Slug } from "react-muscle-highlighter";
 import { translateBodyPart, translateMuscle, translateEquipment } from "@/lib/i18n";
@@ -34,7 +34,7 @@ import { resolveMedia } from "@/lib/media/mediaResolver";
 import { getExerciseDisplayName } from "@/utils/exerciseTranslation";
 import { supabase } from "@lib/supabase";
 import { ACCENT, DANGER, GLASS, MOTION, RADIUS, SCRIM, SOLID, SPACE, SURFACE, TEXT, TYPE, Z_INDEX } from "@/design/tokens";
-import { MuscleSelector } from "./MuscleSelector";
+import { AnatomicalMusclePickerSheet } from "./AnatomicalMusclePickerSheet";
 import { filterByMuscles, muscleCounts, selectionLabels } from "@/lib/muscleFilter";
 import { enabledSlugs as getEnabledSlugs } from "@/lib/muscleMap";
 
@@ -205,7 +205,6 @@ export function UnifiedExerciseSelectorSheet({
     inferWarmupMuscleFromContext(dayContext?.dayLabel, dayContext?.dayExercises),
   );
   const [selectedEquipmentCategory, setSelectedEquipmentCategory] = useState<string | null>(null);
-  const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [selectedMuscles, setSelectedMuscles] = useState<Slug[]>([]);
   const [isEquipmentOpen, setIsEquipmentOpen] = useState(false);
   const [isAnatomicalOpen, setIsAnatomicalOpen] = useState(false);
@@ -280,6 +279,8 @@ export function UnifiedExerciseSelectorSheet({
     if (!isOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") { onClose(); return; }
+      const activeTag = document.activeElement?.tagName;
+      if (activeTag === "INPUT" || activeTag === "TEXTAREA") return;
       if (e.key === "/") {
         e.preventDefault();
         (document.querySelector('[data-testid="selector-search-input"]') as HTMLInputElement | null)?.focus();
@@ -315,7 +316,7 @@ export function UnifiedExerciseSelectorSheet({
 
   const filtered = useMemo(() => {
     const q = normaliseExerciseName(debouncedQuery);
-    if (!q && !selectedEquipmentCategory && selectedMuscles.length === 0 && !onlyAvailable) return baseRows;
+    if (!q && !selectedEquipmentCategory && selectedMuscles.length === 0) return baseRows;
     const index = ensureIndex();
     let ids: Set<string> | null = null;
     if (q) {
@@ -334,12 +335,11 @@ export function UnifiedExerciseSelectorSheet({
         if (!exactTokenMatch && !matchesSemanticExerciseSearch(ex, debouncedQuery)) return false;
       }
       if (selectedEquipmentCategory && getEquipmentCategory(ex.equipment) !== selectedEquipmentCategory) return false;
-      if (onlyAvailable && (ex as Exercise & { availableInCronosGym?: boolean }).availableInCronosGym === false) return false;
       return true;
     });
     if (tab === "warmup" || selectedMuscles.length === 0) return attributeFiltered;
     return filterByMuscles(attributeFiltered, selectedMuscles).results;
-  }, [baseRows, debouncedQuery, selectedEquipmentCategory, selectedMuscles, onlyAvailable, ensureIndex, tab]);
+  }, [baseRows, debouncedQuery, selectedEquipmentCategory, selectedMuscles, ensureIndex, tab]);
 
   const visibleCount = page * PAGE_SIZE;
   const displayed = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
@@ -391,7 +391,7 @@ export function UnifiedExerciseSelectorSheet({
   const handleTogglePreview = useCallback((id: string) => setExpandedId((prev) => (prev === id ? null : id)), []);
   const handleLoadMore = useCallback(() => { if (hasMore) setPage((p) => p + 1); }, [hasMore]);
   const handleClear = useCallback(() => {
-    setQuery(""); setTab("all"); setSelectedEquipmentCategory(null); setSelectedMuscles([]); setOnlyAvailable(false); setPage(1);
+    setQuery(""); setTab("all"); setSelectedEquipmentCategory(null); setSelectedMuscles([]); setPage(1);
     setIsEquipmentOpen(false); setIsAnatomicalOpen(false);
   }, []);
   const handleMuscleSelectorChange = useCallback((next: Slug[]) => setSelectedMuscles(next), []);
@@ -423,7 +423,7 @@ export function UnifiedExerciseSelectorSheet({
   const muscleCountsBySlug = useMemo(() => muscleCounts(baseRows, ENABLED_MUSCLE_SLUGS), [baseRows]);
   const muscleSelectionLabels = selectionLabels(selectedMuscles);
 
-  const activeFilterCount = (selectedEquipmentCategory ? 1 : 0) + (query.length > 0 ? 1 : 0) + (selectedMuscles.length > 0 ? 1 : 0) + (onlyAvailable ? 1 : 0);
+  const activeFilterCount = (selectedEquipmentCategory ? 1 : 0) + (query.length > 0 ? 1 : 0) + (selectedMuscles.length > 0 ? 1 : 0);
 
   const handleRenameExercise = useCallback(async (id: string, name: string, name_es: string | null) => {
     setOpError(null);
@@ -593,10 +593,13 @@ export function UnifiedExerciseSelectorSheet({
               <style>{`[data-testid="selector-search-input"]::placeholder{color:${TEXT.tertiary};opacity:1;}`}</style>
               <input
                 data-testid="selector-search-input"
-                type="search"
+                type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Escape") onClose(); }}
+                onKeyDown={(e) => {
+                  if (e.key === " ") e.stopPropagation();
+                  if (e.key === "Escape") onClose();
+                }}
                 placeholder="Buscar por nombre, músculo o equipo…"
                 autoComplete="off"
                 style={{
@@ -815,27 +818,21 @@ export function UnifiedExerciseSelectorSheet({
             </div>
           )}
 
-          {isAnatomicalOpen && (
-            <div id="anatomical-chips" style={{ marginBottom: SPACE.sm, maxHeight: "176px", overflowY: "auto" }}>
-              <MuscleSelector selected={selectedMuscles} onChange={handleMuscleSelectorChange} counts={muscleCountsBySlug} legendLabel="Músculos del catálogo" className="" />
-            </div>
-          )}
-
-          <label
-            className="mb-3 flex min-h-11 items-center gap-2 rounded-xl px-3 text-xs font-semibold text-zinc-300"
-            style={{ backgroundColor: SOLID.card }}
-          >
-            <input type="checkbox" checked={onlyAvailable} onChange={(event) => { setOnlyAvailable(event.target.checked); setPage(1); }} />
-            <CheckCircle2 size={14} aria-hidden="true" style={{ color: ACCENT.base }} />
-            <span>Disponibles en Cronos Gym</span>
-          </label>
+          <AnatomicalMusclePickerSheet
+            isOpen={isAnatomicalOpen}
+            selected={selectedMuscles}
+            counts={muscleCountsBySlug}
+            totalMatchingExercises={filtered.length}
+            onChange={handleMuscleSelectorChange}
+            onClear={handleClearMuscles}
+            onClose={() => setIsAnatomicalOpen(false)}
+          />
 
           {activeFilterCount > 0 && (
             <div style={{ marginBottom: SPACE.sm, display: "flex", alignItems: "center", gap: SPACE.xs, flexWrap: "wrap" }}>
               {selectedEquipmentCategory && <RemovableChip label={selectedEquipmentCategory} onRemove={() => setSelectedEquipmentCategory(null)} />}
               {query && <RemovableChip label={`"${query}"`} onRemove={() => setQuery("")} />}
               {selectedMuscles.length > 0 && <RemovableChip label={muscleSelectionLabels} onRemove={handleClearMuscles} />}
-              {onlyAvailable && <RemovableChip label="Disponibles en Cronos Gym" onRemove={() => setOnlyAvailable(false)} />}
               <button type="button" onClick={handleClear} style={{ background: "none", border: "none", color: TEXT.tertiary, fontSize: TYPE.caption.size, cursor: "pointer", padding: `0 ${SPACE.xs}px`, minHeight: MOTION.minTouchTarget }}>Limpiar filtros</button>
             </div>
           )}
