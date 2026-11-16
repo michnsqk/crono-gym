@@ -98,11 +98,13 @@ export default defineConfig({
     strictPort: true,
   },
   build: {
+    sourcemap: true,
     rollupOptions: {
       plugins: [dropConsole()],
       output: {
         manualChunks: {
           react: ["react", "react-dom"],
+          "vendor-router": ["react-router-dom"],
           "vendor-supabase": ["@supabase/supabase-js"],
           "vendor-icons": ["lucide-react"],
         },

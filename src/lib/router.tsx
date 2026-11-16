@@ -21,7 +21,6 @@
 import { Navigate, createBrowserRouter } from "react-router-dom";
 import { Suspense, lazy } from "react";
 import { AppShell } from "@/components/shell/AppShell";
-import { RoutinesPage } from "@/components/routines/RoutinesPage";
 import {
   AuthGate,
   CoachView,
@@ -30,7 +29,6 @@ import {
   RangosView,
   TrainView,
 } from "@/App";
-import { ProfilePage } from "@/components/profile/ProfilePage";
 import { HubSkeleton } from "@/components/hub/HubSkeleton";
 import { UiCatalogPage } from "@/components/dev/UiCatalogPage";
 import { CoachPortalPreview } from "@/components/dev/CoachPortalPreview";
@@ -54,6 +52,18 @@ import {
  * for a screen reached from a single strip button. The lazy chunk lands on demand
  * and the skeleton keeps the shell visible while it streams in.
  */
+const LazyRoutinesPage = lazy(() =>
+  import("@/components/routines/RoutinesPage").then((mod) => ({
+    default: mod.RoutinesPage,
+  })),
+);
+
+const LazyProfilePage = lazy(() =>
+  import("@/components/profile/ProfilePage").then((mod) => ({
+    default: mod.ProfilePage,
+  })),
+);
+
 const ExerciseHub = lazy(() =>
   import("@/components/hub/ExerciseHub").then((mod) => ({
     default: mod.ExerciseHub,
@@ -136,7 +146,14 @@ export const router = createBrowserRouter([
         children: [
           { path: HOME_PATH, element: <HomeView /> },
           legacyHomeRoute,
-          { path: ROUTINES_PATH, element: <RoutinesPage /> },
+          {
+            path: ROUTINES_PATH,
+            element: (
+              <Suspense fallback={<LoadingSpinner />}>
+                <LazyRoutinesPage />
+              </Suspense>
+            ),
+          },
           legacyRoutinesRoute,
           { path: PROGRESS_PATH, element: <ProgressView /> },
           /*
@@ -168,7 +185,14 @@ export const router = createBrowserRouter([
           // reload and so the pill's destination is a real screen.
           { path: "/entrenar", element: <TrainView /> },
           { path: "/rangos", element: <RangosView /> },
-          { path: PROFILE_PATH, element: <ProfilePage /> },
+          {
+            path: PROFILE_PATH,
+            element: (
+              <Suspense fallback={<LoadingSpinner />}>
+                <LazyProfilePage />
+              </Suspense>
+            ),
+          },
           /*
            * The AI coach's workspace: the context briefing, the chat, the notes and the
            * pending recommendations.
