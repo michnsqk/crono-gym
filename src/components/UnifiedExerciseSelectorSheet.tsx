@@ -645,7 +645,7 @@ export function UnifiedExerciseSelectorSheet({
             </div>
           </div>
 
-          <div style={{ display: "flex", gap: SPACE.xs, marginBottom: SPACE.sm, padding: 2, borderRadius: RADIUS.control, border: `1px solid ${GLASS.border}`, background: GLASS.fill }}>
+          <div style={{ display: "flex", gap: SPACE.xs, marginBottom: SPACE.sm, padding: 3, borderRadius: 9999, border: "1px solid rgba(255,255,255,0.06)", background: "#1C1C1E" }}>
             {(["all", "frequent", "warmup"] as const).map((t) => (
               <button
                 key={t}
@@ -654,10 +654,10 @@ export function UnifiedExerciseSelectorSheet({
                 onClick={() => setTab(t)}
                 style={{
                   flex: 1,
-                  minHeight: MOTION.minTouchTarget,
-                  borderRadius: RADIUS.control,
+                  minHeight: 38,
+                  borderRadius: 9999,
                   border: "none",
-                  background: tab === t ? ACCENT.subtle : "transparent",
+                  background: tab === t ? "#2C2C2E" : "transparent",
                   color: tab === t ? TEXT.primary : TEXT.secondary,
                   fontSize: TYPE.caption.size,
                   fontWeight: tab === t ? 600 : 500,
@@ -842,7 +842,10 @@ export function UnifiedExerciseSelectorSheet({
           {opError && <StateBlock text={opError} tone="error" />}
 
           {displayed.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: isMobile ? "1fr" : "repeat(auto-fill, minmax(320px, 1fr))", gap: SPACE.sm }}>
+            <div
+              className={isMobile ? "divide-y divide-white/[0.06] overflow-hidden rounded-3xl border border-white/[0.06] bg-[#1C1C1E]" : ""}
+              style={isMobile ? undefined : { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: SPACE.sm }}
+            >
               {displayed.map((ex) => (
                 <SelectorCard
                   key={ex.id}
@@ -853,6 +856,7 @@ export function UnifiedExerciseSelectorSheet({
                   expanded={expandedId === ex.id}
                   alreadyInDay={alreadyInDay.has(ex.id)}
                   catalogRevision={catalogRevision}
+                  compactList={isMobile}
                   onSelect={handleSelect}
                   onTogglePreview={handleTogglePreview}
                   onRename={handleRenameExercise}
@@ -977,7 +981,7 @@ interface SelectorCardProps {
   catalogRevision?: number;
 }
 
-function SelectorCard({ exercise, order, selected, multiSelect, expanded, alreadyInDay, catalogRevision = 0, onSelect, onTogglePreview }: SelectorCardProps) {
+function SelectorCard({ exercise, order, selected, multiSelect, expanded, alreadyInDay, catalogRevision = 0, compactList = false, onSelect, onTogglePreview }: SelectorCardProps & { compactList?: boolean }) {
   // The card resolves through the override store, so the name, the machine and the
   // demonstration are the ones the coach last wrote, not the ones the asset shipped.
   const resolved = useMemo(
@@ -1008,9 +1012,12 @@ function SelectorCard({ exercise, order, selected, multiSelect, expanded, alread
   }, [alreadyInDay]);
 
   return (
-    <div style={{
+    <div style={compactList ? {
+      background: active ? "rgba(255,59,48,0.08)" : "transparent",
+      overflow: "hidden",
+    } : {
       borderRadius: RADIUS.surface,
-      border: `1px solid ${active ? ACCENT.base : "rgba(255,255,255,0.08)"}`,
+      border: `1px solid ${active ? ACCENT.base : "rgba(255,255,255,0.06)"}`,
       background: "#1C1C1E",
       overflow: "hidden",
       boxShadow: active ? "0 0 0 1px rgba(255,59,48,0.4)" : "none",
@@ -1020,7 +1027,7 @@ function SelectorCard({ exercise, order, selected, multiSelect, expanded, alread
         aria-pressed={active || undefined}
         aria-label={displayName}
         tabIndex={0}
-        style={{ display: "flex", alignItems: "center", gap: 14, padding: SPACE.md, cursor: "pointer", minHeight: 84, transition: "transform 150ms ease" }}
+        style={{ display: "flex", alignItems: "center", gap: 12, padding: compactList ? "12px 14px" : SPACE.md, cursor: "pointer", minHeight: compactList ? 68 : 84, transition: "transform 150ms ease" }}
         onClick={() => { if (!alreadyInDay) onSelect(exercise); }}
         onKeyDown={(e) => { if ((e.key === "Enter" || e.key === " ") && !alreadyInDay) { e.preventDefault(); onSelect(exercise); } }}
         onMouseDown={handleMouseDown}

@@ -581,8 +581,8 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         />
       </div>
 
-      {/* Bottom Row: Metrics + Rest Toggle (left) | Dual Muscle Map (right) */}
-      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12 }}>
+      {/* Metrics + Rest Toggle (top) | Dual Muscle Map (below, full-width, zero overlap) */}
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 14 }}>
         {/* Left Column: Clean Horizontal Metric Pills & Rest Toggle */}
         <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
           {/* Metrics Pills */}
@@ -955,23 +955,23 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         </div>
       )}
       <header
-        className="flex items-center justify-between gap-1.5 w-full max-w-full overflow-hidden px-1 sm:px-3"
+        className="flex items-center justify-between gap-1 w-full max-w-full overflow-hidden px-2 sm:px-3"
         style={{
           position: "sticky",
           top: 0,
           zIndex: 30,
-          height: 48,
-          background: GLASS.fill,
+          height: 50,
+          background: "rgba(0, 0, 0, 0.82)",
           backdropFilter: "blur(24px)",
           WebkitBackdropFilter: "blur(24px)",
-          borderBottom: `1px solid ${GLASS.border}`,
+          borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
         }}
       >
         <button
           type="button"
           onClick={onClose}
           aria-label="Cancelar"
-          className="inline-flex items-center gap-1 px-2.5 py-1.5 text-xs shrink-0 rounded-full"
+          className="inline-flex items-center gap-0.5 px-1.5 py-1.5 text-xs shrink-0 rounded-full"
           style={{
             border: "none",
             background: "transparent",
@@ -987,10 +987,10 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         </button>
 
         <div
-          className="inline-flex items-center p-0.5 text-xs shrink-0 rounded-xl"
+          className="inline-flex items-center p-0.5 shrink-0 rounded-full"
           style={{
-            border: `1px solid ${GLASS.border}`,
-            background: SOLID.card,
+            border: "1px solid rgba(255, 255, 255, 0.06)",
+            background: "#1C1C1E",
           }}
           role="tablist"
           aria-label="Modo de rutina"
@@ -1000,7 +1000,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
             role="tab"
             aria-selected={mode === "single"}
             onClick={() => { hapticLight(); setMode("single"); }}
-            className="px-2.5 py-1 text-xs font-semibold rounded-lg shrink-0"
+            className="px-2.5 py-1 text-[11px] font-semibold rounded-full shrink-0"
             style={{
               border: "none",
               background: mode === "single" ? ACCENT.base : "transparent",
@@ -1017,7 +1017,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
             role="tab"
             aria-selected={mode === "weekly"}
             onClick={() => { hapticLight(); setMode("weekly"); }}
-            className="px-2.5 py-1 text-xs font-semibold rounded-lg shrink-0"
+            className="px-2.5 py-1 text-[11px] font-semibold rounded-full shrink-0"
             style={{
               border: "none",
               background: mode === "weekly" ? ACCENT.base : "transparent",
@@ -1036,10 +1036,10 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
           onClick={handleSave}
           disabled={!canSave || saveStatus === "saving"}
           aria-label={canSave ? "Guardar rutina" : "Guardar rutina (requiere al menos un ejercicio)"}
-          className="inline-flex items-center justify-center px-3 py-1.5 text-xs font-bold shrink-0 rounded-xl uppercase"
+          className="inline-flex items-center justify-center px-3 py-1.5 text-[11px] font-bold shrink-0 rounded-full uppercase"
           style={{
             border: "none",
-            background: canSave ? ACCENT.base : SOLID.card,
+            background: canSave ? ACCENT.base : "#1C1C1E",
             color: canSave ? TEXT.primary : TEXT.tertiary,
             letterSpacing: "0.4px",
             cursor: canSave ? "pointer" : "not-allowed",
