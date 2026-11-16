@@ -3,8 +3,17 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <title>Cronos — Entrenamiento</title>
-    <meta name="description" content="Cronos: seguimiento de entrenamientos minimalista en modo oscuro." />
+    <title>Cronos Gym (Crono Gym) — Entrenamiento, Progreso y Gestión de Gimnasio</title>
+    <meta name="description" content="Cronos Gym (Crono Gym): Plataforma inteligente de entrenamiento de fuerza, sobrecarga progresiva, rutinas biomecánicas, rangos anatómicos y gestión de gimnasio." />
+    <meta name="keywords" content="Cronos Gym, Crono Gym, gimnasio, entrenamiento de fuerza, sobrecarga progresiva, rutinas de gym, fitness app" />
+    <link rel="canonical" href="https://cronogym.vercel.app/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Cronos Gym — Plataforma de Entrenamiento y Progreso" />
+    <meta property="og:description" content="Controla tu sobrecarga progresiva, rangos anatómicos y rutinas en Cronos Gym." />
+    <meta property="og:url" content="https://cronogym.vercel.app/" />
+    <meta property="og:type" content="website" />
+    <meta property="og:image" content="https://cronogym.vercel.app/logo.jpg" />
 
     <!-- Favicon: official logo -->
     <link rel="icon" type="image/jpeg" href="/logo.jpg" />
@@ -28,8 +37,24 @@
       :root { color-scheme: dark; }
       body { background: #000000; }
     </style>
+    <script type="application/ld+json">
+      {
+        "@context": "https://schema.org",
+        "@type": ["WebApplication", "SportsActivityLocation"],
+        "name": "Cronos Gym",
+        "alternateName": ["Crono Gym", "Cronos Gym App"],
+        "url": "https://cronogym.vercel.app/",
+        "applicationCategory": "HealthApplication",
+        "operatingSystem": "Web, iOS, Android",
+        "description": "Sistema inteligente de entrenamiento de fuerza, seguimiento de sobrecarga progresiva, catálogo biomecánico y gestión para Cronos Gym."
+      }
+    </script>
   </head>
   <body class="min-h-screen bg-black text-neutral-100 antialiased">
+    <noscript>
+      <h1>Cronos Gym (Crono Gym) - Plataforma de Entrenamiento y Gestión de Gimnasio</h1>
+      <p>Aplicación web de entrenamiento de fuerza, sobrecarga progresiva, selector anatómico de ejercicios, tienda y clases en Cronos Gym.</p>
+    </noscript>
     <div id="root"></div>
     <script type="module">
       /*
