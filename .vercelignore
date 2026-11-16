@@ -1,0 +1,6 @@
+originals/
+.kilo/
+DOCUMENTATION/
+test-results/
+playwright-report/
+node_modules/

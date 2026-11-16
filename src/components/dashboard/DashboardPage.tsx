@@ -161,7 +161,7 @@ export function DashboardPage({ userId }: DashboardPageProps) {
   const data = useDashboardHome(userId);
   const isMobile = useMediaQuery("(max-width: 639px)");
 
-  const { announcements, save: publishAnnouncement, remove: deleteAnnouncement } = useAnnouncements();
+  const { announcements, remove: deleteAnnouncement } = useAnnouncements();
   const [tipIndex, setTipIndex] = useState(0);
   const coachId: string | null = null;
   const [requestOpen, setRequestOpen] = useState(false);
@@ -384,7 +384,7 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         aria-label="Encabezado de Today"
       >
         <div className="min-w-0">
-          <h1 className="truncate text-2xl font-bold tracking-tight text-white">
+          <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">
             {data.greeting}
           </h1>
           <p style={{ ...TYPE.caption, color: TEXT.tertiary, margin: 0, textTransform: "capitalize" }}>
@@ -524,13 +524,13 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         </GlassCard>
       )}
 
-      {/* 4. Métricas Avanzadas Plegadas (siempre colapsable, full-width Apple + Pixel) */}
-      <section className="w-full rounded-3xl border border-white/[0.06] bg-[#1C1C1E]">
+      {/* 4. Métricas Avanzadas Plegadas (siempre colapsable, full-width sin tarjetas anidadas) */}
+      <section className="flex w-full flex-col gap-4">
         <button
           type="button"
           aria-expanded={metricsExpanded}
           onClick={() => setMetricsExpanded((prev) => !prev)}
-          className="flex min-h-12 w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-semibold tracking-tight text-white transition-transform active:scale-[0.98]"
+          className="flex min-h-12 w-full items-center justify-between gap-3 rounded-3xl border border-white/[0.06] bg-[#1C1C1E] px-4 py-3 text-left text-sm font-semibold tracking-tight text-white transition-transform active:scale-[0.98]"
         >
           <span>Ver resumen de rendimiento</span>
           <div className="flex items-center gap-2.5">
@@ -550,7 +550,7 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         {metricsExpanded && (
           <div
             data-testid="today-command-center"
-            className="grid grid-cols-1 gap-5 border-t border-white/[0.06] p-4 pb-6 md:gap-6 xl:grid-cols-12 items-start"
+            className="grid w-full grid-cols-1 gap-4 pb-6 md:gap-6 xl:grid-cols-12 items-start"
           >
             <div className="flex flex-col gap-5 md:gap-6 min-w-0 xl:col-span-8">
               <DailyReadinessBanner
@@ -623,7 +623,6 @@ export function DashboardPage({ userId }: DashboardPageProps) {
                 tip={TIP_CATALOG[tipIndex]}
                 onNext={nextTip}
                 announcements={announcements}
-                onPublish={publishAnnouncement}
                 onDelete={deleteAnnouncement}
               />
             </div>
