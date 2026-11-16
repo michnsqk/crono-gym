@@ -103,12 +103,23 @@ export function RoutineArchitectPanel({
     return auditRoutineSession(items, catalogMap);
   }, [activeDay, catalogMap, selectedDayIdx, setsOverrides, selectedPreset.id]);
 
+  const createUuid = (): string => {
+    if (typeof globalThis.crypto?.randomUUID === "function") {
+      return globalThis.crypto.randomUUID();
+    }
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === "x" ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  };
+
   const toPlanDay = (label: string, idx: number, exercises: Exercise[]): DayZeroPlanDay => ({
-    id: `arch-day-${idx + 1}`,
+    id: createUuid(),
     label,
     exercises: exercises.map((ex, slotIdx) => ({
       row: ex as unknown as CatalogExercise,
-      rowId: ex.id,
+      rowId: createUuid(),
       sets: getSlotSets(idx, slotIdx),
       reps: 10,
       weightKg: 20,
@@ -133,7 +144,17 @@ export function RoutineArchitectPanel({
 
   const handleSaveFullPlan = async () => {
     const validDays = resolvedDays
-      .map((d, idx) => toPlanDay(d.label, idx, d.exercises))
+      .map((d, idx) => ({
+        id: createUuid(),
+        label: d.label,
+        exercises: d.exercises.map((ex, slotIdx) => ({
+          row: ex as unknown as CatalogExercise,
+          rowId: createUuid(),
+          sets: getSlotSets(idx, slotIdx),
+          reps: 10,
+          weightKg: 20,
+        })),
+      }))
       .filter((d) => d.exercises.length > 0);
     if (validDays.length === 0 || saving) return;
     const freq = Math.min(6, Math.max(2, validDays.length)) as DayZeroFrequency;

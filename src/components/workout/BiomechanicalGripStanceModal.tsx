@@ -301,8 +301,8 @@ export function BiomechanicalGripStanceModal({
         {/* TAB 1: PIES Y PRENSA — Side-by-side Platform SVG + Anatomical Body Map */}
         {activeTab === "foot_stance" && (
           <div className="space-y-2.5">
-            {/* Compact 5-Chip Horizontal Strip */}
-            <div className="grid grid-cols-5 gap-1">
+            {/* Compact Stance Chips — flex-wrap so labels never truncate with "..." */}
+            <div className="flex flex-wrap justify-center gap-1.5">
               {COMPACT_STANCE_CHIPS.map((chip) => {
                 const selected = chip.id === currentStance.id;
                 return (
@@ -310,14 +310,14 @@ export function BiomechanicalGripStanceModal({
                     key={chip.id}
                     type="button"
                     onClick={() => handleSelectStance(chip.id)}
-                    className="rounded-xl px-1.5 py-2 text-center min-w-0"
+                    className="rounded-xl px-3 py-2 text-center transition-transform active:scale-95"
                     style={{
                       backgroundColor: selected ? ACCENT.subtle : GLASS.fill,
                       border: `1px solid ${selected ? ACCENT.border : GLASS.border}`,
                       color: selected ? TEXT.primary : TEXT.secondary,
                     }}
                   >
-                    <span className="text-[11px] font-bold block truncate">{chip.label}</span>
+                    <span className="text-xs font-semibold block whitespace-nowrap">{chip.label}</span>
                   </button>
                 );
               })}
@@ -335,10 +335,10 @@ export function BiomechanicalGripStanceModal({
               >
                 <div className="flex items-center justify-between gap-1 mb-1">
                   <span
-                    className="text-[10px] font-bold uppercase tracking-wider truncate"
+                    className="text-[11px] font-bold uppercase tracking-wider"
                     style={{ color: TEXT.secondary }}
                   >
-                    Plataforma (Toca huella)
+                    Plataforma
                   </span>
                 </div>
 
@@ -476,10 +476,10 @@ export function BiomechanicalGripStanceModal({
               >
                 <div className="flex items-center justify-between gap-1">
                   <span
-                    className="text-[10px] font-bold uppercase tracking-wider truncate"
+                    className="text-[11px] font-bold uppercase tracking-wider"
                     style={{ color: TEXT.secondary }}
                   >
-                    Activación
+                    Mapa
                   </span>
                   <div
                     className="inline-flex rounded-lg p-0.5"
@@ -492,7 +492,7 @@ export function BiomechanicalGripStanceModal({
                           key={side}
                           type="button"
                           onClick={() => setStanceMapSide(side)}
-                          className="px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase"
+                          className="px-2 py-0.5 rounded-md text-[10px] font-bold uppercase"
                           style={{
                             backgroundColor: active ? SOLID.popover : "transparent",
                             color: active ? TEXT.primary : TEXT.tertiary,
@@ -509,10 +509,11 @@ export function BiomechanicalGripStanceModal({
                   className="w-full h-44 mx-auto my-1 overflow-hidden flex justify-center items-end rounded-xl"
                   data-testid="lower-body-zoom-frame"
                 >
-                  <div className="w-36 shrink-0 scale-[1.8] translate-y-[4%] origin-bottom">
+                  <div className="w-32 shrink-0 scale-[1.35] translate-y-[2%] origin-bottom">
                     <MuscleReadonlyMap
                       counts={activeMuscleCounts}
                       side={stanceMapSide}
+                      caption={null}
                       label={`Activación anatómica para ${currentStance.label}`}
                     />
                   </div>
@@ -522,7 +523,7 @@ export function BiomechanicalGripStanceModal({
                   {currentStance.primaryMuscles.slice(0, 2).map((muscle) => (
                     <span
                       key={muscle}
-                      className="text-[10px] font-semibold px-1.5 py-0.5 rounded-md truncate max-w-full"
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded-md text-center"
                       style={{
                         backgroundColor: ACCENT.subtle,
                         color: TEXT.primary,
@@ -563,14 +564,14 @@ export function BiomechanicalGripStanceModal({
                   </span>
                 </div>
               </div>
-              <p className="text-xs leading-relaxed" style={{ color: TEXT.secondary }}>
+              <p className="text-[13px] leading-relaxed" style={{ color: TEXT.secondary }}>
                 {currentStance.biomechanicalFocus}
               </p>
-              <ul className="space-y-1">
+              <ul className="space-y-1.5">
                 {currentStance.cues.slice(0, 2).map((cue) => (
                   <li
                     key={cue}
-                    className="flex items-start gap-1.5 text-xs"
+                    className="flex items-start gap-2 text-[13px] leading-snug"
                     style={{ color: TEXT.primary }}
                   >
                     <Check
