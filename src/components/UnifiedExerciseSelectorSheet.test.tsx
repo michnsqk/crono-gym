@@ -140,25 +140,17 @@ describe("UnifiedExerciseSelectorSheet — paginación", () => {
   });
 });
 
-describe("UnifiedExerciseSelectorSheet — debounce de búsqueda", () => {
-  it("no vuelve a filtrar el listado al instante al escribir", () => {
-    vi.useFakeTimers();
-    let committed = "";
-    useDebouncedValueMock.mockImplementation((value: string, _delayMs?: number) => {
-      setTimeout(() => { committed = value; }, _delayMs ?? 150);
-      return committed;
-    });
-
+describe("UnifiedExerciseSelectorSheet — búsqueda instantánea", () => {
+  it("filtra el listado al instante al escribir", () => {
     renderSheet();
     expect(screen.getByText("Sentadilla")).toBeDefined();
 
     const input = screen.getByTestId("selector-search-input") as HTMLInputElement;
     act(() => {
-      fireEvent.change(input, { target: { value: "zanca" } });
+      fireEvent.change(input, { target: { value: "triceps" } });
     });
-    expect(screen.queryByText("Sentadilla")).not.toBeNull();
-
-    vi.useRealTimers();
+    expect(screen.queryByText("Sentadilla")).toBeNull();
+    expect(screen.getByText("Extensión de tríceps")).toBeDefined();
   });
 });
 
