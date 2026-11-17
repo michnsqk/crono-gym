@@ -29,7 +29,7 @@ const SEEDS: Announcement[] = [
   },
 ];
 
-const MAX_INLINE_BASE64_CHARS = 50_000;
+const MAX_INLINE_BASE64_CHARS = 30_000;
 
 function sanitizeAnnouncementImage(url?: string): string | undefined {
   if (!url) return undefined;
@@ -114,12 +114,46 @@ export function useAnnouncements() {
     return readFeed();
   });
 
+  const refreshImages = useCallback(async () => {
+    try {
+      const orderedQuery = (supabase as any)
+        .from("announcements")
+        .select("id, banner_path")
+        .order("created_at", { ascending: false });
+      const { data, error } = await (
+        typeof orderedQuery?.limit === "function" ? orderedQuery.limit(3) : orderedQuery
+      );
+      if (error || !Array.isArray(data) || data.length === 0) return;
+
+      const byId = new Map<string, string>();
+      for (const row of data as Array<Record<string, unknown>>) {
+        const id = String(row.id ?? "").trim();
+        const sanitized = sanitizeAnnouncementImage(row.banner_path as string | undefined);
+        if (id && sanitized) byId.set(id, sanitized);
+      }
+      if (byId.size === 0) return;
+
+      startTransition(() => {
+        setAnnouncements((prev) => {
+          const next = prev.map((item) => {
+            const img = byId.get(item.id);
+            return img ? { ...item, imageUrl: img } : item;
+          });
+          writeLocal(next);
+          return next;
+        });
+      });
+    } catch {
+      // Optional background image hydration.
+    }
+  }, []);
+
   const refresh = useCallback(async () => {
     setAnnouncements(readFeed());
     try {
       const orderedQuery = (supabase as any)
         .from("announcements")
-        .select("*")
+        .select("id, title, message, kind, starts_at, expires_at, created_by, created_at")
         .order("created_at", { ascending: false });
       const { data, error } = await (
         typeof orderedQuery?.limit === "function" ? orderedQuery.limit(3) : orderedQuery
@@ -155,16 +189,22 @@ export function useAnnouncements() {
   useEffect(() => {
     let idleId: number | undefined;
     let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let imageTimeoutId: ReturnType<typeof setTimeout> | undefined;
     if (import.meta.env.MODE === "test") {
       void refresh();
-    } else if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(() => {
-        void refresh();
-      }, { timeout: 1200 });
     } else {
-      timeoutId = setTimeout(() => {
-        void refresh();
-      }, 1200);
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        idleId = window.requestIdleCallback(() => {
+          void refresh();
+        }, { timeout: 1200 });
+      } else {
+        timeoutId = setTimeout(() => {
+          void refresh();
+        }, 1200);
+      }
+      imageTimeoutId = setTimeout(() => {
+        void refreshImages();
+      }, 2000);
     }
     const onChanged = () => {
       purgeGhostRows();
@@ -176,9 +216,10 @@ export function useAnnouncements() {
         window.cancelIdleCallback(idleId);
       }
       if (timeoutId !== undefined) clearTimeout(timeoutId);
+      if (imageTimeoutId !== undefined) clearTimeout(imageTimeoutId);
       window.removeEventListener("cronos-announcements-changed", onChanged);
     };
-  }, [refresh]);
+  }, [refresh, refreshImages]);
 
   const save = useCallback(async (input: Pick<Announcement, "title" | "body" | "category" | "imageUrl">) => {
     const item: Announcement = {

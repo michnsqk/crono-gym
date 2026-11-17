@@ -92,23 +92,10 @@ export function GymClubHubSection({
   }, [userId]);
 
   useEffect(() => {
-    let idleId: number | undefined;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-      idleId = window.requestIdleCallback(() => {
-        void load();
-      }, { timeout: 1200 });
-    } else {
-      timeoutId = setTimeout(() => {
-        void load();
-      }, 1200);
-    }
-    return () => {
-      if (idleId !== undefined && "cancelIdleCallback" in window) {
-        window.cancelIdleCallback(idleId);
-      }
-      if (timeoutId !== undefined) clearTimeout(timeoutId);
-    };
+    const timeoutId = setTimeout(() => {
+      void load();
+    }, 1800);
+    return () => clearTimeout(timeoutId);
   }, [load]);
 
   const reserve = async (product: Product) => {

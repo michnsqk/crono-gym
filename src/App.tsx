@@ -196,6 +196,13 @@ export function AuthGate() {
               <div className="mt-3 h-7 w-52 rounded bg-white/10" />
               <div className="mt-2 h-3 w-40 rounded bg-white/5" />
             </div>
+            <button
+              type="button"
+              onClick={() => navigate("/entrenar")}
+              className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF3B30] px-5 text-base font-bold text-white"
+            >
+              <span>Empezar entrenamiento de hoy</span>
+            </button>
             <div className="grid gap-4 md:grid-cols-2">
               <div className="h-28 rounded-3xl border border-white/10 bg-[#0d0d0f]" />
               <div className="h-28 rounded-3xl border border-white/10 bg-[#0d0d0f]" />
