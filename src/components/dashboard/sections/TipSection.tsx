@@ -165,7 +165,7 @@ export function TipSection({ tip, tips, onNext, announcements = [], onPublish, o
               </button>
             </div>
           ) : null}
-          {(role === "admin" || role === "developer" || import.meta.env.DEV) && onDelete ? <button type="button" onClick={() => void onDelete(currentAnnouncement.id)} className="mt-3 text-xs text-zinc-500">Eliminar aviso</button> : null}
+          {(role === "admin" || role === "developer" || import.meta.env.DEV) && onDelete ? <button type="button" onClick={() => void onDelete(currentAnnouncement.id)} className="mt-3 text-xs text-zinc-400 hover:text-zinc-200">Eliminar aviso</button> : null}
         </article>
       ) : (
         <div className="mt-4">

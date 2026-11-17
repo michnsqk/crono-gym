@@ -88,8 +88,24 @@ function dropConsole() {
   } as Plugin;
 }
 
+/** Convierte las hojas de estilo emitidas por Vite en carga asíncrona no bloqueante (el shell crítico ya viene inline en index.html). */
+function asyncStylesheets(): Plugin {
+  return {
+    name: "cronos:async-stylesheets",
+    apply: "build",
+    enforce: "post",
+    transformIndexHtml(html: string) {
+      return html.replace(
+        /<link rel="stylesheet" crossorigin href="([^"]+\.css)">/g,
+        (_match, href: string) =>
+          `<link rel="preload" as="style" crossorigin href="${href}">\n    <link rel="stylesheet" crossorigin href="${href}" media="print" onload="this.media='all'">\n    <noscript><link rel="stylesheet" crossorigin href="${href}"></noscript>`,
+      );
+    },
+  };
+}
+
 export default defineConfig({
-  plugins: [react(), tsconfigPaths(), devModuleHygiene()],
+  plugins: [react(), tsconfigPaths(), devModuleHygiene(), asyncStylesheets()],
   define: {
     "import.meta.env.PACKAGE_VERSION": JSON.stringify(pkg.version),
   },
@@ -120,7 +136,7 @@ export default defineConfig({
               return "vendor-avatar";
             }
           }
-          if (id.includes("/src/lib/catalog/") || id.includes("/src/data/")) {
+          if (id.includes("/src/data/")) {
             return "data-exercises";
           }
           return undefined;
