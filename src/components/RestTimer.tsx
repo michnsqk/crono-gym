@@ -178,6 +178,27 @@ export function RestTimer({
     return () => document.removeEventListener("visibilitychange", onVisibility);
   }, []);
 
+  // Mantener pantalla activa durante el descanso (best-effort; falla silencioso si no hay soporte).
+  useEffect(() => {
+    if (!running) return undefined;
+    let sentinel: { release?: () => Promise<void> } | null = null;
+    let cancelled = false;
+    const wl = (navigator as unknown as { wakeLock?: { request?: (t: string) => Promise<{ release?: () => Promise<void> }> } }).wakeLock;
+    wl?.request?.("screen")
+      .then((lock) => {
+        if (cancelled) {
+          void lock?.release?.();
+        } else {
+          sentinel = lock;
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      void sentinel?.release?.();
+    };
+  }, [running]);
+
   /** Moves the deadline, which moves every later tick with it. */
   const adjust = (deltaMs: number) => {
     if (pausedAtRef.current !== null) {

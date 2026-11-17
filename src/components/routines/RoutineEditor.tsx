@@ -839,19 +839,19 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
               <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: "11px", color: "#71717A", minWidth: 40 }}>Series</span>
-                  <button type="button" onClick={() => changeSets(isWeeklyMode ? activeDayIndex : 0, idx, -1)} aria-label="Quitar serie" style={{ width: 28, height: 28, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>−</button>
+                  <button type="button" onClick={() => changeSets(isWeeklyMode ? activeDayIndex : 0, idx, -1)} aria-label="Quitar serie" style={{ width: 36, height: 36, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>−</button>
                   <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: "12px", fontWeight: 600, color: "#FFFFFF", minWidth: 28, textAlign: "center" }}>
                     {ex.target_sets}
                   </span>
-                  <button type="button" onClick={() => changeSets(isWeeklyMode ? activeDayIndex : 0, idx, 1)} aria-label="Añadir serie" style={{ width: 28, height: 28, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>+</button>
+                  <button type="button" onClick={() => changeSets(isWeeklyMode ? activeDayIndex : 0, idx, 1)} aria-label="Añadir serie" style={{ width: 36, height: 36, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>+</button>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
                   <span style={{ fontSize: "11px", color: "#71717A", minWidth: 40 }}>Reps</span>
-                  <button type="button" onClick={() => changeReps(isWeeklyMode ? activeDayIndex : 0, idx, -1)} aria-label="Quitar repetición" style={{ width: 28, height: 28, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>−</button>
+                  <button type="button" onClick={() => changeReps(isWeeklyMode ? activeDayIndex : 0, idx, -1)} aria-label="Quitar repetición" style={{ width: 36, height: 36, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>−</button>
                   <span style={{ fontFamily: "ui-monospace, SFMono-Regular, monospace", fontSize: "12px", fontWeight: 600, color: "#FFFFFF", minWidth: 28, textAlign: "center" }}>
                     {ex.target_reps_min ?? ex.target_reps_max ?? 8}
                   </span>
-                  <button type="button" onClick={() => changeReps(isWeeklyMode ? activeDayIndex : 0, idx, 1)} aria-label="Añadir repetición" style={{ width: 28, height: 28, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>+</button>
+                  <button type="button" onClick={() => changeReps(isWeeklyMode ? activeDayIndex : 0, idx, 1)} aria-label="Añadir repetición" style={{ width: 36, height: 36, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}>+</button>
                 </div>
                 {(() => {
                   const smart = recommendSmartRest({
@@ -869,7 +869,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
                         type="button"
                         onClick={() => changeRest(isWeeklyMode ? activeDayIndex : 0, idx, currentRest - 15)}
                         aria-label="Restar 15 segundos de descanso"
-                        style={{ width: 28, height: 28, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}
+                        style={{ width: 36, height: 36, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
                       >
                         −
                       </button>
@@ -887,10 +887,10 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
                         }}
                         aria-label="Segundos de descanso"
                         style={{
-                          width: 48,
-                          height: 28,
+                          width: 52,
+                          height: 36,
                           padding: "0 4px",
-                          borderRadius: "8px",
+                          borderRadius: "10px",
                           border: "1px solid rgba(255,255,255,0.12)",
                           background: "rgba(255,255,255,0.04)",
                           color: "#FFFFFF",
@@ -905,7 +905,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
                         type="button"
                         onClick={() => changeRest(isWeeklyMode ? activeDayIndex : 0, idx, currentRest + 15)}
                         aria-label="Sumar 15 segundos de descanso"
-                        style={{ width: 28, height: 28, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}
+                        style={{ width: 36, height: 36, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "13px", fontWeight: 700, cursor: "pointer" }}
                       >
                         +
                       </button>

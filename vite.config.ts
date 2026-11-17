@@ -71,27 +71,13 @@ const pkg = JSON.parse(
   readFileSync(resolve(dirname(fileURLToPath(import.meta.url)), "package.json"), "utf8"),
 );
 
-/** Quita llamadas a consola en el build de producción (sin nueva dependencia). */
-function dropConsole() {
-  return {
-    name: "cronos:drop-console",
-    enforce: "post",
-    transform(code: string, id: string) {
-      if (!id.match(/\.[jt]sx?$/)) return null;
-      if (id.includes("node_modules")) return null;
-      const next = code.replace(
-        /console\.(log|debug|info|warn|error|trace)\([^)]*\)\s*;?/g,
-        "",
-      );
-      return next === code ? null : { code, map: null };
-    },
-  } as Plugin;
-}
-
 export default defineConfig({
   plugins: [react(), tsconfigPaths(), devModuleHygiene()],
   define: {
     "import.meta.env.PACKAGE_VERSION": JSON.stringify(pkg.version),
+  },
+  esbuild: {
+    drop: ["console", "debugger"],
   },
   server: {
     port: 5173,
@@ -100,7 +86,6 @@ export default defineConfig({
   build: {
     sourcemap: false,
     rollupOptions: {
-      plugins: [dropConsole()],
       output: {
         manualChunks(id: string) {
           if (id.includes("node_modules")) {

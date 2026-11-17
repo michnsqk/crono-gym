@@ -145,8 +145,8 @@ export function buildCoachContext(input: CoachContextInput): CoachContext {
            activityLevel: profile.activity_level,
            goal: profile.goal,
            unitSystem: profile.unit_system,
-           ...(input.injuries !== undefined ? { injuries: input.injuries } : {}),
-           ...(input.daysPerWeek !== undefined ? { daysPerWeek: input.daysPerWeek } : {}),
+           ...(input.injuries !== undefined ? { injuries: input.injuries } : profile.injuries_or_notes ? { injuries: profile.injuries_or_notes } : {}),
+           ...(input.daysPerWeek !== undefined ? { daysPerWeek: input.daysPerWeek } : profile.weekly_days_target !== undefined ? { daysPerWeek: profile.weekly_days_target } : {}),
          }
        : null,
     bodyweight: {
