@@ -267,21 +267,59 @@ export interface WorkspaceOutletContext {
   email: string;
 }
 
+function readCachedAuthSession(): { userId: string | null; email: string } {
+  if (typeof window === "undefined") return { userId: null, email: "" };
+  try {
+    const raw = window.localStorage.getItem("cronos_auth_token");
+    if (!raw) return { userId: null, email: "" };
+    const parsed = JSON.parse(raw) as {
+      user?: { id?: unknown; email?: unknown };
+      currentSession?: { user?: { id?: unknown; email?: unknown } };
+    };
+    const user = parsed?.user ?? parsed?.currentSession?.user;
+    if (typeof user?.id === "string" && user.id.length > 0) {
+      return {
+        userId: user.id,
+        email: typeof user.email === "string" ? user.email : "",
+      };
+    }
+  } catch {
+    // Ignore malformed local cache and let Supabase resolve asynchronously.
+  }
+  return { userId: null, email: "" };
+}
+
 /** Tracks the Supabase session; onAuthStateChange keeps the UI in sync after login. */
 function useAuthSession() {
-  const [ready, setReady] = useState(false);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [email, setEmail] = useState("");
+  const [cached] = useState(readCachedAuthSession);
+  const [ready, setReady] = useState(() => cached.userId !== null);
+  const [userId, setUserId] = useState<string | null>(() => cached.userId);
+  const [email, setEmail] = useState(() => cached.email);
 
   useEffect(() => {
     let alive = true;
-    supabase.auth.getSession().then(({ data }) => {
-      if (!alive) return;
-      setUserId(data.session?.user.id ?? null);
-      setEmail(data.session?.user.email ?? "");
-      setReady(true);
-    });
-    const { data: listener } = supabase.auth.onAuthStateChange((_event, next) => {
+    supabase.auth
+      .getSession()
+      .then(({ data }) => {
+        if (!alive) return;
+        const nextId = data.session?.user.id ?? null;
+        // Offline resilience: if network refresh failed while offline, keep cached userId.
+        if (nextId !== null || typeof navigator === "undefined" || navigator.onLine) {
+          setUserId(nextId);
+          setEmail(data.session?.user.email ?? "");
+        }
+        setReady(true);
+      })
+      .catch(() => {
+        if (alive) setReady(true);
+      });
+    const { data: listener } = supabase.auth.onAuthStateChange((event, next) => {
+      if (event === "SIGNED_OUT") {
+        setUserId(null);
+        setEmail("");
+        setReady(true);
+        return;
+      }
       setUserId(next?.user.id ?? null);
       setEmail(next?.user.email ?? "");
       setReady(true);

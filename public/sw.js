@@ -24,8 +24,15 @@
  * over.
  */
 
-const CACHE = "cronos-shell-v1";
-const SHELL = ["/", "/index.html"];
+const CACHE = "cronos-shell-v2";
+const SHELL = [
+  "/",
+  "/index.html",
+  "/manifest.json",
+  "/logo.jpg",
+  "/fonts/inter-latin.woff2",
+  "/fonts/jetbrains-mono-latin.woff2",
+];
 
 /**
  * The development server's modules are not assets.
@@ -113,7 +120,7 @@ self.addEventListener("fetch", (event) => {
           // SPA router takes over instead of showing a blank page.
           return caches.match("/index.html");
         })
-        .catch(() => caches.match("/index.html")),
+        .catch(() => caches.match("/index.html").then((res) => res || caches.match("/"))),
     );
     return;
   }
