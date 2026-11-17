@@ -85,9 +85,13 @@ self.addEventListener("message", (event) => {
 self.addEventListener("fetch", (event) => {
   const request = event.request;
   if (request.method !== "GET") return;
+  if (request.headers.has("authorization")) return;
 
   const url = new URL(request.url);
   if (url.origin !== self.location.origin) return;
+
+  // Nunca interceptar callbacks OAuth como caché estática.
+  if (url.searchParams.has("code") || url.searchParams.has("access_token")) return;
 
   // The dev server's modules: the worker does not stand in the way of them.
   if (isDevModule(url)) return;
@@ -119,7 +123,12 @@ self.addEventListener("fetch", (event) => {
     caches.match(request).then((cached) => {
       if (cached) return cached;
       return fetch(request).then((response) => {
-        if (response.ok && response.type === "basic") {
+        const cacheControl = response.headers.get("cache-control") || "";
+        if (
+          response.ok &&
+          response.type === "basic" &&
+          !/no-store|private/i.test(cacheControl)
+        ) {
           const copy = response.clone();
           caches.open(CACHE).then((cache) => cache.put(request, copy));
         }

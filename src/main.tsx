@@ -15,6 +15,21 @@ import { registerServiceWorker } from "./lib/pwa/registerServiceWorker";
 
 // The shell that starts without a connection. Not in development: a cached
 // module is a module that does not hot-reload.
+if (import.meta.env.DEV && typeof navigator !== "undefined" && "serviceWorker" in navigator) {
+  const RELOAD_FLAG = "cronos:dev-worker-cleared";
+  navigator.serviceWorker.getRegistrations().then(async (registrations) => {
+    if (registrations.length === 0) return;
+    await Promise.all(registrations.map((one) => one.unregister()));
+    if ("caches" in window) {
+      const keys = await caches.keys();
+      await Promise.all(keys.map((key) => caches.delete(key)));
+    }
+    if (!sessionStorage.getItem(RELOAD_FLAG)) {
+      sessionStorage.setItem(RELOAD_FLAG, "1");
+      location.reload();
+    }
+  });
+}
 registerServiceWorker({ enabled: !import.meta.env.DEV });
 
 // Browser extensions (and some embedded webviews) reject with this message when

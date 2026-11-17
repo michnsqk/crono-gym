@@ -316,7 +316,22 @@ export function ProfilePage() {
           local={local}
           flags={flags}
           navigate={navigate}
-          onSignOut={() => void supabase.auth.signOut()}
+          onSignOut={() => {
+            void Promise.resolve(supabase.auth.signOut()).finally(() => {
+              if (typeof window !== "undefined") {
+                window.localStorage.removeItem("cronos_auth_token");
+                if ("caches" in window) {
+                  void caches.keys().then((keys) =>
+                    Promise.all(
+                      keys
+                        .filter((k) => !k.startsWith("cronos-shell-"))
+                        .map((k) => caches.delete(k)),
+                    ),
+                  );
+                }
+              }
+            });
+          }}
           onExport={() => exportProfile(profile, local.row)}
           permissions={permissions}
           largeText={largeText}
