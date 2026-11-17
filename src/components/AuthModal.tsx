@@ -103,28 +103,35 @@ export function AuthModal({ open, onClose, onAuthenticated }: AuthModalProps) {
       aria-label="Bienvenido a Cronos"
       onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
     >
-      <div className="bg-neutral-900/80 backdrop-blur-2xl rounded-3xl border border-white/10 p-8 max-w-sm w-full mx-auto shadow-2xl text-center">
-        <button type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-4 top-4 rounded-lg p-1.5 text-neutral-400 transition hover:bg-white/5 hover:text-neutral-100">
-          <X className="h-5 w-5" />
+      <div className="relative mx-auto w-full max-w-sm rounded-[28px] border border-white/10 bg-[#0A0A0C]/95 p-8 text-center shadow-[0_24px_80px_rgba(0,0,0,0.85)] backdrop-blur-2xl">
+        <button type="button" onClick={onClose} aria-label="Cerrar" className="absolute right-4 top-4 inline-flex h-9 w-9 items-center justify-center rounded-full bg-white/5 text-neutral-400 transition hover:bg-white/10 hover:text-white">
+          <X className="h-4 w-4" />
         </button>
-        <img src="/logo.jpg" alt="Cronos Gym" className="h-16 w-auto mx-auto mb-3 object-contain rounded-lg" style={{ filter: "invert(1)", mixBlendMode: "screen" }} />
-        <h2 className="text-xl font-semibold text-white">Bienvenido a Cronos</h2>
-        <p className="text-neutral-400 text-sm mb-6">Entrena, progresa y supera tus límites.</p>
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-black shadow-[0_0_32px_rgba(215,0,21,0.22)]">
+          <img src="/logo.jpg" alt="Cronos Gym" width={48} height={48} className="h-12 w-12 object-contain rounded-lg" style={{ filter: "invert(1)", mixBlendMode: "screen" }} />
+        </div>
+        <h2 className="text-2xl font-bold tracking-tight text-white">Bienvenido a Cronos</h2>
+        <p className="mt-1 mb-7 text-sm text-zinc-400">Entrena, progresa y supera tus límites.</p>
 
         <button
           type="button"
           onClick={handleGoogle}
           disabled={loading}
-          className="w-full flex items-center justify-center gap-3 rounded-xl bg-white text-neutral-900 font-semibold py-3 mb-3 hover:bg-neutral-100 transition disabled:opacity-50"
+          className="mb-3 flex h-[52px] w-full items-center justify-center gap-3 rounded-full bg-white px-5 text-[15px] font-semibold text-[#1F1F1F] shadow-[0_2px_12px_rgba(255,255,255,0.12)] transition hover:bg-neutral-100 active:scale-[0.98] disabled:opacity-50"
         >
-          <span className="text-sm font-bold text-neutral-900">G</span>
-          Continuar con Google
+          <svg width="20" height="20" viewBox="0 0 24 24" aria-hidden="true">
+            <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.82-2.4 3.68v3.05h3.88c2.27-2.09 3.665-5.17 3.665-9.17Z" />
+            <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.05c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.11-6.72-4.96H1.29v3.14C3.26 21.3 7.31 24 12 24Z" />
+            <path fill="#FBBC05" d="M5.28 14.24c-.24-.72-.38-1.49-.38-2.24s.14-1.52.38-2.24V6.62H1.29C.47 8.24 0 10.06 0 12s.47 3.76 1.29 5.38l3.99-3.14Z" />
+            <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.29 6.62l3.99 3.14c.95-2.85 3.6-4.96 6.72-4.96Z" />
+          </svg>
+          <span>Continuar con Google</span>
         </button>
 
         <button
           type="button"
           onClick={() => setShowEmailForm((v) => !v)}
-          className="w-full rounded-xl border border-white/15 py-3 text-sm text-neutral-200 hover:bg-white/5 transition mb-4"
+          className="mb-4 flex h-12 w-full items-center justify-center rounded-full border border-white/10 bg-[#1C1C1E] px-5 text-sm font-medium text-neutral-200 transition hover:bg-[#2C2C2E] active:scale-[0.98]"
         >
           Iniciar con correo electrónico
         </button>

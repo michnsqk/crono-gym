@@ -11,6 +11,7 @@ import { ClassesManager } from "./sections/ClassesManager";
 import { UsersRolesManager } from "./sections/UsersRolesManager";
 import { ExerciseRequestsManager } from "./sections/ExerciseRequestsManager";
 import { OperationsRoiSection } from "./sections/OperationsRoiSection";
+import { PwaQrShareCard } from "./sections/PwaQrShareCard";
 
 const TABS = [
   ["avisos", "Avisos"],
@@ -19,6 +20,7 @@ const TABS = [
   ["usuarios", "Usuarios"],
   ["ejercicios", "Catálogo"],
   ["operacion", "Operación"],
+  ["qr", "QR App"],
 ] as const;
 type AdminTab = (typeof TABS)[number][0];
 
@@ -142,6 +144,7 @@ export function AdminHub() {
           {tab === "usuarios" && <UsersRolesManager />}
           {tab === "ejercicios" && <ExerciseRequestsManager />}
           {tab === "operacion" && <OperationsRoiSection />}
+          {tab === "qr" && <PwaQrShareCard />}
         </section>
       </div>
     </main>
