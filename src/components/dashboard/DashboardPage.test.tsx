@@ -301,7 +301,7 @@ describe("DashboardPage", () => {
     expect(screen.queryByText("Full Body")).toBeFalsy();
   });
 
-  it("renders the hero with greeting, routine metadata and a single primary CTA", () => {
+  it("renders the hero with greeting, quest HUD and a single primary CTA", () => {
     render(
       <MemoryRouter>
         <DashboardPage userId="user-1" />
@@ -309,13 +309,11 @@ describe("DashboardPage", () => {
     );
 
     expect(screen.getByText(/Buenas tardes, Test/)).toBeTruthy();
-    expect(screen.getByText("1 ejercicio • 15 min")).toBeTruthy();
-    expect(screen.getByText("Iniciar entreno →")).toBeTruthy();
+    expect(screen.getByText("Empezar entrenamiento de hoy")).toBeTruthy();
     // Un solo CTA prominente primario.
-    expect(screen.getAllByText("Iniciar entreno →").length).toBe(1);
-    expect(screen.queryByText("Crear rutina")).toBeFalsy();
-    // El monito anatomico va a la derecha en su contenedor recortado.
-    expect(screen.getByTestId("muscle-readonly-map")).toBeTruthy();
+    expect(screen.getAllByText("Empezar entrenamiento de hoy").length).toBe(1);
+    // HUD de misiones iniciales visible con progreso factual.
+    expect(screen.getByText("Completa tus 4 misiones iniciales")).toBeTruthy();
     // Ningun simbolo de mojibake en pantalla.
     expect(document.body.textContent).not.toMatch(/Ã|\uFFFD/);
   });
@@ -328,7 +326,7 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByText("Iniciar entreno →"));
+    fireEvent.click(screen.getByText("Empezar entrenamiento de hoy"));
     expect(mockStart).toHaveBeenCalledWith({
       routine: { id: "r-1", title: "Full Body" },
       routineDayId: expect.any(String),
@@ -379,13 +377,13 @@ describe("DashboardPage", () => {
 
     // Hoy es Lunes (FIXED_NOW): todos los días son descanso, así que
     // el CTA principal no inicia sesión.
-    const cta = screen.getByRole("button", { name: /Iniciar|Sin sesión|programada/i });
+    const cta = screen.getByRole("button", { name: /Empezar entrenamiento de hoy/i });
     fireEvent.click(cta);
     expect(mockStart).not.toHaveBeenCalled();
     expect(mockNavigate).not.toHaveBeenCalled();
   });
 
-  it("shows Continuar entrenamiento when a session is active", () => {
+  it("resumes active session and navigates to /entrenar when a session is active", () => {
     mockState.isActive = true;
     mockState.session = {
       routineId: "r-1",
@@ -402,11 +400,13 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByRole("button", { name: /Continuar/i })).toBeTruthy();
-    expect(screen.queryByText("Comenzar entrenamiento")).toBeFalsy();
+    const cta = screen.getByRole("button", { name: /Empezar entrenamiento de hoy/i });
+    fireEvent.click(cta);
+    expect(mockStart).not.toHaveBeenCalled();
+    expect(mockNavigate).toHaveBeenCalledWith("/entrenar");
   });
 
-  it("shows Ver progreso when today's session is completed and navigates to progreso", () => {
+  it("navigates to /progreso when today's session is already completed", () => {
     mockState.sessions = [
       {
         id: "s-today",
@@ -434,16 +434,15 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
 
-    // The arrow lives in the button's icon now: the label used to carry a
-    // second one, so the completed CTA read "Ver progreso → →".
-    expect(screen.getByText("Ver progreso")).toBeTruthy();
-    fireEvent.click(screen.getByText("Ver progreso"));
+    fireEvent.click(screen.getByText("Empezar entrenamiento de hoy"));
     expect(mockNavigate).toHaveBeenCalledWith("/progreso");
     expect(mockStart).not.toHaveBeenCalled();
   });
 
-  it("shows the idle invitation and no anatomy distribution when no routine exists", () => {
+  it("routes to /rutinas and shows 0/4 quest progress when no routine or workout exists", () => {
+    window.localStorage.clear();
     mockState.routines = [];
+    mockState.sessions = [];
 
     render(
       <MemoryRouter>
@@ -451,34 +450,26 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("Rutina del día")).toBeTruthy();
-    expect(screen.getByText("Crea tu primera rutina para empezar")).toBeTruthy();
-    // El mapa habla por sí mismo: sin frase descriptiva debajo en el estado idle.
-    expect(screen.queryByText(/Elige una rutina para ver los m/)).toBeNull();
-    expect(screen.getByTestId("muscle-readonly-map")).toBeTruthy();
+    expect(screen.getByText("0 de 4 misiones · 0 / 1000 XP")).toBeTruthy();
+    fireEvent.click(screen.getByText("Empezar entrenamiento de hoy"));
+    expect(mockNavigate).toHaveBeenCalledWith("/rutinas");
+    expect(mockStart).not.toHaveBeenCalled();
   });
 
-  it("renders the weekly consistency card with day pills and streak", () => {
+  it("shows 1/4 quest progress when a routine exists without completed sessions", () => {
+    window.localStorage.clear();
+    mockState.sessions = [];
+
     render(
       <MemoryRouter>
         <DashboardPage userId="user-1" />
       </MemoryRouter>,
     );
 
-    expect(screen.getByText("Esta semana")).toBeTruthy();
-    expect(screen.getByText("0/3 días activos")).toBeTruthy();
-    ["L", "M", "X", "J", "V", "S", "D"].forEach((letter) =>
-      expect(screen.getByText(letter)).toBeTruthy(),
-    );
-    // Lunes es hoy con FIXED_NOW: estado "hoy, pendiente" diferenciado.
-    const pulse = screen.getByTestId("weekly-pulse-line");
-    const lunes = pulse.querySelector('[aria-label*="hoy, pendiente"]') as HTMLElement | null;
-    expect(lunes).toBeTruthy();
-    expect(lunes?.textContent).toContain("L");
-    expect(lunes?.style.backgroundColor).toBe("rgba(255, 59, 48, 0.12)");
+    expect(screen.getByText("1 de 4 misiones · 250 / 1000 XP")).toBeTruthy();
   });
 
-  it("keeps the weekly streak factual once a session exists this week", () => {
+  it("advances quest progress to 3/4 once a session is completed this week", () => {
     mockState.sessions = [
       {
         id: "s-today",
@@ -506,11 +497,10 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
 
-    expect(screen.queryByText("0/3 días activos")).toBeFalsy();
-    expect(screen.getByText("1/3 días activos")).toBeTruthy();
+    expect(screen.getByText("3 de 4 misiones · 750 / 1000 XP")).toBeTruthy();
   });
 
-  it("renders the fatigue alert card and the active announcements feed", async () => {
+  it("renders the active announcements feed with Avisos del Gimnasio", async () => {
     mockSelect.mockReturnValue({
       order: () =>
         Promise.resolve({
@@ -538,12 +528,11 @@ describe("DashboardPage", () => {
 
     expect(screen.getByText("Mantenimiento del gimnasio")).toBeTruthy();
     expect(screen.getByText("El gimnasio cierra a las 22 h.")).toBeTruthy();
-    expect(screen.getByText("AVISO OFICIAL")).toBeTruthy();
-    // NingÃºn anuncio vÃ­a de mojibake.
+    expect(screen.getByText("Avisos del Gimnasio")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/Ã|\uFFFD/);
   });
 
-  it("shows the daily tip card when there are no announcements", async () => {
+  it("hides Avisos del Gimnasio when there are no announcements", async () => {
     window.localStorage.setItem("cronos-announcements", "[]");
     mockSelect.mockReturnValue({
       order: () => Promise.resolve({ data: [], error: null }),
@@ -557,11 +546,7 @@ describe("DashboardPage", () => {
 
     await act(async () => {});
 
-    // Un tip del catalogo se renderiza.
-    expect(screen.getByText(/Deja 1-2 reps en la reserva/)).toBeTruthy();
-    // El boton para pasar al siguiente tip esta presente.
-    expect(screen.getByText("Siguiente tip")).toBeTruthy();
-    // Ningun simbolo de mojibake en pantalla.
+    expect(screen.queryByText("Avisos del Gimnasio")).toBeNull();
     expect(document.body.textContent).not.toMatch(/Ã|\uFFFD/);
   });
 
@@ -580,7 +565,8 @@ describe("DashboardPage", () => {
     expect(screen.getByText(/Buenas tardes, Mich/)).toBeTruthy();
   });
 
-  it("shows the day label when the routine title is xd", () => {
+  it("uses dayLabel Pecho when starting a routine titled xd", () => {
+    mockStart.mockReturnValue({ ok: true });
     mockState.routines = [
       {
         ...mockState.routines[0],
@@ -594,33 +580,25 @@ describe("DashboardPage", () => {
       </MemoryRouter>,
     );
 
-    // El dayLabel "Pecho" gana sobre el fallback cuando el titulo es "xd".
-    expect(screen.getAllByText("Pecho").length).toBeGreaterThan(0);
+    fireEvent.click(screen.getByText("Empezar entrenamiento de hoy"));
+    expect(mockStart).toHaveBeenCalledWith(
+      expect.objectContaining({
+        dayLabel: "Pecho",
+      }),
+    );
     expect(screen.queryByText("xd")).toBeFalsy();
   });
 
-  it("cycles to a different tip when clicking Siguiente tip", async () => {
-    window.localStorage.setItem("cronos-announcements", "[]");
-    mockSelect.mockReturnValue({
-      order: () => Promise.resolve({ data: [], error: null }),
-    });
-
+  it("opens welcome tour modal from quest 04 button", async () => {
+    window.localStorage.clear();
     render(
       <MemoryRouter>
         <DashboardPage userId="user-1" />
       </MemoryRouter>,
     );
 
-    await act(async () => {});
-
-    const firstTipEl = screen.getByText(/Deja 1-2 reps en la reserva/);
-    expect(firstTipEl).toBeTruthy();
-
-    fireEvent.click(screen.getByText("Siguiente tip"));
-
-    // El boton sigue presente y el tip cambio (12 tips distintos en el catalogo).
-    expect(screen.getByText("Siguiente tip")).toBeTruthy();
-    expect(screen.queryByText(/Deja 1-2 reps en la reserva/)).toBeFalsy();
+    fireEvent.click(screen.getByText("Domina Cronos IA y el modo Offline"));
+    expect(screen.getByRole("dialog", { name: "Guía interactiva de Cronos Gym" })).toBeTruthy();
   });
 
   it("renders no mojibake symbols anywhere on screen", () => {
