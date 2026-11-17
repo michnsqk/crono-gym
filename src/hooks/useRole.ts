@@ -74,9 +74,7 @@ function withTimeout<T>(promise: PromiseLike<T>, ms: number): Promise<T | "timeo
 export function useRole(): { role: Role; roles: Role[]; loading: boolean } {
   const { activeRole, user } = useAuth();
   const userId = user?.userId;
-  const isOwner =
-    user?.email?.toLowerCase() === "michnsqk07@gmail.com" ||
-    user?.displayName?.toLowerCase() === "mich_nsqk";
+  const isOwner = user?.email?.toLowerCase() === "michnsqk07@gmail.com";
   const elevatedByEnvironment = import.meta.env.DEV || isOwner;
 
   const [serverRoles, setServerRoles] = useState<Role[]>([]);
@@ -104,15 +102,8 @@ export function useRole(): { role: Role; roles: Role[]; loading: boolean } {
      */
     const fallbackRoles = (): Role[] => {
       const cached = readCachedRoles(userId);
-      const localRole: Role | null =
-        activeRole === "coach" || activeRole === "admin" || activeRole === "developer"
-          ? activeRole
-          : typeof window !== "undefined" && window.localStorage.getItem(AUTH_ROLE_KEY) === "coach"
-            ? "coach"
-            : null;
       const merged = new Set<Role>([...(elevatedByEnvironment ? KNOWN_ROLES : cached)]);
       if (isOwner) KNOWN_ROLES.forEach((role) => merged.add(role));
-      if (localRole) merged.add(localRole);
       merged.add("athlete");
       return [...merged];
     };
@@ -154,21 +145,22 @@ export function useRole(): { role: Role; roles: Role[]; loading: boolean } {
     };
   }, [activeRole, elevatedByEnvironment, isOwner, userId]);
 
-  const hasLocalOverride =
-    activeRole !== "athlete" ||
-    (typeof window !== "undefined" && window.localStorage.getItem(AUTH_ROLE_KEY) !== null);
-  const localRoles: Role[] = elevatedByEnvironment
+  const roles: Role[] = elevatedByEnvironment
     ? [...KNOWN_ROLES]
-    : !hasLocalOverride
-      ? ["athlete"]
-      : [...KNOWN_ROLES];
-  const roles = elevatedByEnvironment || hasLocalOverride ? localRoles : serverRoles;
+    : serverRoles.length > 0
+      ? serverRoles
+      : ["athlete"];
+  const canUseActiveLens =
+    activeRole !== "athlete" && (elevatedByEnvironment || roles.includes(activeRole));
+  const hasLocalOverride =
+    canUseActiveLens ||
+    (elevatedByEnvironment &&
+      typeof window !== "undefined" &&
+      window.localStorage.getItem(AUTH_ROLE_KEY) !== null);
 
-  // An explicit local selection (the selector) always wins, even in a dev build or
-  // for the owner: the selector decides which chrome the user is acting in, and a
-  // tap on "Atleta" has to take effect immediately rather than fall back to the
-  // most-permitted role. Without a selection, fall back to the most capable role.
-  const prioritized: Role = hasLocalOverride
+  // An explicit local selection (the selector) always wins when permitted by serverRoles
+  // (or in dev/owner): a tap on "Atleta" or a granted role takes effect immediately.
+  const prioritized: Role = hasLocalOverride && roles.includes(activeRole)
     ? activeRole
     : roles.includes("developer")
       ? "developer"
@@ -178,7 +170,7 @@ export function useRole(): { role: Role; roles: Role[]; loading: boolean } {
           ? "coach"
           : "athlete";
   return {
-    role: loading && !elevatedByEnvironment && !hasLocalOverride ? "athlete" : prioritized,
+    role: loading && !elevatedByEnvironment ? "athlete" : prioritized,
     roles,
     loading,
   };

@@ -86,7 +86,7 @@ async function readLocalRole(): Promise<Role> {
   // No stored role, or a corrupt one. In a dev build a developer is the
   // default, because the panel that sets this lives behind a developer gate
   // and a brand-new install would otherwise never reach it.
-  if (import.meta.env.DEV || import.meta.env.VITE_DEFAULT_ROLE === "developer") {
+  if (import.meta.env.DEV) {
     return "developer";
   }
   return "athlete";
