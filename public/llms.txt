@@ -1,0 +1,11 @@
+# Cronos Gym (Crono Gym)
+
+Plataforma web progresiva (PWA) de entrenamiento de fuerza, seguimiento de sobrecarga progresiva, catálogo biomecánico de ejercicios, rangos anatómicos y gestión integral de gimnasio.
+
+## Rutas principales
+
+- [Inicio](https://cronogym.vercel.app/inicio): Panel principal, entrenamiento de hoy, avisos del gimnasio, tienda y clases.
+- [Entrenar](https://cronogym.vercel.app/entrenar): Registro de sesión activa en tiempo real, series, RPE y temporizador de descanso.
+- [Rutinas](https://cronogym.vercel.app/rutinas): Constructor y biblioteca de rutinas personalizadas y de entrenador.
+- [Progreso](https://cronogym.vercel.app/progreso): Métricas de fuerza, historial de entrenamientos y consistencia.
+- [Rangos](https://cronogym.vercel.app/rangos): Mapa muscular anatómico y nivelación de fuerza por grupo muscular.

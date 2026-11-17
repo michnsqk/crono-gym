@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import {
@@ -71,15 +71,17 @@ export function GymClubHubSection({
     const localProducts = readLocalProducts();
     const localClasses = readLocalClasses();
 
-    setProducts([
-      ...remoteProducts,
-      ...localProducts.filter((item) => !remoteProducts.some((cur) => cur.id === item.id)),
-    ]);
-    setClasses([
-      ...remoteClasses,
-      ...localClasses.filter((item) => !remoteClasses.some((cur) => cur.id === item.id)),
-    ]);
-    setSchedules((s.data ?? []) as Schedule[]);
+    startTransition(() => {
+      setProducts([
+        ...remoteProducts,
+        ...localProducts.filter((item) => !remoteProducts.some((cur) => cur.id === item.id)),
+      ]);
+      setClasses([
+        ...remoteClasses,
+        ...localClasses.filter((item) => !remoteClasses.some((cur) => cur.id === item.id)),
+      ]);
+      setSchedules((s.data ?? []) as Schedule[]);
+    });
     try {
       setSubscribed(
         JSON.parse(localStorage.getItem(`cronos-class-subscriptions:${userId}`) ?? "[]") as string[],
@@ -90,7 +92,23 @@ export function GymClubHubSection({
   }, [userId]);
 
   useEffect(() => {
-    void load();
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(() => {
+        void load();
+      }, { timeout: 1200 });
+    } else {
+      timeoutId = setTimeout(() => {
+        void load();
+      }, 1200);
+    }
+    return () => {
+      if (idleId !== undefined && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+    };
   }, [load]);
 
   const reserve = async (product: Product) => {

@@ -1,0 +1,24 @@
+{
+  "$schema": "https://agenticbrowsing.org/schemas/ai-catalog/v1.json",
+  "name": "Cronos Gym",
+  "description": "Plataforma inteligente de entrenamiento de fuerza, sobrecarga progresiva, rutinas biomecánicas, rangos anatómicos y gestión de gimnasio.",
+  "url": "https://cronogym.vercel.app/",
+  "version": "1.0.0",
+  "resources": [
+    {
+      "name": "Inicio",
+      "url": "https://cronogym.vercel.app/inicio",
+      "description": "Panel principal con entrenamiento del día, avisos, tienda y clases."
+    },
+    {
+      "name": "Entrenar",
+      "url": "https://cronogym.vercel.app/entrenar",
+      "description": "Sesión activa de entrenamiento con registro de series, repeticiones, peso y RPE."
+    },
+    {
+      "name": "Rutinas",
+      "url": "https://cronogym.vercel.app/rutinas",
+      "description": "Gestión y creación de rutinas semanales y días de entrenamiento."
+    }
+  ]
+}

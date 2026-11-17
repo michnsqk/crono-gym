@@ -325,48 +325,6 @@ export function DashboardPage({ userId }: DashboardPageProps) {
     data.activeSession.routineId !== suggested.id &&
     !data.recoverableDraft;
 
-  // Cualquier origen cargando: esqueletos, sin CTA ni datos a medio renderizar.
-  if (data.loading) {
-    return (
-      <div className="w-full flex flex-col gap-4 md:gap-6 p-4 md:p-6">
-        <GlassCard raised>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: SPACE.sm,
-            }}
-          >
-            <div
-              style={{
-                height: "20px",
-                width: "100%",
-                borderRadius: RADIUS.sm,
-                background: GLASS.fill,
-              }}
-            />
-            <div
-              style={{
-                height: "20px",
-                width: "60%",
-                borderRadius: RADIUS.sm,
-                background: GLASS.fill,
-              }}
-            />
-            <div
-              style={{
-                height: "20px",
-                width: "40%",
-                borderRadius: RADIUS.sm,
-                background: GLASS.fill,
-              }}
-            />
-          </div>
-        </GlassCard>
-      </div>
-    );
-  }
-
   return (
     <div
       data-testid="today-command-center-root"

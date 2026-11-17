@@ -27,8 +27,24 @@
     <meta name="google-site-verification" content="FFg3qKcUGAn4hKKVTBq-QCBUonlEk_yM7L4JOtweEBI" />
     <link rel="preconnect" href="https://xghhxyairaopppimnxrd.supabase.co" crossorigin />
     <link rel="dns-prefetch" href="https://xghhxyairaopppimnxrd.supabase.co" />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/inter-latin.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="/fonts/jetbrains-mono-latin.woff2" crossorigin />
     <link rel="manifest" href="/manifest.json" />
     <style>
+      @font-face {
+        font-family: "Inter Variable";
+        font-style: normal;
+        font-weight: 100 900;
+        font-display: optional;
+        src: url("/fonts/inter-latin.woff2") format("woff2");
+      }
+      @font-face {
+        font-family: "JetBrains Mono Variable";
+        font-style: normal;
+        font-weight: 100 800;
+        font-display: optional;
+        src: url("/fonts/jetbrains-mono-latin.woff2") format("woff2");
+      }
       :root { color-scheme: dark; }
       body { background: #000000; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Inter Variable", system-ui, sans-serif; }
       .cronos-shell { min-height: 100vh; background: #000000; color: #f5f5f7; padding: 24px 20px; max-width: 1152px; margin: 0 auto; box-sizing: border-box; }

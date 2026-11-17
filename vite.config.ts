@@ -102,10 +102,28 @@ export default defineConfig({
     rollupOptions: {
       plugins: [dropConsole()],
       output: {
-        manualChunks: {
-          "vendor-react": ["react", "react-dom", "react-router-dom"],
-          "vendor-supabase": ["@supabase/supabase-js"],
-          "vendor-icons": ["lucide-react"],
+        manualChunks(id: string) {
+          if (id.includes("node_modules")) {
+            if (id.includes("/react/") || id.includes("/react-dom/") || id.includes("/react-router")) {
+              return "vendor-react";
+            }
+            if (id.includes("@supabase/supabase-js")) {
+              return "vendor-supabase";
+            }
+            if (id.includes("lucide-react")) {
+              return "vendor-icons";
+            }
+            if (id.includes("react-muscle-highlighter")) {
+              return "vendor-muscle-map";
+            }
+            if (id.includes("@blobatar") || id.includes("blobatar")) {
+              return "vendor-avatar";
+            }
+          }
+          if (id.includes("/src/lib/catalog/") || id.includes("/src/data/")) {
+            return "data-exercises";
+          }
+          return undefined;
         },
       },
     },

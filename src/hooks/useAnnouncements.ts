@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { startTransition, useCallback, useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { normalizeAnnouncement, type Announcement, type AnnouncementCategory } from "@/types/announcements";
 import {
@@ -29,11 +29,26 @@ const SEEDS: Announcement[] = [
   },
 ];
 
+const MAX_INLINE_BASE64_CHARS = 50_000;
+
+function sanitizeAnnouncementImage(url?: string): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith("data:image/") && url.length > MAX_INLINE_BASE64_CHARS) {
+    return undefined;
+  }
+  return url;
+}
+
 function readLocal(): Announcement[] {
   if (typeof window === "undefined") return SEEDS;
   try {
     const stored = JSON.parse(window.localStorage.getItem(STORAGE_KEY) ?? "null");
-    if (Array.isArray(stored)) return stored as Announcement[];
+    if (Array.isArray(stored)) {
+      return (stored as Announcement[]).map((item) => ({
+        ...item,
+        imageUrl: sanitizeAnnouncementImage(item.imageUrl),
+      }));
+    }
   } catch {
     // A corrupt local feed is recoverable by restoring the seed.
   }
@@ -102,19 +117,23 @@ export function useAnnouncements() {
   const refresh = useCallback(async () => {
     setAnnouncements(readFeed());
     try {
-      const { data, error } = await (supabase as any)
+      const orderedQuery = (supabase as any)
         .from("announcements")
         .select("*")
         .order("created_at", { ascending: false });
+      const { data, error } = await (
+        typeof orderedQuery?.limit === "function" ? orderedQuery.limit(3) : orderedQuery
+      );
       if (!error && Array.isArray(data) && data.length > 0) {
         const remote = data
           .map((row) => {
             const item = normalizeAnnouncement(row as Record<string, unknown>);
             const meta = findAnnouncementMeta(item.id, item.title);
+            const rawImage = (row as Record<string, unknown>).banner_path as string | undefined ?? meta?.imageUrl ?? item.imageUrl;
             return {
               ...item,
               ...meta,
-              imageUrl: (row as Record<string, unknown>).banner_path as string | undefined ?? meta?.imageUrl ?? item.imageUrl,
+              imageUrl: sanitizeAnnouncementImage(rawImage),
               pinned: meta?.pinned ?? item.pinned,
               active: meta?.active ?? item.active,
             };
@@ -124,7 +143,9 @@ export function useAnnouncements() {
         // so a later offline load shows the same set.
         const merged = mergeAnnouncements(remote, readLocal());
         writeLocal(merged);
-        setAnnouncements(merged);
+        startTransition(() => {
+          setAnnouncements(merged);
+        });
       }
     } catch {
       // Local data remains available when the optional Supabase table is offline.
@@ -132,13 +153,31 @@ export function useAnnouncements() {
   }, []);
 
   useEffect(() => {
-    void refresh();
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    if (import.meta.env.MODE === "test") {
+      void refresh();
+    } else if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+      idleId = window.requestIdleCallback(() => {
+        void refresh();
+      }, { timeout: 1200 });
+    } else {
+      timeoutId = setTimeout(() => {
+        void refresh();
+      }, 1200);
+    }
     const onChanged = () => {
       purgeGhostRows();
       void refresh();
     };
     window.addEventListener("cronos-announcements-changed", onChanged);
-    return () => window.removeEventListener("cronos-announcements-changed", onChanged);
+    return () => {
+      if (idleId !== undefined && "cancelIdleCallback" in window) {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId !== undefined) clearTimeout(timeoutId);
+      window.removeEventListener("cronos-announcements-changed", onChanged);
+    };
   }, [refresh]);
 
   const save = useCallback(async (input: Pick<Announcement, "title" | "body" | "category" | "imageUrl">) => {
