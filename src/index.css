@@ -899,3 +899,19 @@ background: radial-gradient(
     animation: none !important;
   }
 }
+
+/* Apple HIG Accessible System Red para botones con texto blanco (Ratio 5.65:1 WCAG AA) */
+button.bg-\[\#FF3B30\],
+button.bg-\[\#ff3b30\],
+a.bg-\[\#FF3B30\],
+.btn-crimson-accessible {
+  background-color: #D70015 !important;
+  color: #FFFFFF !important;
+}
+
+button.bg-\[\#FF3B30\]:hover,
+button.bg-\[\#ff3b30\]:hover,
+a.bg-\[\#FF3B30\]:hover,
+.btn-crimson-accessible:hover {
+  background-color: #B80012 !important;
+}
