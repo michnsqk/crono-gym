@@ -20,17 +20,8 @@ import { WelcomeTourModal, hasSeenWelcomeTour } from "@/components/onboarding/We
 const TopMenuDrawer = lazy(() =>
   import("@/components/shell/TopMenuDrawer").then((m) => ({ default: m.TopMenuDrawer })),
 );
-const PRSection = lazy(() =>
-  import("@/components/dashboard/sections/PRSection").then((m) => ({ default: m.PRSection })),
-);
-const HistorySection = lazy(() =>
-  import("@/components/dashboard/sections/HistorySection").then((m) => ({ default: m.HistorySection })),
-);
 const RequestRoutineModal = lazy(() =>
   import("@/components/coach/portal/RequestRoutineModal").then((m) => ({ default: m.RequestRoutineModal })),
-);
-const GymClubHubSection = lazy(() =>
-  import("@/components/dashboard/sections/GymClubHubSection").then((m) => ({ default: m.GymClubHubSection })),
 );
 
 import { useDashboardHome } from "@/lib/dashboard/dashboardHomeModel";
@@ -48,7 +39,10 @@ import { WeeklyProgressSection } from "@/components/dashboard/sections/WeeklyPro
 import { DailyReadinessBanner } from "@/components/dashboard/sections/DailyReadinessBanner";
 import { TipSection } from "@/components/dashboard/sections/TipSection";
 import { TrainingHeroSection } from "@/components/dashboard/sections/TrainingHeroSection";
+import { PRSection } from "@/components/dashboard/sections/PRSection";
+import { HistorySection } from "@/components/dashboard/sections/HistorySection";
 import { RecoverableDraftSection } from "@/components/dashboard/sections/RecoverableDraftSection";
+import { GymClubHubSection } from "@/components/dashboard/sections/GymClubHubSection";
 import { UserAvatar } from "@/components/common/UserAvatar";
 import {
   ACCENT,
@@ -456,13 +450,11 @@ export function DashboardPage({ userId }: DashboardPageProps) {
       </button>
 
       {/* 3. Tienda / Productos (Vista Previa) */}
-      <Suspense fallback={<div className="h-32 rounded-3xl border border-white/10 bg-[#0d0d0f]" />}>
-        <GymClubHubSection
-          userId={userId}
-          compactPreview
-          onViewAll={() => setStoreOpen(true)}
-        />
-      </Suspense>
+      <GymClubHubSection
+        userId={userId}
+        compactPreview
+        onViewAll={() => setStoreOpen(true)}
+      />
 
       {firstError !== null && (
         <GlassCard raised style={{ border: `1px solid ${STATUS.error.border}` }}>
@@ -591,13 +583,11 @@ export function DashboardPage({ userId }: DashboardPageProps) {
             </div>
 
             <div className="flex flex-col gap-5 md:gap-6 min-w-0 xl:col-span-4">
-              <Suspense fallback={<div className="h-44 rounded-3xl border border-white/10 bg-[#0d0d0f]" />}>
-                <HistorySection
-                  sessions={data.recentSessions}
-                  maxVisible={isMobile ? 3 : 4}
-                />
-                <PRSection topRecords={data.topRecords} recentPRs={data.recentPRs} compact={isMobile} />
-              </Suspense>
+              <HistorySection
+                sessions={data.recentSessions}
+                maxVisible={isMobile ? 3 : 4}
+              />
+              <PRSection topRecords={data.topRecords} recentPRs={data.recentPRs} compact={isMobile} />
               <TipSection
                 tip={TIP_CATALOG[tipIndex]}
                 onNext={nextTip}
@@ -639,9 +629,7 @@ export function DashboardPage({ userId }: DashboardPageProps) {
                 <X size={18} />
               </button>
             </div>
-            <Suspense fallback={<div className="h-48 rounded-2xl bg-[#141416]" />}>
-              <GymClubHubSection userId={userId} />
-            </Suspense>
+            <GymClubHubSection userId={userId} />
           </div>
         </div>
       )}
