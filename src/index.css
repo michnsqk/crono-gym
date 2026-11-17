@@ -905,6 +905,7 @@ button.bg-\[\#FF3B30\],
 button.bg-\[\#ff3b30\],
 a.bg-\[\#FF3B30\],
 .btn-crimson-accessible {
+  background: #D70015 !important;
   background-color: #D70015 !important;
   color: #FFFFFF !important;
 }
@@ -913,5 +914,6 @@ button.bg-\[\#FF3B30\]:hover,
 button.bg-\[\#ff3b30\]:hover,
 a.bg-\[\#FF3B30\]:hover,
 .btn-crimson-accessible:hover {
+  background: #B80012 !important;
   background-color: #B80012 !important;
 }

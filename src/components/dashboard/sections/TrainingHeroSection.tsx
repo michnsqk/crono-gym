@@ -221,7 +221,7 @@ export function TrainingHeroSection({
               icon={isCompleted ? undefined : ctaIcon}
               onClick={onPrimary}
               disabled={ctaDisabled}
-              className="h-11 whitespace-nowrap rounded-xl px-5 font-semibold active:scale-[0.98] transition-transform w-full lg:w-auto"
+              className="btn-crimson-accessible h-11 whitespace-nowrap rounded-xl px-5 font-semibold active:scale-[0.98] transition-transform w-full lg:w-auto"
               style={{
                 minHeight: 52,
                 fontSize: TYPE.subhead.size,

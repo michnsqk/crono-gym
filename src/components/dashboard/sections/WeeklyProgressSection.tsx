@@ -53,7 +53,7 @@ export function WeeklyProgressSection({
             {weeklyCompleted} sesiones
           </span>
         </div>
-        {streakLabel ? <span className="inline-flex items-center gap-1 rounded-full bg-[#2C2C2E] px-3 py-1 font-mono text-xs text-[#FF3B30]"><Flame size={13} /> {streakLabel}</span> : null}
+        {streakLabel ? <span className="inline-flex items-center gap-1 rounded-full bg-[#2C2C2E] px-3 py-1 font-mono text-xs text-[#FF6961]"><Flame size={13} /> {streakLabel}</span> : null}
       </div>
 
       <div

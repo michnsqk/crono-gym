@@ -46,7 +46,7 @@ export function HistorySection({
                     {formatSessionDate(session.startedAt)} · {duration(session.startedAt, session.completedAt)} · {workingSets.length} series
                   </p>
                 </div>
-                <span className="shrink-0 text-xs text-zinc-500">{session.completedAt ? "Completada" : "Incompleta"}</span>
+                <span className="shrink-0 text-xs text-zinc-400">{session.completedAt ? "Completada" : "Incompleta"}</span>
               </div>
             );
           })}
