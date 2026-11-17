@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { ImagePlus, Megaphone, Pin, Trash2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
-import { compressImage } from "@/lib/image/compressImage";
+import { uploadOptimizedAnnouncementImage } from "@/lib/storageUpload";
 import { ACCENT, GLASS, RADIUS, STATUS, SURFACE, TEXT } from "@/design/tokens";
 import {
   cleanAnnouncementMeta,
@@ -295,7 +295,7 @@ export function AnnouncementsManager() {
               className="sr-only"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) void compressImage(file).then(setImageUrl);
+                if (file) void uploadOptimizedAnnouncementImage(file).then(setImageUrl);
                 e.target.value = "";
               }}
             />
@@ -306,6 +306,10 @@ export function AnnouncementsManager() {
           <img
             src={imageUrl}
             alt="Vista previa del aviso"
+            width={800}
+            height={144}
+            loading="lazy"
+            decoding="async"
             className="max-h-36 w-full rounded-xl border border-white/10 object-cover"
           />
         ) : null}
@@ -352,6 +356,10 @@ export function AnnouncementsManager() {
               <img
                 src={item.imageUrl ?? item.image_url}
                 alt=""
+                width={800}
+                height={160}
+                loading="lazy"
+                decoding="async"
                 className="max-h-40 w-full rounded-xl object-cover"
               />
             ) : null}

@@ -65,7 +65,10 @@ export function ExerciseCard({
           <img
             src={src}
             alt={`Animación de ${displayName}`}
+            width={320}
+            height={180}
             loading="lazy"
+            decoding="async"
             onLoad={onLoad}
             onError={onError}
             className="h-full w-full object-contain"

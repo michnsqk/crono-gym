@@ -8,6 +8,8 @@ import { GymSettingsProvider } from "./context/GymSettingsContext";
 // Before `./index.css` on purpose. The stylesheet reads `--cronos-*` custom properties, and
 // a generated sheet that lands after it is a sheet that resolves to its fallback for a
 // frame. Module scope, not an effect, so it is there before the first paint.
+import "@fontsource-variable/inter";
+import "@fontsource-variable/jetbrains-mono";
 import "./design/installDesignTokens";
 import "./index.css";
 import "./styles/text-scale.css";

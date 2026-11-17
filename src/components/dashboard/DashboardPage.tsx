@@ -695,6 +695,10 @@ export function DashboardPage({ userId }: DashboardPageProps) {
             <img
               src={announcementImagePreview.url}
               alt={announcementImagePreview.title}
+              width={800}
+              height={600}
+              loading="lazy"
+              decoding="async"
               className="max-h-[75vh] w-full rounded-2xl bg-black object-contain"
             />
           </div>

@@ -103,8 +103,7 @@ export default defineConfig({
       plugins: [dropConsole()],
       output: {
         manualChunks: {
-          react: ["react", "react-dom"],
-          "vendor-router": ["react-router-dom"],
+          "vendor-react": ["react", "react-dom", "react-router-dom"],
           "vendor-supabase": ["@supabase/supabase-js"],
           "vendor-icons": ["lucide-react"],
         },

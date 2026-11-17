@@ -70,7 +70,7 @@ export function ExercisePickerCard({
       </div>
       <div className='mb-2 aspect-square overflow-hidden rounded bg-neutral-900/50 pointer-events-none' onClick={handleSelect}>
         {resolvedSrc ? (
-          <img src={resolvedSrc as any} alt={getExerciseDisplayName(exercise)} className='h-full w-full object-cover pointer-events-none' loading='lazy' />
+          <img src={resolvedSrc as any} alt={getExerciseDisplayName(exercise)} width={240} height={240} className='h-full w-full object-cover pointer-events-none' loading='lazy' decoding='async' />
         ) : (
           <div className='flex h-full w-full items-center justify-center text-xs text-neutral-600'>Sin imagen</div>
         )}

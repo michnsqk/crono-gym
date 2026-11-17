@@ -53,7 +53,8 @@ export default {
          */
       },
       fontFamily: {
-        sans: ["-apple-system", "SF Pro Text", "Inter", "system-ui", "sans-serif"],
+        sans: ["-apple-system", "SF Pro Text", "Inter Variable", "Inter", "system-ui", "sans-serif"],
+        mono: ["JetBrains Mono Variable", "JetBrains Mono", "ui-monospace", "SFMono-Regular", "monospace"],
       },
       /*
        * Motion defaults, so a bare `transition` *is* the token.

@@ -3,9 +3,12 @@ import { Outlet, useLocation, useNavigate, useOutletContext, useSearchParams } f
 import { supabase } from "@lib/supabase";
 import { AuthModal } from "./components/AuthModal";
 import { BrandLockup } from "./components/shell/BrandLockup";
-import { DashboardPage } from "./components/dashboard/DashboardPage";
 import { Onboarding } from "./components/Onboarding";
 import { SegmentedControl } from "./components/ui/SegmentedControl";
+
+const DashboardPage = lazy(() =>
+  import("./components/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })),
+);
 
 const ActiveWorkoutView = lazy(() =>
   import("./components/workout/ActiveWorkoutView").then((m) => ({ default: m.ActiveWorkoutView })),
@@ -187,7 +190,17 @@ export function AuthGate() {
           </div>
         )}
         {!ready ? (
-          <p className="text-neutral-500">Cargando…</p>
+          <div className="space-y-4" aria-busy="true" aria-label="Cargando Cronos Gym">
+            <div className="h-32 rounded-3xl border border-white/10 bg-[#0d0d0f] p-5">
+              <div className="h-4 w-28 rounded bg-white/10" />
+              <div className="mt-3 h-7 w-52 rounded bg-white/10" />
+              <div className="mt-2 h-3 w-40 rounded bg-white/5" />
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="h-28 rounded-3xl border border-white/10 bg-[#0d0d0f]" />
+              <div className="h-28 rounded-3xl border border-white/10 bg-[#0d0d0f]" />
+            </div>
+          </div>
         ) : !userId ? (
           <Welcome
             requestedLabel={requestedDestination?.label ?? null}
@@ -424,7 +437,11 @@ export function HomeView() {
     );
   }
 
-  return <DashboardPage userId={userId} />;
+  return (
+    <Suspense fallback={<div className="min-h-[60vh] animate-pulse rounded-3xl border border-white/10 bg-[#0d0d0f]" />}>
+      <DashboardPage userId={userId} />
+    </Suspense>
+  );
 }
 
 /**
