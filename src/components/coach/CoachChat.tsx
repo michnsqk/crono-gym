@@ -684,16 +684,19 @@ export function CoachChat({
     display: "flex",
     alignItems: "center",
     gap: SPACE.sm,
+    minWidth: 0,
+    flex: 1,
   };
 
   const titleStyle: React.CSSProperties = {
-    display: "flex",
-    alignItems: "center",
-    gap: SPACE.xs,
     margin: 0,
-    fontSize: TYPE.title2.size,
+    fontSize: "17px",
+    lineHeight: 1.2,
     fontWeight: TYPE.title2.weight,
     color: TEXT.primary,
+    whiteSpace: "nowrap",
+    overflow: "hidden",
+    textOverflow: "ellipsis",
   };
 
   const closeStyle: React.CSSProperties = {

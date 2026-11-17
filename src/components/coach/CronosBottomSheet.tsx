@@ -43,8 +43,19 @@ import { CRONOS_LABELS as T } from "@/lib/i18n";
 import { useGymSettings } from "@/context/GymSettingsContext";
 import { useCoachContext } from "@/hooks/useCoach";
 import type { Exercise } from "@/types/supabase";
+import type { CoachContext } from "@/lib/coach/types";
 import { CoachChat } from "./CoachChat";
 import { RoutineGeneratorWizard } from "./RoutineGeneratorWizard";
+
+const EMPTY_COACH_CONTEXT: CoachContext = {
+  generatedAt: new Date(0).toISOString(),
+  profile: null,
+  bodyweight: { latestKg: null, changeLast30Days: null, seriesCount: 0 },
+  volume: { totalWorkouts: 0, workoutsThisMonth: 0, monthlyVolume: 0, weeklyPoints: [] },
+  energy: null,
+  muscles: [],
+  dataGaps: ["no_profile", "no_workouts"],
+};
 
 /** The two tabs. A discriminant, so a tab cannot be set to a number that does not exist. */
 export type CronosTab = "chat" | "generate";
@@ -279,15 +290,10 @@ function ChatTab({
   initialContext: string | null;
   onClose: () => void;
 }) {
-  const { context, loading } = useCoachContext(userId);
+  const { context } = useCoachContext(userId);
   const gym = useGymSettings();
 
-  if (userId === null || loading || !context) {
-    /*
-     * A status rather than a skeleton or a spinner: the conversation is not slow, it is
-     * assembling a briefing from the athlete's records, and an empty panel with no
-     * explanation reads as "the assistant has nothing to say".
-     */
+  if (userId === null) {
     return (
       <p role="status" style={{ margin: 0, fontSize: 12, color: TEXT.tertiary }}>
         {initialContext ?? T.disclaimer}
@@ -296,20 +302,13 @@ function ChatTab({
   }
 
   return (
-    <>
-      {initialContext !== null && (
-        <p style={{ margin: `0 0 ${SPACE.sm}px`, fontSize: 11, color: TEXT.tertiary }}>
-          {initialContext}
-        </p>
-      )}
-      <CoachChat
-        userId={userId}
-        context={context}
-        gymSettings={gym}
-        fullScreen
-        onClose={onClose}
-      />
-    </>
+    <CoachChat
+      userId={userId}
+      context={context ?? EMPTY_COACH_CONTEXT}
+      gymSettings={gym}
+      fullScreen
+      onClose={onClose}
+    />
   );
 }
 

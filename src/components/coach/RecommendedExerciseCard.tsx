@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { Check, ChevronDown, ChevronRight, Dumbbell, Eye, RefreshCw } from "lucide-react";
 import { ACCENT, GLASS, NUMERIC, SOLID, SURFACE, TEXT, TYPE } from "@/design/tokens";
+import { translateEquipment } from "@/lib/i18n";
 import type { RecommendedExerciseMatch } from "@/lib/ai/cronosIntelligence";
 
 interface RecommendedExerciseCardProps {
@@ -100,7 +101,7 @@ export function RecommendedExerciseCard({
             {match.name}
           </p>
           <p className="text-[11px] truncate" style={{ color: TEXT.tertiary }}>
-            {match.equipmentName}
+            {translateEquipment(match.equipmentName)}
           </p>
         </div>
 
