@@ -6,7 +6,8 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Plus, Trash2, Moon, ChevronLeft, ChevronRight, Dumbbell, Flame } from "lucide-react";
+import { Plus, Trash2, Moon, ChevronLeft, ChevronRight, Dumbbell, Flame, Sparkles } from "lucide-react";
+import { recommendSmartRest } from "@/lib/workout/smartRestAdvisor";
 import { useOutletContext } from "react-router-dom";
 import type { WorkspaceOutletContext } from "@/App";
 import type { RoutineWithExercises } from "@/hooks/useGymData";
@@ -397,15 +398,24 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
       const i = nextDays.length;
       nextDays.push(emptyDay(i, mode === "weekly" ? i : null, "empty"));
     }
-    const next = exercises.map((ex) => ({
-      rowId: crypto.randomUUID(),
-      exercise: ex,
-      target_sets: 3,
-      target_reps_min: null,
-      target_reps_max: null,
-      rest_seconds: 90,
-      order_index: nextDays[activeDayIndex].exercises.length,
-    }));
+    const next = exercises.map((ex) => {
+      const smartRest = recommendSmartRest({
+        name: ex.name,
+        name_es: ex.name_es,
+        target: ex.target,
+        bodyPart: ex.body_part,
+        equipment: ex.equipment,
+      });
+      return {
+        rowId: crypto.randomUUID(),
+        exercise: ex,
+        target_sets: 3,
+        target_reps_min: null,
+        target_reps_max: null,
+        rest_seconds: smartRest.betweenSetsSeconds,
+        order_index: nextDays[activeDayIndex].exercises.length,
+      };
+    });
     const dayExercises = [...(Array.isArray(nextDays[activeDayIndex].exercises) ? nextDays[activeDayIndex].exercises : []), ...next];
     nextDays[activeDayIndex] = {
       ...nextDays[activeDayIndex],
@@ -438,6 +448,21 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         const ex = exercises[exerciseIndex];
         if (!ex) return d;
         exercises[exerciseIndex] = { ...ex, target_sets: Math.max(1, ex.target_sets + delta) };
+        return { ...d, exercises };
+      }),
+    );
+    hapticLight();
+  }, []);
+
+  const changeRest = useCallback((dayIndex: number, exerciseIndex: number, nextSeconds: number) => {
+    const clamped = Math.max(10, Math.min(600, Math.round(nextSeconds)));
+    setDays((prev) =>
+      prev.map((d, i) => {
+        if (i !== dayIndex) return d;
+        const exercises = Array.isArray(d.exercises) ? [...d.exercises] : [];
+        const ex = exercises[exerciseIndex];
+        if (!ex) return d;
+        exercises[exerciseIndex] = { ...ex, rest_seconds: clamped };
         return { ...d, exercises };
       }),
     );
@@ -828,6 +853,92 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
                   </span>
                   <button type="button" onClick={() => changeReps(isWeeklyMode ? activeDayIndex : 0, idx, 1)} aria-label="Añadir repetición" style={{ width: 28, height: 28, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}>+</button>
                 </div>
+                {(() => {
+                  const smart = recommendSmartRest({
+                    name: ex.exercise?.name,
+                    name_es: ex.exercise?.name_es,
+                    target: ex.exercise?.target,
+                    bodyPart: ex.exercise?.body_part,
+                    equipment: ex.exercise?.equipment,
+                  });
+                  const currentRest = ex.rest_seconds ?? smart.betweenSetsSeconds;
+                  return (
+                    <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: "11px", color: "#71717A" }}>Descanso</span>
+                      <button
+                        type="button"
+                        onClick={() => changeRest(isWeeklyMode ? activeDayIndex : 0, idx, currentRest - 15)}
+                        aria-label="Restar 15 segundos de descanso"
+                        style={{ width: 28, height: 28, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}
+                      >
+                        −
+                      </button>
+                      <input
+                        type="number"
+                        min={10}
+                        max={600}
+                        step={5}
+                        value={currentRest}
+                        onChange={(e) => {
+                          const parsed = Number.parseInt(e.target.value, 10);
+                          if (Number.isFinite(parsed)) {
+                            changeRest(isWeeklyMode ? activeDayIndex : 0, idx, parsed);
+                          }
+                        }}
+                        aria-label="Segundos de descanso"
+                        style={{
+                          width: 48,
+                          height: 28,
+                          padding: "0 4px",
+                          borderRadius: "8px",
+                          border: "1px solid rgba(255,255,255,0.12)",
+                          background: "rgba(255,255,255,0.04)",
+                          color: "#FFFFFF",
+                          fontFamily: "ui-monospace, SFMono-Regular, monospace",
+                          fontSize: "12px",
+                          fontWeight: 600,
+                          textAlign: "center",
+                        }}
+                      />
+                      <span style={{ fontSize: "11px", color: "#71717A" }}>s</span>
+                      <button
+                        type="button"
+                        onClick={() => changeRest(isWeeklyMode ? activeDayIndex : 0, idx, currentRest + 15)}
+                        aria-label="Sumar 15 segundos de descanso"
+                        style={{ width: 28, height: 28, padding: 0, borderRadius: "9999px", border: "1px solid rgba(255,255,255,0.1)", background: "rgba(255,255,255,0.03)", color: "#A3A3A3", fontSize: "11px", fontWeight: 700, cursor: "pointer" }}
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          changeRest(
+                            isWeeklyMode ? activeDayIndex : 0,
+                            idx,
+                            smart.betweenSetsSeconds,
+                          )
+                        }
+                        title={smart.detail}
+                        style={{
+                          display: "inline-flex",
+                          alignItems: "center",
+                          gap: 4,
+                          padding: "4px 8px",
+                          borderRadius: "9999px",
+                          border: "1px solid rgba(215, 0, 21, 0.35)",
+                          background: "rgba(215, 0, 21, 0.12)",
+                          color: "#FCA5A5",
+                          fontSize: "10px",
+                          fontWeight: 600,
+                          cursor: "pointer",
+                        }}
+                      >
+                        <Sparkles size={10} aria-hidden="true" />
+                        <span>{smart.shortBadge}</span>
+                      </button>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
           );})}

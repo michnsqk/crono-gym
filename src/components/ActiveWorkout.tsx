@@ -37,7 +37,11 @@ import {
   Compass,
 } from "lucide-react";
 import { GlassButton } from "@/components/ui/GlassButton";
-import { loadRestSeconds } from "../lib/workout/restPreferences";
+import { loadRestSeconds, saveRestSeconds } from "../lib/workout/restPreferences";
+import {
+  recommendSmartRest,
+  type SmartRestRecommendation,
+} from "../lib/workout/smartRestAdvisor";
 import type { SetEntry } from "../lib/workout/types";
 import { GYM_LABELS } from "../lib/i18n";
 import {
@@ -1654,9 +1658,14 @@ export function ActiveWorkout({
     ).items,
   );
   const [notes, setNotes] = useState("");
-  const [rest, setRest] = useState<{ id: number; seconds: number; endsAt: number } | null>(
-    null,
-  );
+  const [rest, setRest] = useState<{
+    id: number;
+    seconds: number;
+    endsAt: number;
+    exerciseKey?: string;
+    exerciseName?: string;
+    smartRecommendation?: SmartRestRecommendation;
+  } | null>(null);
   const restIdRef = useRef(0);
   const [selectedKey, setSelectedKey] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
@@ -1925,17 +1934,38 @@ export function ActiveWorkout({
     return map;
   }, [items, performance]);
 
-  function startRestUntil(endsAt: number) {
+  function startRestUntil(
+    endsAt: number,
+    meta?: {
+      exerciseKey?: string;
+      exerciseName?: string;
+      smartRecommendation?: SmartRestRecommendation;
+    },
+  ) {
     const remainingMs = endsAt - Date.now();
     if (remainingMs <= 0) return;
     const total = Math.max(Math.ceil(remainingMs / 1000), 1);
     restIdRef.current += 1;
-    setRest({ id: restIdRef.current, seconds: total, endsAt });
+    setRest({
+      id: restIdRef.current,
+      seconds: total,
+      endsAt,
+      exerciseKey: meta?.exerciseKey,
+      exerciseName: meta?.exerciseName,
+      smartRecommendation: meta?.smartRecommendation,
+    });
   }
 
-  function startRest(seconds: number) {
-    const total = Math.max(seconds, 15);
-    startRestUntil(Date.now() + total * 1000);
+  function startRest(
+    seconds: number,
+    meta?: {
+      exerciseKey?: string;
+      exerciseName?: string;
+      smartRecommendation?: SmartRestRecommendation;
+    },
+  ) {
+    const total = Math.max(seconds, 10);
+    startRestUntil(Date.now() + total * 1000, meta);
   }
 
   const closeRest = useCallback(() => setRest(null), []);
@@ -2214,16 +2244,36 @@ export function ActiveWorkout({
       });
       setStrengthRevision((revision) => revision + 1);
     }
-    const configuredRest = loadRestSeconds(
-      itemKey,
-      items.find((i) => i.key === itemKey)?.restSeconds ?? DEFAULT_REST,
-    );
-    const restSeconds = Math.max(configuredRest, getAdaptiveRestSeconds(
-      entry.kind === "drop" ? "dropset" : entry.kind,
+    const setKind = entry.kind === "drop" ? "dropset" : entry.kind;
+    const smartRest = recommendSmartRest({
+      name: item?.exercise.name,
+      name_es: item?.exercise.name_es,
+      target: item?.exercise.target,
+      bodyPart: item?.exercise.body_part,
+      equipment: smartExercise?.equipment ?? item?.exercise.equipment,
+      equipment_id: smartExercise?.equipment_id ?? item?.exercise.equipment_id,
+      movement_pattern: smartExercise?.movement_pattern,
+      setType: setKind,
+    });
+    const routineRest = items.find((i) => i.key === itemKey)?.restSeconds;
+    const baseSmartOrRoutine = routineRest ?? smartRest.betweenSetsSeconds;
+    const configuredRest = loadRestSeconds(itemKey, baseSmartOrRoutine);
+    const adaptiveFloor = getAdaptiveRestSeconds(
+      setKind,
       smartExercise?.movement_pattern,
-    ));
+    );
+    const restSeconds =
+      routineRest !== undefined ||
+      smartRest.modality === "unilateral" ||
+      smartRest.region === "core"
+        ? configuredRest
+        : Math.max(configuredRest, adaptiveFloor);
     setRestPreset(restSeconds);
-    startRest(restSeconds);
+    startRest(restSeconds, {
+      exerciseKey: itemKey,
+      exerciseName: item ? cleanExerciseName(getExerciseDisplayName(item.exercise)) : undefined,
+      smartRecommendation: smartRest,
+    });
     advanceToSupersetPartner(itemKey);
     /*
      * Auto-advance: the last set of an exercise is the athlete's cue to move
@@ -3270,6 +3320,19 @@ export function ActiveWorkout({
           key={rest.id}
           seconds={rest.seconds}
           endsAt={rest.endsAt}
+          exerciseName={rest.exerciseName}
+          smartRecommendation={rest.smartRecommendation}
+          onUpdateSeconds={(nextSeconds) => {
+            setRestPreset(nextSeconds);
+            if (rest.exerciseKey) {
+              saveRestSeconds(rest.exerciseKey, nextSeconds);
+              setItems((current) =>
+                current.map((it) =>
+                  it.key === rest.exerciseKey ? { ...it, restSeconds: nextSeconds } : it,
+                ),
+              );
+            }
+          }}
           onClose={closeRest}
           onFinished={closeRest}
         />

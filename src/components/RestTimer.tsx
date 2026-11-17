@@ -38,7 +38,7 @@ import {
   useState,
   type CSSProperties,
 } from "react";
-import { ChevronDown, ChevronUp, Minus, Pause, Play, Plus, X } from "lucide-react";
+import { ChevronDown, ChevronUp, Minus, Pause, Pencil, Play, Plus, Sparkles, X } from "lucide-react";
 import {
   isFinalStretch,
   REST_BEEP_HZ,
@@ -50,6 +50,7 @@ import {
   ringProgress,
   remainingMs,
 } from "../lib/workout/restTimer";
+import type { SmartRestRecommendation } from "../lib/workout/smartRestAdvisor";
 import { isRecordBeepActive, playBeep } from "../lib/audio";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { REST_TIMER_LABELS } from "../lib/i18n";
@@ -80,6 +81,12 @@ export interface RestTimerProps {
    * version of "start now".
    */
   endsAt?: number;
+  /** Optional exercise label shown in the timer header. */
+  exerciseName?: string;
+  /** Optional smart rest recommendation (unilateral side rest, machine, core, etc.). */
+  smartRecommendation?: SmartRestRecommendation;
+  /** Called when the athlete edits or chooses a new rest duration in seconds. */
+  onUpdateSeconds?: (nextSeconds: number) => void;
   onClose: () => void;
   onFinished: () => void;
 }
@@ -87,7 +94,15 @@ export interface RestTimerProps {
 /** How far around the ring the hand travels; the ring's geometry, in one place. */
 const RING_RADIUS = 54;
 
-export function RestTimer({ seconds, endsAt, onClose, onFinished }: RestTimerProps) {
+export function RestTimer({
+  seconds,
+  endsAt,
+  exerciseName,
+  smartRecommendation,
+  onUpdateSeconds,
+  onClose,
+  onFinished,
+}: RestTimerProps) {
   const reducedMotion = useReducedMotion();
   // The beep decision travels in a ref so the interval's callback --
   // which outlives the render that scheduled it -- reads the preference
@@ -95,8 +110,8 @@ export function RestTimer({ seconds, endsAt, onClose, onFinished }: RestTimerPro
   const reducedMotionRef = useRef(reducedMotion);
   reducedMotionRef.current = reducedMotion;
 
-  const totalMs = Math.max(seconds, 1) * 1000;
-  const deadlineRef = useRef(endsAt ?? Date.now() + totalMs);
+  const [activeTotalMs, setActiveTotalMs] = useState(() => Math.max(seconds, 1) * 1000);
+  const deadlineRef = useRef(endsAt ?? Date.now() + Math.max(seconds, 1) * 1000);
   const finishedRef = useRef(false);
   // The remaining time a pause is holding, so resuming rebuilds the
   // deadline rather than restarting the rest.
@@ -107,6 +122,8 @@ export function RestTimer({ seconds, endsAt, onClose, onFinished }: RestTimerPro
   );
   const [running, setRunning] = useState(true);
   const [minimized, setMinimized] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editInput, setEditInput] = useState(() => String(Math.max(10, Math.round(seconds))));
 
   /**
    * Ends the rest.
@@ -189,8 +206,23 @@ export function RestTimer({ seconds, endsAt, onClose, onFinished }: RestTimerPro
     setRunning(true);
   };
 
+  const applyCustomSeconds = (nextSeconds: number) => {
+    const clamped = Math.max(10, Math.min(600, Math.round(nextSeconds)));
+    const nextMs = clamped * 1000;
+    setActiveTotalMs(nextMs);
+    if (pausedAtRef.current !== null) {
+      pausedAtRef.current = nextMs;
+    } else {
+      deadlineRef.current = Date.now() + nextMs;
+    }
+    setRemaining(nextMs);
+    setEditInput(String(clamped));
+    setEditing(false);
+    onUpdateSeconds?.(clamped);
+  };
+
   const finalStretch = isFinalStretch(remaining);
-  const progress = ringProgress(remaining, totalMs);
+  const progress = ringProgress(remaining, activeTotalMs);
   const circumference = 2 * Math.PI * RING_RADIUS;
   const dash = circumference * progress;
   // The ring's colour joins the numeral's in the last stretch: one
@@ -238,6 +270,47 @@ export function RestTimer({ seconds, endsAt, onClose, onFinished }: RestTimerPro
         </button>
 
         <p style={captionStyle}>{REST_TIMER_LABELS.title}</p>
+        {exerciseName && (
+          <p
+            style={{
+              margin: 0,
+              fontSize: "12px",
+              fontWeight: 600,
+              color: TEXT.primary,
+              textAlign: "center",
+              maxWidth: "100%",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {exerciseName}
+          </p>
+        )}
+        {smartRecommendation && (
+          <button
+            type="button"
+            onClick={() => applyCustomSeconds(smartRecommendation.betweenSetsSeconds)}
+            title={smartRecommendation.detail}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "5px",
+              padding: "4px 10px",
+              borderRadius: "9999px",
+              background: "rgba(215, 0, 21, 0.14)",
+              border: "1px solid rgba(215, 0, 21, 0.35)",
+              color: "#FCA5A5",
+              fontSize: "11px",
+              fontWeight: 600,
+              textAlign: "center",
+              cursor: "pointer",
+            }}
+          >
+            <Sparkles size={12} aria-hidden="true" />
+            <span>{smartRecommendation.shortBadge}</span>
+          </button>
+        )}
 
         <div style={ringWrapStyle}>
           <svg
@@ -322,6 +395,159 @@ export function RestTimer({ seconds, endsAt, onClose, onFinished }: RestTimerPro
             {REST_TIMER_LABELS.stepLabel}
           </button>
         </div>
+
+        {/* Modo unilateral (40s por lado) + Edición directa + Presets */}
+        {smartRecommendation?.betweenSidesSeconds !== null &&
+          smartRecommendation?.betweenSidesSeconds !== undefined && (
+          <div style={{ display: "flex", gap: "6px", width: "100%" }}>
+            <button
+              type="button"
+              onClick={() =>
+                applyCustomSeconds(smartRecommendation.betweenSidesSeconds ?? 40)
+              }
+              style={{
+                flex: 1,
+                padding: "7px 8px",
+                borderRadius: "12px",
+                border:
+                  Math.round(activeTotalMs / 1000) === smartRecommendation.betweenSidesSeconds
+                    ? "1px solid #D70015"
+                    : "1px solid rgba(255,255,255,0.12)",
+                background:
+                  Math.round(activeTotalMs / 1000) === smartRecommendation.betweenSidesSeconds
+                    ? "rgba(215, 0, 21, 0.18)"
+                    : "rgba(255,255,255,0.04)",
+                color: "#FFFFFF",
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {smartRecommendation.betweenSidesSeconds}s · Otro lado
+            </button>
+            <button
+              type="button"
+              onClick={() => applyCustomSeconds(smartRecommendation.betweenSetsSeconds)}
+              style={{
+                flex: 1,
+                padding: "7px 8px",
+                borderRadius: "12px",
+                border:
+                  Math.round(activeTotalMs / 1000) === smartRecommendation.betweenSetsSeconds
+                    ? "1px solid #D70015"
+                    : "1px solid rgba(255,255,255,0.12)",
+                background:
+                  Math.round(activeTotalMs / 1000) === smartRecommendation.betweenSetsSeconds
+                    ? "rgba(215, 0, 21, 0.18)"
+                    : "rgba(255,255,255,0.04)",
+                color: "#FFFFFF",
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {smartRecommendation.betweenSetsSeconds}s · Serie
+            </button>
+          </div>
+        )}
+
+        <div style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: "6px", width: "100%" }}>
+          {[40, 60, 90, 120, 150].map((preset) => (
+            <button
+              key={preset}
+              type="button"
+              onClick={() => applyCustomSeconds(preset)}
+              style={{
+                padding: "4px 8px",
+                borderRadius: "9999px",
+                border:
+                  Math.round(activeTotalMs / 1000) === preset
+                    ? "1px solid #D70015"
+                    : "1px solid rgba(255,255,255,0.1)",
+                background:
+                  Math.round(activeTotalMs / 1000) === preset
+                    ? "rgba(215, 0, 21, 0.2)"
+                    : "rgba(255,255,255,0.03)",
+                color: Math.round(activeTotalMs / 1000) === preset ? "#FFFFFF" : TEXT.secondary,
+                fontSize: "11px",
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {preset}s
+            </button>
+          ))}
+          <button
+            type="button"
+            onClick={() => setEditing((v) => !v)}
+            aria-label="Editar tiempo de descanso"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "4px",
+              padding: "4px 8px",
+              borderRadius: "9999px",
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: editing ? "rgba(255,255,255,0.12)" : "rgba(255,255,255,0.03)",
+              color: "#FFFFFF",
+              fontSize: "11px",
+              fontWeight: 600,
+              cursor: "pointer",
+            }}
+          >
+            <Pencil size={10} aria-hidden="true" />
+            Editar
+          </button>
+        </div>
+
+        {editing && (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const parsed = Number.parseInt(editInput, 10);
+              if (Number.isFinite(parsed) && parsed > 0) {
+                applyCustomSeconds(parsed);
+              }
+            }}
+            style={{ display: "flex", alignItems: "center", gap: "6px", width: "100%" }}
+          >
+            <input
+              type="number"
+              min={10}
+              max={600}
+              step={5}
+              value={editInput}
+              onChange={(e) => setEditInput(e.target.value)}
+              aria-label="Segundos de descanso personalizados"
+              style={{
+                flex: 1,
+                minWidth: 0,
+                padding: "6px 10px",
+                borderRadius: "10px",
+                border: "1px solid rgba(255,255,255,0.18)",
+                background: "rgba(0,0,0,0.45)",
+                color: "#FFFFFF",
+                fontSize: "12px",
+                fontFamily: "ui-monospace, SFMono-Regular, monospace",
+              }}
+            />
+            <button
+              type="submit"
+              style={{
+                padding: "6px 12px",
+                borderRadius: "10px",
+                border: "none",
+                background: "#D70015",
+                color: "#FFFFFF",
+                fontSize: "11px",
+                fontWeight: 700,
+                cursor: "pointer",
+              }}
+            >
+              Aplicar
+            </button>
+          </form>
+        )}
 
         <div style={actionsStyle}>
           <button
