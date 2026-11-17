@@ -917,3 +917,11 @@ a.bg-\[\#FF3B30\]:hover,
   background: #B80012 !important;
   background-color: #B80012 !important;
 }
+
+/* Elimina el retraso táctil de 300 ms en móvil */
+button,
+a,
+[role="button"],
+.interactive-element {
+  touch-action: manipulation;
+}
