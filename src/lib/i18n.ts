@@ -1861,7 +1861,7 @@ export const COACH_ACCESS_LABELS = {
  * find again.
  */
 export const CRONOS_LABELS = {
-  fabAriaLabel: "Abrir Cronos",
+  fabAriaLabel: "Cronos IA — Abrir asistente",
   sheetAriaLabel: "Cronos, asistente de entrenamiento",
   sheetTitle: "Cronos",
   close: "Cerrar",
