@@ -16,6 +16,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { RefreshCw, AlertTriangle, Menu, ChevronDown, Megaphone, Zap, X } from "lucide-react";
 import { useAdvancedMode } from "@/hooks/useAdvancedMode";
 import { WelcomeTourModal, hasSeenWelcomeTour } from "@/components/onboarding/WelcomeTourModal";
+import { NewUserQuestHud } from "@/components/onboarding/NewUserQuestHud";
 
 const TopMenuDrawer = lazy(() =>
   import("@/components/shell/TopMenuDrawer").then((m) => ({ default: m.TopMenuDrawer })),
@@ -448,6 +449,13 @@ export function DashboardPage({ userId }: DashboardPageProps) {
         <Zap size={20} fill="currentColor" aria-hidden="true" />
         <span>Empezar entrenamiento de hoy</span>
       </button>
+
+      {/* 2b. Modo Tutorial / Misiones iniciales (se oculta al descartar) */}
+      <NewUserQuestHud
+        hasRoutine={Boolean(hasRoutine || todayPlan)}
+        hasWorkout={weeklyCompleted > 0 || data.recentSessions.length > 0}
+        onOpenTour={() => setTourOpen(true)}
+      />
 
       {/* 3. Tienda / Productos (Vista Previa) */}
       <GymClubHubSection

@@ -116,9 +116,6 @@ export default defineConfig({
             if (id.includes("react-muscle-highlighter")) {
               return "vendor-muscle-map";
             }
-            if (id.includes("@blobatar") || id.includes("blobatar")) {
-              return "vendor-avatar";
-            }
           }
           if (id.includes("/src/data/")) {
             return "data-exercises";

@@ -46,6 +46,11 @@ function toProfile(row: Record<string, unknown>): Profile {
     experience_level: (row.experience_level as Profile["experience_level"]) ?? "beginner",
     activity_level: (row.activity_level as Profile["activity_level"]) ?? "moderate",
     goal: (row.goal as Profile["goal"]) ?? "maintain",
+    weekly_days_target: (row.weekly_days_target as number | null) ?? 4,
+    preferred_session_minutes: (row.preferred_session_minutes as number | null) ?? 60,
+    training_location:
+      (row.training_location as Profile["training_location"]) ?? "commercial_gym",
+    injuries_or_notes: (row.injuries_or_notes as string | null) ?? null,
     guardian_consent_at: (row.guardian_consent_at as string | null) ?? null,
     onboarding_completed_at: (row.onboarding_completed_at as string | null) ?? null,
   };

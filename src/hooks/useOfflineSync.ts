@@ -86,7 +86,9 @@ export function useOfflineSync(enabled = true): OfflineSyncState {
     document.addEventListener("visibilitychange", handleVisible);
 
     const timer = window.setInterval(() => {
-      if (navigator.onLine) void runDrain();
+      if (navigator.onLine && document.visibilityState === "visible") {
+        void runDrain();
+      }
     }, DRAIN_INTERVAL_MS);
 
     // Anything already queued from a previous session goes up on mount.

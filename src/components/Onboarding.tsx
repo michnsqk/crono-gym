@@ -46,8 +46,36 @@ interface Draft {
   experience: Profile["experience_level"];
   activity: Profile["activity_level"];
   goal: Profile["goal"];
+  weeklyDaysTarget: number;
+  preferredSessionMinutes: number;
+  trainingLocation: "commercial_gym" | "home_gym" | "dumbbells_only";
+  injuriesOrNotes: string;
   guardianConsent: boolean;
 }
+
+const WEEKLY_DAYS_OPTIONS = [2, 3, 4, 5, 6] as const;
+const SESSION_MINUTES_OPTIONS = [30, 45, 60, 90] as const;
+const TRAINING_LOCATIONS: {
+  value: Draft["trainingLocation"];
+  label: string;
+  hint: string;
+}[] = [
+  {
+    value: "commercial_gym",
+    label: "Gimnasio completo",
+    hint: "Barras, poleas, máquinas y mancuernas",
+  },
+  {
+    value: "home_gym",
+    label: "Gimnasio en casa",
+    hint: "Rack, barra, banco y discos",
+  },
+  {
+    value: "dumbbells_only",
+    label: "Solo mancuernas / corporal",
+    hint: "Equipo mínimo en casa o viaje",
+  },
+];
 
 type DraftPatch = (patch: Partial<Draft>) => void;
 
@@ -106,6 +134,10 @@ export function Onboarding({ profile, onSave, onFinish }: OnboardingProps) {
     experience: profile.experience_level as Profile["experience_level"],
     activity: profile.activity_level as Profile["activity_level"],
     goal: profile.goal as Profile["goal"],
+    weeklyDaysTarget: profile.weekly_days_target ?? 4,
+    preferredSessionMinutes: profile.preferred_session_minutes ?? 60,
+    trainingLocation: (profile.training_location ?? "commercial_gym") as Draft["trainingLocation"],
+    injuriesOrNotes: profile.injuries_or_notes ?? "",
     guardianConsent: profile.guardian_consent_at !== null,
   });
 
@@ -210,6 +242,10 @@ export function Onboarding({ profile, onSave, onFinish }: OnboardingProps) {
         experience_level: draft.experience,
         activity_level: draft.activity,
         goal: draft.goal,
+        weekly_days_target: draft.weeklyDaysTarget,
+        preferred_session_minutes: draft.preferredSessionMinutes,
+        training_location: draft.trainingLocation,
+        injuries_or_notes: draft.injuriesOrNotes.trim() || null,
         guardian_consent_at: draft.guardianConsent ? new Date().toISOString() : null,
         onboarding_completed_at: new Date().toISOString(),
       });
@@ -233,21 +269,27 @@ export function Onboarding({ profile, onSave, onFinish }: OnboardingProps) {
   }, [effectiveWeightKg, effectiveHeightCm, draft.unitSystem]);
 
   return (
-    <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-5 py-10">
-      <header className="mb-8">
-        <h1 className="text-2xl font-semibold tracking-tight">Configura tu perfil</h1>
+    <div className="mx-auto flex min-h-screen max-w-2xl flex-col justify-center px-4 py-8 sm:px-6 sm:py-10">
+      <header className="mb-6 sm:mb-8">
+        <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1 text-[11px] font-medium text-neutral-300">
+          <span className="h-1.5 w-1.5 rounded-full bg-[#D70015]" aria-hidden="true" />
+          Paso {stepIndex + 1} de {STEPS.length}
+        </div>
+        <h1 className="mt-3 text-2xl font-semibold tracking-tight text-white sm:text-3xl">
+          Configura tu perfil
+        </h1>
         <p className="mt-1 text-sm text-neutral-400">
-          Paso {stepIndex + 1} de {STEPS.length} · {step.subtitle}
+          {step.subtitle}
         </p>
-        <div className="mt-4 h-1 overflow-hidden rounded-full bg-white/5">
+        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/[0.06]">
           <div
-            className="h-full rounded-full bg-accent transition-all"
+            className="h-full rounded-full bg-[#D70015] transition-all duration-300 ease-out"
             style={{ width: `${((stepIndex + 1) / STEPS.length) * 100}%` }}
           />
         </div>
       </header>
 
-      <div className="rounded-2xl border border-white/10 bg-neutral-900/60 p-6 shadow-glass backdrop-blur-md">
+      <div className="rounded-[28px] border border-white/10 bg-[#0A0A0C]/95 p-5 shadow-2xl backdrop-blur-xl sm:p-7">
         {step.key === "units" && (
           <StepUnits
             value={draft.unitSystem}
@@ -300,12 +342,12 @@ export function Onboarding({ profile, onSave, onFinish }: OnboardingProps) {
           </div>
         )}
 
-        <footer className="mt-6 flex items-center justify-between gap-3">
+        <footer className="mt-7 flex items-center justify-between gap-3">
           <button
             type="button"
             onClick={() => setStepIndex((i) => Math.max(i - 1, 0))}
             disabled={stepIndex === 0}
-            className="flex items-center gap-1.5 rounded-lg border border-white/10 px-4 py-2 text-xs text-neutral-300 transition hover:bg-white/5 disabled:opacity-30"
+            className="flex min-h-[44px] items-center gap-1.5 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-2 text-xs font-medium text-neutral-200 transition hover:bg-white/[0.08] active:scale-[0.98] disabled:opacity-30"
           >
             <ArrowLeft className="h-3.5 w-3.5" /> Atrás
           </button>
@@ -313,7 +355,7 @@ export function Onboarding({ profile, onSave, onFinish }: OnboardingProps) {
             type="button"
             onClick={handleNext}
             disabled={!stepValid || saving}
-            className="flex items-center gap-1.5 rounded-lg bg-accent px-5 py-2 text-xs font-semibold text-neutral-950 transition hover:brightness-110 disabled:opacity-40"
+            className="flex min-h-[44px] items-center gap-1.5 rounded-2xl bg-[#D70015] px-6 py-2 text-xs font-semibold text-white shadow-lg shadow-[#D70015]/25 transition hover:brightness-110 active:scale-[0.98] disabled:opacity-40"
           >
             {step.key === "summary" ? (
               <>
@@ -583,16 +625,90 @@ function StepTraining({
               type="button"
               onClick={() => setDraft((d) => ({ ...d, goal: option.value }))}
               aria-pressed={draft.goal === option.value}
-              className={`rounded-lg border px-3 py-2 text-xs transition ${
+              className={`min-h-[42px] rounded-2xl border px-3.5 py-2 text-xs font-medium transition active:scale-[0.98] ${
                 draft.goal === option.value
-                  ? "border-accent bg-accent/10 text-accent"
-                  : "border-white/10 text-neutral-300 hover:border-white/20"
+                  ? "border-[#D70015] bg-[#D70015]/15 text-white"
+                  : "border-white/10 bg-white/[0.02] text-neutral-300 hover:border-white/20"
               }`}
             >
               {option.label}
             </button>
           ))}
         </div>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <span className="mb-1.5 block text-xs text-neutral-400">Días por semana</span>
+          <div className="grid grid-cols-5 gap-1.5">
+            {WEEKLY_DAYS_OPTIONS.map((days) => (
+              <button
+                key={days}
+                type="button"
+                onClick={() => setDraft((d) => ({ ...d, weeklyDaysTarget: days }))}
+                aria-pressed={draft.weeklyDaysTarget === days}
+                className={`min-h-[40px] rounded-xl border text-xs font-semibold transition active:scale-[0.97] ${
+                  draft.weeklyDaysTarget === days
+                    ? "border-[#D70015] bg-[#D70015]/15 text-white"
+                    : "border-white/10 bg-white/[0.02] text-neutral-300 hover:border-white/20"
+                }`}
+              >
+                {days}d
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <span className="mb-1.5 block text-xs text-neutral-400">Duración por sesión</span>
+          <div className="grid grid-cols-4 gap-1.5">
+            {SESSION_MINUTES_OPTIONS.map((mins) => (
+              <button
+                key={mins}
+                type="button"
+                onClick={() => setDraft((d) => ({ ...d, preferredSessionMinutes: mins }))}
+                aria-pressed={draft.preferredSessionMinutes === mins}
+                className={`min-h-[40px] rounded-xl border text-xs font-semibold transition active:scale-[0.97] ${
+                  draft.preferredSessionMinutes === mins
+                    ? "border-[#D70015] bg-[#D70015]/15 text-white"
+                    : "border-white/10 bg-white/[0.02] text-neutral-300 hover:border-white/20"
+                }`}
+              >
+                {mins}m
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <span className="mb-1.5 block text-xs text-neutral-400">Equipo y lugar de entrenamiento</span>
+        <div className="space-y-2">
+          {TRAINING_LOCATIONS.map((option) => (
+            <ChoiceRow
+              key={option.value}
+              label={option.label}
+              hint={option.hint}
+              selected={draft.trainingLocation === option.value}
+              onSelect={() => setDraft((d) => ({ ...d, trainingLocation: option.value }))}
+            />
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <label htmlFor="onboarding-injuries-notes" className="mb-1.5 block text-xs text-neutral-400">
+          Lesiones, molestias o notas para tu Coach e IA (opcional)
+        </label>
+        <textarea
+          id="onboarding-injuries-notes"
+          rows={2}
+          maxLength={280}
+          value={draft.injuriesOrNotes}
+          onChange={(e) => setDraft((d) => ({ ...d, injuriesOrNotes: e.target.value }))}
+          placeholder="Ej. molestia en hombro derecho, priorizar glúteo o evitar alto impacto..."
+          className="w-full resize-none rounded-2xl border border-white/10 bg-white/[0.03] px-3.5 py-2.5 text-xs text-white placeholder:text-neutral-500 focus:border-[#D70015]/60 focus:outline-none"
+        />
       </div>
     </fieldset>
   );
@@ -673,6 +789,23 @@ function StepSummary({
             label="Actividad"
             value={`${ACTIVITY.find((a) => a.value === draft.activity)?.label ?? draft.activity} (×${ACTIVITY_FACTORS[draft.activity]})`}
           />
+          <SummaryRow
+            label="Disponibilidad"
+            value={`${draft.weeklyDaysTarget} días/sem · ${draft.preferredSessionMinutes} min/sesión`}
+          />
+          <SummaryRow
+            label="Equipo"
+            value={
+              TRAINING_LOCATIONS.find((l) => l.value === draft.trainingLocation)?.label ??
+              draft.trainingLocation
+            }
+          />
+          {draft.injuriesOrNotes.trim().length > 0 && (
+            <SummaryRow
+              label="Notas Coach / IA"
+              value={draft.injuriesOrNotes.trim()}
+            />
+          )}
         </dl>
       )}
     </div>

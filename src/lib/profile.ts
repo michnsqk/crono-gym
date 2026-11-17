@@ -55,6 +55,10 @@ export interface Profile {
     | "endurance";
   guardian_consent_at: string | null;
   onboarding_completed_at: string | null;
+  weekly_days_target?: number;
+  preferred_session_minutes?: number;
+  training_location?: "commercial_gym" | "home_gym" | "dumbbells_only";
+  injuries_or_notes?: string | null;
 }
 
 // ---------------------------------------------------------------- age & sex

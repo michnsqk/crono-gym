@@ -370,6 +370,10 @@ export interface Database {
           experience_level: string;
           activity_level: string;
           goal: string;
+          weekly_days_target: number;
+          preferred_session_minutes: number;
+          training_location: string;
+          injuries_or_notes: string | null;
           guardian_consent_at: string | null;
           onboarding_completed_at: string | null;
           created_at: string;
@@ -418,6 +422,10 @@ export interface Database {
           experience_level?: string;
           activity_level?: string;
           goal?: string;
+          weekly_days_target?: number;
+          preferred_session_minutes?: number;
+          training_location?: string;
+          injuries_or_notes?: string | null;
           guardian_consent_at?: string | null;
           onboarding_completed_at?: string | null;
           created_at?: string;
@@ -441,6 +449,10 @@ export interface Database {
           experience_level?: string;
           activity_level?: string;
           goal?: string;
+          weekly_days_target?: number;
+          preferred_session_minutes?: number;
+          training_location?: string;
+          injuries_or_notes?: string | null;
           guardian_consent_at?: string | null;
           onboarding_completed_at?: string | null;
           created_at?: string;
