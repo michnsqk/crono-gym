@@ -158,13 +158,15 @@ export function NewUserQuestHud({
   return (
     <section
       aria-label="Misiones de inicio"
-      className="rounded-[24px] border border-white/10 bg-[#0D0D11]/95 p-4 shadow-xl backdrop-blur-xl sm:p-5"
+      className="w-full min-w-0 overflow-hidden rounded-[24px] border border-white/10 bg-[#0D0D11]/95 p-4 shadow-xl backdrop-blur-xl sm:p-5"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-[#D70015]/30 bg-[#D70015]/10 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider text-[#FF6B6B]">
-            <Compass className="h-3 w-3" aria-hidden="true" />
-            {allCompleted ? "Tutorial completado" : "Modo Tutorial · Paso a paso"}
+        <div className="min-w-0 flex-1">
+          <div className="inline-flex max-w-full items-center gap-1.5 rounded-full border border-[#D70015]/30 bg-[#D70015]/10 px-2.5 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[#FF6B6B]">
+            <Compass className="h-3 w-3 shrink-0" aria-hidden="true" />
+            <span className="truncate">
+              {allCompleted ? "Tutorial completado" : "Modo Tutorial · Paso a paso"}
+            </span>
           </div>
           <h2 className="mt-2 text-base font-semibold tracking-tight text-white">
             {allCompleted
@@ -211,7 +213,7 @@ export function NewUserQuestHud({
           </button>
         </div>
       ) : (
-        <div className="mt-3.5 grid gap-2 sm:grid-cols-2">
+        <div className="mt-3.5 grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2">
           {quests.map((quest) => {
             const Icon = quest.icon;
             const isNext = nextQuest.id === quest.id;
@@ -220,7 +222,7 @@ export function NewUserQuestHud({
                 key={quest.id}
                 type="button"
                 onClick={quest.onAction}
-                className={`group flex items-center justify-between gap-3 rounded-2xl border px-3.5 py-2.5 text-left transition active:scale-[0.98] ${
+                className={`group flex w-full min-w-0 items-center justify-between gap-2.5 overflow-hidden rounded-2xl border px-3.5 py-2.5 text-left transition active:scale-[0.98] ${
                   quest.completed
                     ? "border-emerald-500/20 bg-emerald-500/[0.06] text-neutral-300"
                     : isNext
@@ -228,7 +230,7 @@ export function NewUserQuestHud({
                       : "border-white/10 bg-white/[0.02] text-neutral-300 hover:border-white/20 hover:bg-white/[0.05]"
                 }`}
               >
-                <div className="flex min-w-0 items-center gap-2.5">
+                <div className="flex min-w-0 flex-1 items-center gap-2.5 overflow-hidden">
                   <div
                     className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border ${
                       quest.completed
@@ -244,7 +246,7 @@ export function NewUserQuestHud({
                       <Icon className="h-4 w-4" aria-hidden="true" />
                     )}
                   </div>
-                  <div className="min-w-0">
+                  <div className="min-w-0 flex-1 overflow-hidden">
                     <div className="flex items-center gap-1.5">
                       <span className="font-mono text-[10px] text-neutral-500">
                         {quest.number}

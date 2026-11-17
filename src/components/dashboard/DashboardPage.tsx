@@ -334,28 +334,28 @@ export function DashboardPage({ userId }: DashboardPageProps) {
   return (
     <div
       data-testid="today-command-center-root"
-      className="w-full min-w-0 flex flex-col gap-5 md:gap-6"
+      className="flex w-full min-w-0 max-w-full flex-col gap-4 overflow-x-hidden px-4 pt-3 pb-28 md:gap-6 md:px-6 md:pb-10"
       style={{
         backgroundColor: TODAY_CANVAS,
         backgroundImage: `radial-gradient(120% 70% at 50% -10%, ${ACCENT.subtle} 0%, transparent 58%)`,
-        paddingInline: 20,
-        paddingTop: SPACE.md,
-        paddingBottom: SPACE.lg,
       }}
     >
       <header
-        className="flex items-center justify-between gap-3"
+        className="flex items-center justify-between gap-2.5"
         aria-label="Encabezado de Today"
       >
-        <div className="min-w-0">
-          <h1 className="truncate text-xl font-bold tracking-tight text-white sm:text-2xl">
+        <div className="min-w-0 flex-1">
+          <h1 className="truncate text-[18px] font-bold leading-tight tracking-tight text-white sm:text-2xl">
             {data.greeting}
           </h1>
-          <p style={{ ...TYPE.caption, color: TEXT.tertiary, margin: 0, textTransform: "capitalize" }}>
+          <p
+            className="truncate"
+            style={{ ...TYPE.caption, color: TEXT.tertiary, margin: 0, textTransform: "capitalize" }}
+          >
             {todayLabel}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <button
             type="button"
             onClick={() => setMenuOpen(true)}
@@ -444,10 +444,10 @@ export function DashboardPage({ userId }: DashboardPageProps) {
             navigate("/rutinas");
           }
         }}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#FF3B30] px-5 text-base font-bold text-white active:scale-[0.98] transition-transform duration-150"
+        className="flex min-h-[54px] w-full items-center justify-center gap-2 rounded-2xl bg-[#FF3B30] px-4 py-3.5 text-[15px] font-bold leading-tight text-white active:scale-[0.98] transition-transform duration-150 sm:text-base"
       >
-        <Zap size={20} fill="currentColor" aria-hidden="true" />
-        <span>Empezar entrenamiento de hoy</span>
+        <Zap size={18} className="shrink-0" fill="currentColor" aria-hidden="true" />
+        <span className="truncate">Empezar entrenamiento de hoy</span>
       </button>
 
       {/* 2b. Modo Tutorial / Misiones iniciales (se oculta al descartar) */}
