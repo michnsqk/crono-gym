@@ -42,7 +42,7 @@ export function RoutineCreationSubmenu({
       <div
         role="tablist"
         aria-label="Herramientas de creación de rutinas"
-        className="flex items-center gap-1 rounded-2xl border border-white/10 bg-[#1C1C1E] p-1"
+        className="flex w-full min-w-0 items-center gap-1 overflow-hidden rounded-2xl border border-white/10 bg-[#1C1C1E] p-1"
       >
         {tabs.map((tab) => {
           const active = activeTab === tab.id;
@@ -53,7 +53,7 @@ export function RoutineCreationSubmenu({
               role="tab"
               aria-selected={active}
               onClick={() => handleToggle(tab.id)}
-              className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-xl px-2 text-xs font-semibold active:scale-[0.98] transition-all duration-150"
+              className="flex min-h-[42px] min-w-0 flex-1 items-center justify-center gap-1 overflow-hidden rounded-xl px-1.5 text-[11px] font-semibold active:scale-[0.98] transition-all duration-150 sm:px-2.5 sm:text-xs"
               style={{
                 backgroundColor: active ? ACCENT.base : "transparent",
                 color: active ? "#FFFFFF" : TEXT.secondary,
@@ -61,9 +61,9 @@ export function RoutineCreationSubmenu({
             >
               <span className="truncate">{tab.label}</span>
               {active ? (
-                <ChevronUp size={14} aria-hidden="true" />
+                <ChevronUp size={13} className="shrink-0" aria-hidden="true" />
               ) : (
-                <ChevronDown size={14} aria-hidden="true" />
+                <ChevronDown size={13} className="shrink-0" aria-hidden="true" />
               )}
             </button>
           );

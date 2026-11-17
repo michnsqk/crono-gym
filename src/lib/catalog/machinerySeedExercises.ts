@@ -3677,7 +3677,24 @@ function buildSemanticHaystack(ex: {
   const extraTags: string[] = [];
 
   // Body part & target Spanish/English synonyms
-  if (bp === "chest" || target === "pectorals" || rawName.includes("pecho") || rawName.includes("pectoral")) {
+  if (
+    bp === "chest" ||
+    bp === "pecho" ||
+    target === "pectorals" ||
+    target === "pectoral" ||
+    rawName.includes("pecho") ||
+    rawName.includes("pectoral") ||
+    rawName.includes("bench press") ||
+    rawName.includes("press banca") ||
+    rawName.includes("press de banca") ||
+    rawName.includes("aperturas") ||
+    rawName.includes("pec deck") ||
+    rawName.includes("contractora") ||
+    rawName.includes("crossover") ||
+    rawName.includes("flexiones") ||
+    rawName.includes("push up") ||
+    rawName.includes("push-up")
+  ) {
     extraTags.push("pecho pectoral pectorales chest");
     if (
       rawName.includes("inclinad") ||
@@ -3715,12 +3732,40 @@ function buildSemanticHaystack(ex: {
     }
   }
 
-  if (bp === "back" || target === "lats" || target === "upper back" || rawName.includes("espalda") || rawName.includes("dorsal") || rawName.includes("remo") || rawName.includes("jalon")) {
-    extraTags.push("espalda dorsal dorsales lats traccion jalon remo pullover");
+  if (
+    bp === "back" ||
+    bp === "espalda" ||
+    target === "lats" ||
+    target === "upper back" ||
+    target === "lower back" ||
+    rawName.includes("espalda") ||
+    rawName.includes("dorsal") ||
+    rawName.includes("remo") ||
+    rawName.includes("row") ||
+    rawName.includes("jalon") ||
+    rawName.includes("pulldown") ||
+    rawName.includes("dominada") ||
+    rawName.includes("pull up") ||
+    rawName.includes("pull-up") ||
+    rawName.includes("chin up") ||
+    rawName.includes("lumbar")
+  ) {
+    extraTags.push("espalda dorsal dorsales lats lumbar lumbares traccion jalon remo pullover back");
   }
 
-  if (bp === "shoulders" || target === "delts" || target === "deltoids" || rawName.includes("hombro") || rawName.includes("deltoide") || rawName.includes("militar")) {
-    extraTags.push("hombro hombros deltoides delts shoulder");
+  if (
+    bp === "shoulders" ||
+    bp === "hombros" ||
+    target === "delts" ||
+    target === "deltoids" ||
+    rawName.includes("hombro") ||
+    rawName.includes("deltoide") ||
+    rawName.includes("militar") ||
+    rawName.includes("elevacion lateral") ||
+    rawName.includes("lateral raise") ||
+    rawName.includes("face pull")
+  ) {
+    extraTags.push("hombro hombros deltoides delts shoulder shoulders");
   }
 
   if (target === "biceps" || rawName.includes("biceps") || rawName.includes("braquial") || rawName.includes("curl")) {

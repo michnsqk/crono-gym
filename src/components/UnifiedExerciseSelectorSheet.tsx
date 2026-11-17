@@ -269,8 +269,8 @@ export function UnifiedExerciseSelectorSheet({
   }, [isOpen, mode, onClose, handleConfirm]);
 
   const baseRows = useMemo(() => {
-    const rows = localExercises.filter((ex) => !excluded.has(ex.id) && ex.is_active && !ex.is_hidden);
-    if (tab === "frequent") {
+    const rows = localExercises.filter((ex) => !excluded.has(ex.id) && ex.is_active !== false && !ex.is_hidden);
+    if (tab === "frequent" && !query.trim()) {
       const frequentSet = new Set(frequentIds);
       return rows.filter((ex) => frequentSet.has(ex.id));
     }
@@ -280,7 +280,7 @@ export function UnifiedExerciseSelectorSheet({
       );
     }
     return rows;
-  }, [localExercises, tab, frequentIds, excluded, warmupMuscleFilter]);
+  }, [localExercises, tab, frequentIds, excluded, warmupMuscleFilter, query]);
 
   useEffect(() => { if (exercises.length === 0) return; setLocalExercises(exercises); }, [exercises]);
 
@@ -312,6 +312,18 @@ export function UnifiedExerciseSelectorSheet({
       if (selectedEquipmentCategory && getEquipmentCategory(ex.equipment) !== selectedEquipmentCategory) return false;
       return true;
     });
+    if (q) {
+      const qFold = foldSearch(query);
+      attributeFiltered.sort((a, b) => {
+        const aName = foldSearch(`${a.name_es ?? ""} ${a.name ?? ""}`);
+        const bName = foldSearch(`${b.name_es ?? ""} ${b.name ?? ""}`);
+        const aBody = foldSearch(`${formatSelectorBodyPart(a.body_part ?? "")} ${a.target ?? ""}`);
+        const bBody = foldSearch(`${formatSelectorBodyPart(b.body_part ?? "")} ${b.target ?? ""}`);
+        const aScore = (aName.includes(qFold) ? 4 : 0) + (aBody.includes(qFold) ? 2 : 0);
+        const bScore = (bName.includes(qFold) ? 4 : 0) + (bBody.includes(qFold) ? 2 : 0);
+        return bScore - aScore;
+      });
+    }
     if (tab === "warmup" || selectedMuscles.length === 0) return attributeFiltered;
     return filterByMuscles(attributeFiltered, selectedMuscles).results;
   }, [baseRows, query, selectedEquipmentCategory, selectedMuscles, tab]);

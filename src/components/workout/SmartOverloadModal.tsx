@@ -519,14 +519,14 @@ export function SmartOverloadModal({
                 >
                   {isBodyweight ? "Lastre (kg)" : "Peso (kg)"}
                 </span>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1">
                   <button
                     type="button"
                     aria-label="Bajar peso"
                     onClick={() => nudge(setWeight, weight, -step, 0)}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-neutral-900 text-neutral-200"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-neutral-900 text-neutral-200 sm:h-10 sm:w-10"
                   >
-                    <Minus size={16} aria-hidden="true" />
+                    <Minus size={15} aria-hidden="true" />
                   </button>
                   <input
                     type="number"
@@ -536,16 +536,16 @@ export function SmartOverloadModal({
                     value={weight}
                     aria-label={isBodyweight ? "Lastre en kilogramos" : "Peso en kilogramos"}
                     onChange={(event) => setWeight(event.target.value)}
-                    className="h-14 min-w-0 flex-1 rounded-xl border border-white/15 bg-neutral-950 text-center font-mono text-2xl font-extrabold text-white outline-none focus-visible:border-white/40"
+                    className="h-12 min-w-0 flex-1 rounded-xl border border-white/15 bg-neutral-950 px-1 text-center font-mono text-lg font-extrabold text-white outline-none focus-visible:border-white/40 sm:h-14 sm:text-2xl"
                     style={{ fontVariantNumeric: NUMERIC.transform }}
                   />
                   <button
                     type="button"
                     aria-label="Subir peso"
                     onClick={() => nudge(setWeight, weight, step, 0)}
-                    className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-white/10 bg-neutral-900 text-neutral-200"
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-neutral-900 text-neutral-200 sm:h-10 sm:w-10"
                   >
-                    <Plus size={16} aria-hidden="true" />
+                    <Plus size={15} aria-hidden="true" />
                   </button>
                 </div>
               </label>

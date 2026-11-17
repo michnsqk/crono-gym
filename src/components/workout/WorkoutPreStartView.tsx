@@ -247,18 +247,30 @@ export function WorkoutPreStartView({
                   const pct = Math.round((count / totalSets) * 100);
                   const label = translateMuscle(slug);
                   return (
-                    <li key={slug} style={{ display: "flex", alignItems: "center", gap: SPACE.sm }}>
-                      <span style={{ flex: 1, minWidth: 0, color: TEXT.primary, fontSize: TYPE.caption.size }}>
+                    <li key={slug} style={{ display: "flex", alignItems: "center", gap: SPACE.sm, minWidth: 0 }}>
+                      <span
+                        style={{
+                          width: "34%",
+                          minWidth: 74,
+                          maxWidth: 112,
+                          flexShrink: 0,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                          color: TEXT.primary,
+                          fontSize: TYPE.caption.size,
+                        }}
+                      >
                         {label}
                       </span>
                       <div
                         style={{
-                          flex: 2,
+                          flex: 1,
                           height: 4,
                           borderRadius: 9999,
                           background: "rgba(255, 255, 255, 0.08)",
                           overflow: "hidden",
-                          minWidth: 80,
+                          minWidth: 44,
                         }}
                       >
                         <div

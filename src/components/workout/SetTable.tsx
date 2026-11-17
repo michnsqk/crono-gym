@@ -976,8 +976,9 @@ const headerRow: CSSProperties = {
 
 const gridStyle: CSSProperties = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 0.8fr) minmax(0, 1.4fr) minmax(0, 1.6fr) minmax(0, 1fr) minmax(0, 1fr)",
-  gap: SPACE.sm,
+  gridTemplateColumns: "28px minmax(36px, 0.9fr) minmax(108px, 2.2fr) minmax(44px, 0.9fr) 38px",
+  gap: 6,
+  alignItems: "center",
 };
 
 const setNumberStyle: CSSProperties = {

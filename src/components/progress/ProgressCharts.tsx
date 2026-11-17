@@ -90,10 +90,12 @@ function MetricCard({
   hint: string;
 }) {
   return (
-    <div style={cardStyle} className="flex flex-col gap-2">
-      <div className="flex items-center gap-2">
+    <div style={cardStyle} className="flex min-w-0 flex-col gap-2 overflow-hidden">
+      <div className="flex min-w-0 items-center gap-1.5">
         {icon}
-        <p style={labelStyle}>{label}</p>
+        <p style={labelStyle} className="min-w-0 flex-1 break-words leading-tight">
+          {label}
+        </p>
       </div>
       <p style={valueStyle}>{value}</p>
       <p style={hintStyle}>{hint}</p>
