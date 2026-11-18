@@ -161,6 +161,7 @@ export function UnifiedExerciseSelectorSheet({
   onSelectSingle,
   onSelectMultiple,
   title = "Seleccionar ejercicio",
+  initialMuscle,
   initialTab = "all",
   dayContext,
 }: UnifiedExerciseSelectorSheetProps) {
@@ -180,7 +181,16 @@ export function UnifiedExerciseSelectorSheet({
     inferWarmupMuscleFromContext(dayContext?.dayLabel, dayContext?.dayExercises),
   );
   const [selectedEquipmentCategory, setSelectedEquipmentCategory] = useState<string | null>(null);
-  const [selectedMuscles, setSelectedMuscles] = useState<Slug[]>([]);
+  const [selectedMuscles, setSelectedMuscles] = useState<Slug[]>(() =>
+    initialMuscle ? [initialMuscle] : [],
+  );
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setTab(initialTab);
+    setSelectedMuscles(initialMuscle ? [initialMuscle] : []);
+    setPage(1);
+  }, [isOpen, initialMuscle, initialTab]);
   const [isEquipmentOpen, setIsEquipmentOpen] = useState(false);
   const [isAnatomicalOpen, setIsAnatomicalOpen] = useState(false);
   const [expandedId, setExpandedId] = useState<string | null>(null);

@@ -374,9 +374,9 @@ export function RoutinesPage() {
             <button
               type="button"
               onClick={() => setSimpleQuickOpen((prev) => !prev)}
-              className="flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-[#1C1C1E] px-3 text-sm font-semibold text-white active:scale-[0.98] transition-transform duration-150"
+              className="flex h-12 items-center justify-center rounded-2xl bg-[#FF3B30] px-3 text-sm font-semibold text-white active:scale-[0.98] transition-transform duration-150"
             >
-              Usar plantilla rápida
+              Usar Rutina Cronos
             </button>
             <button
               type="button"
@@ -384,7 +384,7 @@ export function RoutinesPage() {
                 setEditingRoutine(null);
                 setEditorOpen(true);
               }}
-              className="flex h-12 items-center justify-center rounded-2xl bg-[#FF3B30] px-3 text-sm font-semibold text-white active:scale-[0.98] transition-transform duration-150"
+              className="flex h-12 items-center justify-center rounded-2xl border border-white/10 bg-[#1C1C1E] px-3 text-sm font-semibold text-white active:scale-[0.98] transition-transform duration-150"
             >
               Armar mi rutina
             </button>

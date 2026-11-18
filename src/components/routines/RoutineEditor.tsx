@@ -34,9 +34,6 @@ import { ACCENT, GLASS, MOTION, SOLID, SURFACE, TEXT } from "@/design/tokens";
 const WEEKDAYS_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const WEEKDAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
 
-const QUICK_CHIPS_SINGLE = ["Push", "Pull", "Pierna", "Torso", "Full Body", "Espalda & Bíceps"] as const;
-const QUICK_CHIPS_WEEKLY = ["Espalda & Bíceps", "Pecho & Tríceps", "Pierna Completa", "Hombro & Brazo", "Torso", "Glúteo & Femoral"] as const;
-
 function emptyDay(order: number, weekday: number | null, kind: RoutineDay["kind"]): RoutineDay {
   return {
     id: crypto.randomUUID(),
@@ -77,7 +74,13 @@ interface RoutineEditorProps {
  * DualMiniMuscleMap — Cápsula contenedora con dos mapas anatómicos escalados
  * FRONTAL (anterior) y POSTERIOR (espalda) en un contenedor de hasta 358x152px.
  */
-export function DualMiniMuscleMap({ counts }: { counts: Map<Slug, number> }) {
+export function DualMiniMuscleMap({
+  counts,
+  onMusclePress,
+}: {
+  counts: Map<Slug, number>;
+  onMusclePress?: (slug: Slug) => void;
+}) {
   return (
     <div
       style={{
@@ -123,7 +126,8 @@ export function DualMiniMuscleMap({ counts }: { counts: Map<Slug, number> }) {
               height: 290,
               transform: "scale(0.38)",
               transformOrigin: "center center",
-              pointerEvents: "none",
+              pointerEvents: onMusclePress ? "auto" : "none",
+              cursor: onMusclePress ? "pointer" : "default",
             }}
           >
             <MuscleReadonlyMap
@@ -137,6 +141,7 @@ export function DualMiniMuscleMap({ counts }: { counts: Map<Slug, number> }) {
               inertFill="rgba(255,255,255,0.06)"
               litFill="#FF3B30"
               mostLitFill="rgba(255,59,48,0.35)"
+              onMusclePress={onMusclePress}
             />
           </div>
         </div>
@@ -181,7 +186,8 @@ export function DualMiniMuscleMap({ counts }: { counts: Map<Slug, number> }) {
               height: 290,
               transform: "scale(0.38)",
               transformOrigin: "center center",
-              pointerEvents: "none",
+              pointerEvents: onMusclePress ? "auto" : "none",
+              cursor: onMusclePress ? "pointer" : "default",
             }}
           >
             <MuscleReadonlyMap
@@ -195,6 +201,7 @@ export function DualMiniMuscleMap({ counts }: { counts: Map<Slug, number> }) {
               inertFill="rgba(255,255,255,0.06)"
               litFill="#FF3B30"
               mostLitFill="rgba(255,59,48,0.35)"
+              onMusclePress={onMusclePress}
             />
           </div>
         </div>
@@ -224,6 +231,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectorInitialTab, setSelectorInitialTab] = useState<SelectorTab>("all");
+  const [selectorInitialMuscle, setSelectorInitialMuscle] = useState<Slug | undefined>(undefined);
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "dirty" | "error">("idle");
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -310,7 +318,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
   const handleSave = useCallback(async () => {
     if (!userId) return;
     // Normalizar título: vacío → fallback por modo.
-    const finalTitle = title.trim() || (mode === "weekly" ? "Plan Semanal" : "Nueva Rutina");
+    const finalTitle = title.trim() || (mode === "weekly" ? "Rutina Cronos Semanal" : "Rutina Cronos");
     // Normalizar días: garantir kind consistente con exercises.length.
     const normalizedDays = normalizeDays(safeDays);
     const draft: RoutineDraftV2 = {
@@ -548,16 +556,6 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
     </div>
   ) : null;
 
-  const currentChips = isWeeklyMode ? QUICK_CHIPS_WEEKLY : QUICK_CHIPS_SINGLE;
-  const handleChipClick = useCallback((chip: string) => {
-    hapticLight();
-    if (isWeeklyMode) {
-      setDayLabel(activeDayIndex, chip);
-    } else {
-      setTitle(chip);
-    }
-  }, [isWeeklyMode, activeDayIndex]);
-
   const heroCard = (
     <div
       style={{
@@ -569,7 +567,14 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
       }}
     >
       {/* Top Row: Day Badge + Title Input (full width) */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 8, marginBottom: 16 }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+          marginBottom: activeDayExercises.length > 0 || isWeeklyMode ? 16 : 0,
+        }}
+      >
         {isWeeklyMode && (
           <span
             style={{
@@ -589,7 +594,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
           type="text"
           value={isWeeklyMode ? activeDay.label : title}
           onChange={(e) => isWeeklyMode ? setDayLabel(activeDayIndex, e.target.value) : setTitle(e.target.value)}
-          placeholder={isWeeklyMode ? "Enfoque del día (ej. Espalda)" : "Nombre de la rutina"}
+          placeholder={isWeeklyMode ? "Enfoque del día (ej. Espalda)" : "Rutina Cronos"}
           aria-label={isWeeklyMode ? "Enfoque del día" : "Nombre de la rutina"}
           style={{
             fontSize: "16px",
@@ -606,148 +611,128 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         />
       </div>
 
-      {/* Metrics + Rest Toggle (top) | Dual Muscle Map (below, full-width, zero overlap) */}
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 14 }}>
-        {/* Left Column: Clean Horizontal Metric Pills & Rest Toggle */}
-        <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
-          {/* Metrics Pills */}
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+      {/* Weekly Toggle: Día de descanso */}
+      {isWeeklyMode && (
+        <label
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 10,
+            cursor: "pointer",
+            userSelect: "none",
+            marginBottom: activeDayExercises.length > 0 ? 12 : 0,
+          }}
+        >
+          <span style={{ fontSize: "13px", fontWeight: 500, color: TEXT.secondary }}>Día de descanso</span>
+          <div style={{ position: "relative", width: 44, height: 26, flexShrink: 0 }}>
+            <input
+              type="checkbox"
+              checked={activeDay?.kind === "rest"}
+              onChange={toggleRestDay}
+              style={{
+                appearance: "none",
+                width: "100%",
+                height: "100%",
+                borderRadius: "9999px",
+                background: activeDay?.kind === "rest" ? ACCENT.base : SOLID.popover,
+                border: "none",
+                outline: "none",
+                cursor: "pointer",
+                position: "relative",
+                transition: reducedMotion ? "none" : `background ${MOTION.fast} ${MOTION.easeOut}`,
+              }}
+            />
             <span
               style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "4px 8px",
-                borderRadius: "10px",
-                background: SOLID.popover,
-                border: `1px solid ${GLASS.border}`,
-                fontFamily: "ui-monospace, SFMono-Regular, monospace",
-                fontSize: "11px",
-                fontWeight: 600,
-                color: TEXT.secondary,
-                whiteSpace: "nowrap",
+                position: "absolute",
+                top: 2,
+                left: activeDay?.kind === "rest" ? 24 : 2,
+                width: 22,
+                height: 22,
+                borderRadius: "50%",
+                background: TEXT.primary,
+                boxShadow: GLASS.shadow,
+                transition: reducedMotion ? "none" : `left ${MOTION.fast} ${MOTION.easeOut}`,
+                pointerEvents: "none",
               }}
-            >
-              ~{activeTelemetry.minutes} min
-            </span>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "4px 8px",
-                borderRadius: "10px",
-                background: SOLID.popover,
-                border: `1px solid ${GLASS.border}`,
-                fontFamily: "ui-monospace, SFMono-Regular, monospace",
-                fontSize: "11px",
-                fontWeight: 600,
-                color: TEXT.secondary,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {activeDayExercises.length} ejerc.
-            </span>
-            <span
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "4px 8px",
-                borderRadius: "10px",
-                background: ACCENT.subtle,
-                border: `1px solid ${ACCENT.border}`,
-                fontFamily: "ui-monospace, SFMono-Regular, monospace",
-                fontSize: "11px",
-                fontWeight: 700,
-                color: ACCENT.base,
-                whiteSpace: "nowrap",
-              }}
-            >
-              {dayTotalSets(activeDay)} series
-            </span>
+            />
+          </div>
+        </label>
+      )}
+
+      {/* Resumen + Mapa Muscular Interactivo: visible únicamente cuando ya hay ejercicios */}
+      {activeDayExercises.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 14 }}>
+          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "4px 8px",
+                  borderRadius: "10px",
+                  background: SOLID.popover,
+                  border: `1px solid ${GLASS.border}`,
+                  fontFamily: "ui-monospace, SFMono-Regular, monospace",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: TEXT.secondary,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                ~{activeTelemetry.minutes} min
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "4px 8px",
+                  borderRadius: "10px",
+                  background: SOLID.popover,
+                  border: `1px solid ${GLASS.border}`,
+                  fontFamily: "ui-monospace, SFMono-Regular, monospace",
+                  fontSize: "11px",
+                  fontWeight: 600,
+                  color: TEXT.secondary,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {activeDayExercises.length} ejerc.
+              </span>
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "4px 8px",
+                  borderRadius: "10px",
+                  background: ACCENT.subtle,
+                  border: `1px solid ${ACCENT.border}`,
+                  fontFamily: "ui-monospace, SFMono-Regular, monospace",
+                  fontSize: "11px",
+                  fontWeight: 700,
+                  color: ACCENT.base,
+                  whiteSpace: "nowrap",
+                }}
+              >
+                {dayTotalSets(activeDay)} series
+              </span>
+            </div>
           </div>
 
-          {/* Weekly Toggle: Día de descanso */}
-          {isWeeklyMode && (
-            <label
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                cursor: "pointer",
-                userSelect: "none",
-                paddingTop: 2,
-              }}
-            >
-              <span style={{ fontSize: "13px", fontWeight: 500, color: TEXT.secondary }}>Día de descanso</span>
-              <div style={{ position: "relative", width: 44, height: 26, flexShrink: 0 }}>
-                <input
-                  type="checkbox"
-                  checked={activeDay?.kind === "rest"}
-                  onChange={toggleRestDay}
-                  style={{
-                    appearance: "none",
-                    width: "100%",
-                    height: "100%",
-                    borderRadius: "9999px",
-                    background: activeDay?.kind === "rest" ? ACCENT.base : SOLID.popover,
-                    border: "none",
-                    outline: "none",
-                    cursor: "pointer",
-                    position: "relative",
-                    transition: reducedMotion ? "none" : `background ${MOTION.fast} ${MOTION.easeOut}`,
-                  }}
-                />
-                <span
-                  style={{
-                    position: "absolute",
-                    top: 2,
-                    left: activeDay?.kind === "rest" ? 24 : 2,
-                    width: 22,
-                    height: 22,
-                    borderRadius: "50%",
-                    background: TEXT.primary,
-                    boxShadow: GLASS.shadow,
-                    transition: reducedMotion ? "none" : `left ${MOTION.fast} ${MOTION.easeOut}`,
-                    pointerEvents: "none",
-                  }}
-                />
-              </div>
-            </label>
-          )}
+          <DualMiniMuscleMap
+            counts={activeTelemetry.counts}
+            onMusclePress={(slug) => {
+              hapticLight();
+              setSelectorInitialMuscle(slug);
+              setSelectorInitialTab("all");
+              setSelectorOpen(true);
+            }}
+          />
+          <p style={{ margin: 0, fontSize: "11px", color: TEXT.tertiary, textAlign: "center" }}>
+            Toca un músculo en el mapa para añadir ejercicios específicos
+          </p>
         </div>
-
-        {/* Right Column: Dual Mini Muscle Map Capsule */}
-        <DualMiniMuscleMap counts={activeTelemetry.counts} />
-      </div>
-
-      {/* Quick Name Chips */}
-      <div style={{ marginTop: 16, paddingTop: 16, borderTop: "1px solid rgba(255,255,255,0.06)" }}>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-          {currentChips.map((chip) => (
-            <button
-              key={chip}
-              type="button"
-              onClick={() => handleChipClick(chip)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "5px 10px",
-                borderRadius: "9999px",
-                border: "1px solid rgba(255,255,255,0.08)",
-                background: "#2C2C2E",
-                color: "#D4D4D4",
-                fontSize: "10px",
-                fontWeight: 500,
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: reducedMotion ? "none" : "all 150ms cubic-bezier(0.4, 0, 0.2, 1)",
-              }}
-            >
-              {chip}
-            </button>
-          ))}
-        </div>
-      </div>
+      )}
     </div>
   );
 
@@ -949,6 +934,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
       <button
         type="button"
         onClick={() => {
+          setSelectorInitialMuscle(undefined);
           setSelectorInitialTab("all");
           setSelectorOpen(true);
         }}
@@ -992,6 +978,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
       <button
         type="button"
         onClick={() => {
+          setSelectorInitialMuscle(undefined);
           setSelectorInitialTab("warmup");
           setSelectorOpen(true);
         }}
@@ -1173,6 +1160,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
           onClose={() => setSelectorOpen(false)}
           mode="multiple"
           onSelectMultiple={addExercisesToDay}
+          initialMuscle={selectorInitialMuscle}
           initialTab={selectorInitialTab}
           title={selectorInitialTab === "warmup" ? "Seleccionar calentamiento" : "Seleccionar ejercicios"}
           dayContext={{

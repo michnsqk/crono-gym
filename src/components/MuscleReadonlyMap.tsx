@@ -88,6 +88,8 @@ export interface MuscleReadonlyMapProps {
   litFill?: string;
   /** Override del fill del músculo con más volumen (por defecto ACCENT.muted). */
   mostLitFill?: string;
+  /** Callback opcional cuando se toca un músculo directamente en el mapa. */
+  onMusclePress?: (slug: Slug) => void;
   /**
    * Texto opcional debajo de la figura. Pasa `null` para ocultar cualquier
    * texto (descripción o idleHint) y dejar que el mapa hable por sí mismo.
@@ -111,6 +113,7 @@ export function MuscleReadonlyMap({
   mostLitFill,
   caption,
   overflow = "hidden",
+  onMusclePress,
 }: MuscleReadonlyMapProps) {
   const scopeId = useId().replace(/[^a-zA-Z0-9]/g, "");
 
@@ -230,12 +233,13 @@ export function MuscleReadonlyMap({
             defaultFill={UNLIT_FILL}
             defaultStroke={UNLIT_STROKE}
             defaultStrokeWidth={1}
-            /*
-             * No `onBodyPartPress`. This is the substantive difference from
-             * `MuscleSelector` and it is a prop that is simply absent rather than a handler
-             * that returns early -- a handler that does nothing is still a tap target the
-             * athlete can aim at.
-             */
+            onBodyPartPress={
+              onMusclePress
+                ? (part) => {
+                    if (part?.slug) onMusclePress(part.slug);
+                  }
+                : undefined
+            }
           />
         </div>
       </div>

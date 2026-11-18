@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { MuscleReadonlyMap } from "@/components/MuscleReadonlyMap";
+import { MACHINE_GUIDE_CATALOG, type MachineGuideEntry } from "@/data/machineGuideCatalog";
 import { ACCENT, GLASS, RADIUS, SCRIM, SOLID, STATUS, SURFACE, TEXT, Z_INDEX } from "@/design/tokens";
 import {
   CRONOS_ATTACHMENTS_GUIDE,
@@ -68,9 +69,12 @@ export function BiomechanicalGripStanceModal({
   exerciseTitle,
   onApply,
 }: BiomechanicalGripStanceModalProps) {
-  const [activeTab, setActiveTab] = useState<BiomechanicsAtlasTab>(() =>
+  const [activeTab, setActiveTab] = useState<BiomechanicsAtlasTab | "machines">(() =>
     resolveInitialBiomechanicsTab(context),
   );
+  const [machineGroupFilter, setMachineGroupFilter] = useState<
+    "Todas" | MachineGuideEntry["group"]
+  >("Todas");
   const [selectedStanceId, setSelectedStanceId] = useState<FootStanceId>("high_neutral");
   const [stanceMapSide, setStanceMapSide] = useState<"front" | "back">("back");
   const [selectedAttachmentId, setSelectedAttachmentId] = useState<string>("CG-EQP-0038");
@@ -237,9 +241,9 @@ export function BiomechanicalGripStanceModal({
           </button>
         </div>
 
-        {/* 3-Tab Segmented Control — Short labels that never clip at 390px */}
+        {/* 4-Tab Segmented Control — Short labels that never clip at 390px */}
         <div
-          className="grid grid-cols-3 gap-1 p-1 rounded-2xl w-full"
+          className="grid grid-cols-4 gap-1 p-1 rounded-2xl w-full"
           style={{
             backgroundColor: SURFACE.base,
             border: `1px solid ${GLASS.border}`,
@@ -249,21 +253,27 @@ export function BiomechanicalGripStanceModal({
             [
               {
                 id: "foot_stance" as const,
-                label: "Pies y Prensa",
+                label: "Pies/Prensa",
                 sub: "Pierna",
                 Icon: Footprints,
               },
               {
                 id: "attachments" as const,
                 label: "Manerales",
-                sub: "Espalda / Brazo",
+                sub: "Poleas",
                 Icon: Dumbbell,
               },
               {
                 id: "upper_angle" as const,
-                label: "Ángulo y Codos",
-                sub: "Pecho / Hombro",
+                label: "Ángulo",
+                sub: "Pecho/Hombro",
                 Icon: Sliders,
+              },
+              {
+                id: "machines" as const,
+                label: "Máquinas",
+                sub: `${MACHINE_GUIDE_CATALOG.length} equipos`,
+                Icon: Compass,
               },
             ] as const
           ).map(({ id, label, sub, Icon }) => {
@@ -1051,6 +1061,111 @@ export function BiomechanicalGripStanceModal({
                 <Check className="h-3.5 w-3.5 shrink-0" />
                 <span>Aplicar este ángulo / trayectoria</span>
               </button>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: MÁQUINAS DEL GIMNASIO */}
+        {activeTab === "machines" && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-1.5">
+              {(
+                [
+                  "Todas",
+                  "Pierna / Glúteo",
+                  "Espalda / Torso",
+                  "Pecho / Hombro",
+                  "Brazos",
+                  "General / Core",
+                ] as const
+              ).map((group) => {
+                const active = machineGroupFilter === group;
+                return (
+                  <button
+                    key={group}
+                    type="button"
+                    onClick={() => setMachineGroupFilter(group)}
+                    className="rounded-full px-3 py-1.5 text-[11px] font-semibold transition"
+                    style={{
+                      backgroundColor: active ? ACCENT.base : SURFACE.base,
+                      color: active ? "#FFFFFF" : TEXT.secondary,
+                      border: `1px solid ${active ? ACCENT.base : GLASS.border}`,
+                    }}
+                  >
+                    {group}
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="space-y-2.5">
+              {MACHINE_GUIDE_CATALOG.filter(
+                (m) => machineGroupFilter === "Todas" || m.group === machineGroupFilter,
+              ).map((machine) => (
+                <div
+                  key={machine.name}
+                  className="rounded-2xl p-3.5 space-y-2"
+                  style={{
+                    backgroundColor: SURFACE.base,
+                    border: `1px solid ${GLASS.border}`,
+                  }}
+                >
+                  <div className="min-w-0">
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-wider"
+                      style={{ color: ACCENT.text }}
+                    >
+                      {machine.group}
+                    </span>
+                    <h3 className="text-sm font-bold text-white">{machine.name}</h3>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1">
+                    {machine.muscles.map((muscle) => (
+                      <span
+                        key={muscle}
+                        className="rounded-md px-2 py-0.5 text-[10px] font-semibold"
+                        style={{
+                          backgroundColor: ACCENT.subtle,
+                          color: TEXT.primary,
+                          border: `1px solid ${ACCENT.border}`,
+                        }}
+                      >
+                        {muscle}
+                      </span>
+                    ))}
+                  </div>
+
+                  <div>
+                    <p
+                      className="text-[10px] font-bold uppercase tracking-wider mb-1"
+                      style={{ color: TEXT.tertiary }}
+                    >
+                      Ejercicios recomendados
+                    </p>
+                    <ul className="space-y-1">
+                      {machine.exercises.map((exName) => (
+                        <li
+                          key={exName}
+                          className="flex items-start gap-1.5 text-xs"
+                          style={{ color: TEXT.primary }}
+                        >
+                          <Check
+                            className="h-3.5 w-3.5 shrink-0 mt-0.5"
+                            style={{ color: STATUS.success.text }}
+                          />
+                          <span>{exName}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+
+                  <p className="text-[11px] leading-relaxed" style={{ color: TEXT.secondary }}>
+                    <span className="font-semibold text-white">Tip: </span>
+                    {machine.tip}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
         )}
