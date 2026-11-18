@@ -20,10 +20,32 @@
 .DS_Store
 Thumbs.db
 
-# Kilo Rules (permitir versionar reglas)
-/.kilo/*
-!.kilo/rules/
-!.kilo/rules/**
+# AI Assistants & Agent Configs (ocultos en GitHub)
+/.kilo/
+.kilo/
+/.claude/
+.claude/
+/.gemini/
+.gemini/
+/.antigravity/
+.antigravity/
+/.chatgpt/
+.chatgpt/
+/.openai/
+.openai/
+/.cursor/
+.cursor/
+/.windsurf/
+.windsurf/
+/.codex/
+.codex/
+/.copilot/
+.copilot/
+.aider*
+CLAUDE.md
+GEMINI.md
+AGENTS.md
+DOCUMENTATION/taxonomy-audit/*gemini*
 
 # Supabase CLI scratch
 /supabase/.temp/
