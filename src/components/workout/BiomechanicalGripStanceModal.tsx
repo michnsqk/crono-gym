@@ -243,9 +243,9 @@ export function BiomechanicalGripStanceModal({
           </button>
         </div>
 
-        {/* 4-Tab Segmented Control — Short labels that never clip at 390px */}
+        {/* 3-Tab Segmented Control — Short labels that never clip at 390px */}
         <div
-          className="grid grid-cols-4 gap-1 p-1 rounded-2xl w-full"
+          className="grid grid-cols-3 gap-1 p-1 rounded-2xl w-full"
           style={{
             backgroundColor: SURFACE.base,
             border: `1px solid ${GLASS.border}`,
@@ -255,27 +255,21 @@ export function BiomechanicalGripStanceModal({
             [
               {
                 id: "foot_stance" as const,
-                label: "Pies/Prensa",
+                label: "Pies y Prensa",
                 sub: "Pierna",
                 Icon: Footprints,
               },
               {
                 id: "attachments" as const,
                 label: "Manerales",
-                sub: "Poleas",
+                sub: "Espalda / Brazo",
                 Icon: Dumbbell,
               },
               {
                 id: "upper_angle" as const,
-                label: "Ángulo",
-                sub: "Pecho/Hombro",
+                label: "Ángulo y Codos",
+                sub: "Pecho / Hombro",
                 Icon: Sliders,
-              },
-              {
-                id: "machines" as const,
-                label: "Máquinas",
-                sub: `${MACHINE_GUIDE_CATALOG.length} equipos`,
-                Icon: Compass,
               },
             ] as const
           ).map(({ id, label, sub, Icon }) => {

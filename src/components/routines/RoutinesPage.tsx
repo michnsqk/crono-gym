@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Plus, AlertCircle, Loader2, ChevronRight, Compass, Dumbbell } from "lucide-react";
 import { BiomechanicalGripStanceModal } from "@/components/workout/BiomechanicalGripStanceModal";
-import { useNavigate, useOutletContext } from "react-router-dom";
+import { GymMachinesAtlasModal } from "@/components/workout/GymMachinesAtlasModal";
+import { useNavigate, useOutletContext, useSearchParams } from "react-router-dom";
 import type { WorkspaceOutletContext } from "@/App";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
@@ -74,9 +75,17 @@ export function RoutinesPage() {
   const [advancedMode] = useAdvancedMode();
   const [simpleQuickOpen, setSimpleQuickOpen] = useState(false);
   const [biomechanicsOpen, setBiomechanicsOpen] = useState(false);
-  const [biomechanicsTab, setBiomechanicsTab] = useState<
-    "foot_stance" | "attachments" | "upper_angle" | "machines"
-  >("foot_stance");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const qrMachineParam = searchParams.get("machine");
+  const [machinesAtlasOpen, setMachinesAtlasOpen] = useState(() => Boolean(qrMachineParam));
+  const [initialMachineId, setInitialMachineId] = useState<string | null>(() => qrMachineParam);
+
+  useEffect(() => {
+    if (qrMachineParam) {
+      setInitialMachineId(qrMachineParam);
+      setMachinesAtlasOpen(true);
+    }
+  }, [qrMachineParam]);
   const { isActive, start, session, discardRecoverableDraft } = useActiveSession();
   const navigate = useNavigate();
 
@@ -582,10 +591,7 @@ export function RoutinesPage() {
         <>
           <button
             type="button"
-            onClick={() => {
-              setBiomechanicsTab("foot_stance");
-              setBiomechanicsOpen(true);
-            }}
+            onClick={() => setBiomechanicsOpen(true)}
             className="flex w-full items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-left"
             style={{
               backgroundColor: GLASS.fillRaised,
@@ -609,8 +615,8 @@ export function RoutinesPage() {
           <button
             type="button"
             onClick={() => {
-              setBiomechanicsTab("machines");
-              setBiomechanicsOpen(true);
+              setInitialMachineId(null);
+              setMachinesAtlasOpen(true);
             }}
             className="flex w-full items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-left"
             style={{
@@ -626,7 +632,7 @@ export function RoutinesPage() {
                   Atlas de Máquinas del Gym
                 </span>
                 <span className="block text-[11px] truncate" style={{ color: TEXT.secondary }}>
-                  32 equipos · Qué músculos trabaja y ejercicios por máquina
+                  31 equipos con fotos, GIFs de ejercicios y código QR por máquina
                 </span>
               </div>
             </div>
@@ -1072,8 +1078,19 @@ export function RoutinesPage() {
       ) : null}
       <BiomechanicalGripStanceModal
         open={biomechanicsOpen}
-        initialTab={biomechanicsTab}
         onClose={() => setBiomechanicsOpen(false)}
+      />
+      <GymMachinesAtlasModal
+        open={machinesAtlasOpen}
+        initialEquipmentId={initialMachineId}
+        onClose={() => {
+          setMachinesAtlasOpen(false);
+          if (searchParams.has("machine")) {
+            const next = new URLSearchParams(searchParams);
+            next.delete("machine");
+            setSearchParams(next, { replace: true });
+          }
+        }}
       />
     </div>
   );

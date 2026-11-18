@@ -36,7 +36,6 @@ export const MY_GYM_MACHINES: GymMachine[] = [
   { name: "Press para pierna vertical", group: "Pierna / Glúteo", tags: ["leverage machine"] },
   { name: "Sentadilla Smith", group: "Pierna / Glúteo", tags: ["smith machine"] },
   { name: "Rack para sentadilla", group: "Pierna / Glúteo", tags: ["barbell", "olympic barbell", "ez barbell"] },
-  { name: "Máquina hip thrust", group: "Pierna / Glúteo", tags: ["leverage machine"] },
   { name: "Sentadilla Sissi", group: "Pierna / Glúteo", tags: ["body weight"] },
   { name: "Banca para pantorrilla sentado", group: "Pierna / Glúteo", tags: ["leverage machine"] },
 

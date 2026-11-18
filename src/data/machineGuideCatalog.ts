@@ -1,4 +1,5 @@
 export interface MachineGuideEntry {
+  equipmentId: string;
   name: string;
   group: "Pierna / Glúteo" | "Espalda / Torso" | "Pecho / Hombro" | "Brazos" | "General / Core";
   muscles: string[];
@@ -7,8 +8,9 @@ export interface MachineGuideEntry {
 }
 
 export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
-  // --- Pierna / Glúteo ---
+  // --- Pierna / Glúteo (12 equipos, sin Máquina hip thrust) ---
   {
+    equipmentId: "CG-EQP-0001",
     name: "Extensión de cuádriceps",
     group: "Pierna / Glúteo",
     muscles: ["Cuádriceps (recto femoral, vasto medial y lateral)"],
@@ -16,6 +18,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Alinea el eje de la máquina con tu rodilla y controla la bajada 2–3 s.",
   },
   {
+    equipmentId: "CG-EQP-0003",
     name: "Curl femoral acostado",
     group: "Pierna / Glúteo",
     muscles: ["Isquiotibiales", "Gemelos (asistencia)"],
@@ -23,13 +26,15 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Mantén la cadera pegada al banco sin despegar los glúteos al subir.",
   },
   {
-    name: "Press de pierna",
+    equipmentId: "CG-EQP-0004",
+    name: "Press de pierna (Prensa 45°)",
     group: "Pierna / Glúteo",
     muscles: ["Cuádriceps", "Glúteo mayor", "Isquiotibiales"],
     exercises: ["Prensa 45° pies medios", "Pies altos/anchos (glúteo)", "Prensa a una pierna"],
     tip: "No despegues el sacro del respaldo al bajar; no bloquees las rodillas arriba.",
   },
   {
+    equipmentId: "CG-EQP-0005",
     name: "Máquina de abducción y aducción",
     group: "Pierna / Glúteo",
     muscles: ["Glúteo medio/menor (abducción)", "Aductores (aducción)"],
@@ -37,6 +42,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Haz una pausa de 1 s en apertura máxima en abducción para mayor estímulo en glúteo medio.",
   },
   {
+    equipmentId: "CG-EQP-0006",
     name: "Sentadilla Hack",
     group: "Pierna / Glúteo",
     muscles: ["Cuádriceps", "Glúteo mayor"],
@@ -44,6 +50,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Pega la espalda y lumbar al respaldo durante todo el recorrido.",
   },
   {
+    equipmentId: "CG-EQP-0007",
     name: "Patada para glúteo",
     group: "Pierna / Glúteo",
     muscles: ["Glúteo mayor", "Isquiotibiales"],
@@ -51,6 +58,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Extiende la cadera hacia atrás sin arquear la zona lumbar.",
   },
   {
+    equipmentId: "CG-EQP-0008",
     name: "Sentadilla perfecta",
     group: "Pierna / Glúteo",
     muscles: ["Cuádriceps", "Glúteo mayor", "Erectores espinales"],
@@ -58,6 +66,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Mantén las rodillas siguiendo la línea de las puntas de los pies.",
   },
   {
+    equipmentId: "CG-EQP-0011",
     name: "Press para pierna vertical",
     group: "Pierna / Glúteo",
     muscles: ["Glúteo mayor", "Isquiotibiales", "Cuádriceps"],
@@ -65,6 +74,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Baja profundo controlando la cadera sin redondear la espalda baja.",
   },
   {
+    equipmentId: "CG-EQP-0019",
     name: "Sentadilla Smith",
     group: "Pierna / Glúteo",
     muscles: ["Cuádriceps", "Glúteos", "Isquiotibiales", "Pecho / Hombro (con banco)"],
@@ -72,6 +82,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Adelanta ligeramente los pies en sentadilla para mantener el torso vertical.",
   },
   {
+    equipmentId: "CG-EQP-0017",
     name: "Rack para sentadilla",
     group: "Pierna / Glúteo",
     muscles: ["Cuádriceps", "Glúteos", "Isquiotibiales", "Core"],
@@ -79,13 +90,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Ajusta los topes de seguridad a la altura justa debajo de tu punto más bajo.",
   },
   {
-    name: "Máquina hip thrust",
-    group: "Pierna / Glúteo",
-    muscles: ["Glúteo mayor", "Isquiotibiales"],
-    exercises: ["Hip thrust bilateral", "Hip thrust a una pierna", "Puente con pausa arriba"],
-    tip: "Mira al frente (barbilla recogida) y alinea espinillas verticales arriba.",
-  },
-  {
+    equipmentId: "CG-EQP-0030",
     name: "Sentadilla Sissi",
     group: "Pierna / Glúteo",
     muscles: ["Cuádriceps (énfasis recto femoral)"],
@@ -93,6 +98,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Asegura los tobillos y baja proyectando rodillas adelante con cadera extendida.",
   },
   {
+    equipmentId: "CG-EQP-0027",
     name: "Banca para pantorrilla sentado",
     group: "Pierna / Glúteo",
     muscles: ["Sóleo", "Gastrocnemio (gemelos)"],
@@ -102,6 +108,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
 
   // --- Espalda / Torso ---
   {
+    equipmentId: "CG-EQP-0010",
     name: "Remo sentado para espalda",
     group: "Espalda / Torso",
     muscles: ["Espalda media (romboides, trapecio medio)", "Dorsales", "Bíceps"],
@@ -109,6 +116,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Apoya el pecho en el pad y lleva los codos atrás sin encoger los hombros.",
   },
   {
+    equipmentId: "CG-EQP-0012",
     name: "Remo sentado en polea baja",
     group: "Espalda / Torso",
     muscles: ["Dorsales", "Romboides", "Trapecio medio", "Bíceps"],
@@ -116,27 +124,31 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Mantén el torso firme con ligera inclinación adelante en el estiramiento.",
   },
   {
-    name: "Polea alta",
+    equipmentId: "CG-EQP-0018",
+    name: "Polea alta / Jalón",
     group: "Espalda / Torso",
     muscles: ["Dorsales", "Redondo mayor", "Bíceps / Tríceps (según maneral)"],
     exercises: ["Jalón al pecho", "Jalón supino", "Jalón unilateral", "Extensión de tríceps en polea alta"],
     tip: "Inicia el jalón deprimiendo escápulas antes de flexionar los codos.",
   },
   {
-    name: "Polea alta para dorsales",
+    equipmentId: "CG-EQP-0021",
+    name: "Máquina Remo T",
     group: "Espalda / Torso",
-    muscles: ["Dorsal ancho", "Redondo mayor", "Deltoide posterior"],
-    exercises: ["Jalón barra recta/curva", "Jalón agarre neutro cerrado", "Pullover en polea"],
-    tip: "Dirige los codos hacia las caderas, no hacia atrás, para aislar el dorsal.",
+    muscles: ["Dorsal ancho", "Romboides", "Trapecio medio", "Deltoide posterior"],
+    exercises: ["Remo en barra T agarre neutro", "Remo en barra T agarre prono ancho"],
+    tip: "Mantén el pecho pegado al soporte y aprieta escápulas 1 s arriba.",
   },
   {
-    name: "Máquina para asistencia en tríceps y espalda",
+    equipmentId: "CG-EQP-0032",
+    name: "Máquina para asistencia en fondos y dominadas",
     group: "Espalda / Torso",
     muscles: ["Dorsales y bíceps (dominadas)", "Pecho bajo y tríceps (fondos)"],
     exercises: ["Dominadas asistidas (prono/neutro/supino)", "Fondos asistidos"],
     tip: "Menos contrapeso = más carga real. Controla el descenso completo.",
   },
   {
+    equipmentId: "CG-EQP-0015",
     name: "Banca de hiperextensiones",
     group: "Espalda / Torso",
     muscles: ["Erectores espinales (lumbares)", "Glúteos", "Isquiotibiales"],
@@ -146,13 +158,15 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
 
   // --- Pecho / Hombro ---
   {
-    name: "Máquina flyes",
+    equipmentId: "CG-EQP-0009",
+    name: "Máquina flyes (Peck Deck)",
     group: "Pecho / Hombro",
     muscles: ["Pectoral mayor (esternal)", "Deltoide anterior / posterior (en reversa)"],
     exercises: ["Peck deck / aperturas para pecho", "Aperturas inversas para deltoide posterior"],
     tip: "Ajusta el asiento para que los puños queden a la altura de la línea media del pecho.",
   },
   {
+    equipmentId: "CG-EQP-0033",
     name: "Máquina press para pecho",
     group: "Pecho / Hombro",
     muscles: ["Pectoral mayor", "Deltoide anterior", "Tríceps"],
@@ -160,6 +174,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Retrae escápulas contra el respaldo y empuja sin adelantar los hombros.",
   },
   {
+    equipmentId: "CG-EQP-0031",
     name: "Banco declinado para pecho",
     group: "Pecho / Hombro",
     muscles: ["Pectoral inferior (costal)", "Tríceps", "Abdomen"],
@@ -167,6 +182,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Asegura bien los empeines en los rodillos antes de tomar las mancuernas o barra.",
   },
   {
+    equipmentId: "CG-EQP-0024",
     name: "Máquina press para hombro",
     group: "Pecho / Hombro",
     muscles: ["Deltoide anterior y lateral", "Tríceps"],
@@ -174,6 +190,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Ajusta el asiento para que los manerales inicien a la altura de tus orejas/hombros.",
   },
   {
+    equipmentId: "CG-EQP-0029",
     name: "Banca horizontal para pecho",
     group: "Pecho / Hombro",
     muscles: ["Pectoral medio", "Deltoide anterior", "Tríceps", "Dorsales (remo con mancuerna)"],
@@ -181,6 +198,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Mantén los 5 puntos de apoyo: cabeza, escápulas, glúteos y ambos pies firmes.",
   },
   {
+    equipmentId: "CG-EQP-0016",
     name: "Banco inclinado para pecho",
     group: "Pecho / Hombro",
     muscles: ["Pectoral superior (clavicular)", "Deltoide anterior", "Bíceps (curl inclinado)"],
@@ -190,6 +208,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
 
   // --- Brazos ---
   {
+    equipmentId: "CG-EQP-0023",
     name: "Banco Scott",
     group: "Brazos",
     muscles: ["Bíceps braquial (cabeza corta)", "Braquial anterior"],
@@ -197,14 +216,16 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Apoya las axilas arriba del pad y evita hiperextender el codo abajo.",
   },
   {
-    name: "Máquina para bíceps y tríceps",
+    equipmentId: "CG-EQP-0013",
+    name: "Máquina curl predicador",
     group: "Brazos",
-    muscles: ["Bíceps braquial", "Tríceps braquial"],
-    exercises: ["Curl de bíceps en máquina", "Extensión / press de tríceps en máquina"],
+    muscles: ["Bíceps braquial", "Braquial anterior"],
+    exercises: ["Curl de bíceps en máquina", "Curl unilateral en máquina (40s/lado)"],
     tip: "Alinea los codos exactamente con el eje de rotación de la máquina.",
   },
   {
-    name: "Máquina curl Scott",
+    equipmentId: "CG-EQP-0026",
+    name: "Máquina curl Scott guiada",
     group: "Brazos",
     muscles: ["Bíceps braquial", "Braquiorradial"],
     exercises: ["Curl predicador guiado bilateral", "Curl predicador unilateral"],
@@ -213,6 +234,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
 
   // --- General / Core ---
   {
+    equipmentId: "CG-EQP-0022",
     name: "Poleas de posiciones en estación",
     group: "General / Core",
     muscles: ["Cuerpo completo (pecho, hombro, espalda, brazo, glúteo, core)"],
@@ -227,6 +249,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Ajusta la altura de la polea al ángulo natural de la fibra muscular que trabajas.",
   },
   {
+    equipmentId: "CG-EQP-0014",
     name: "Máquina para abdomen",
     group: "General / Core",
     muscles: ["Recto abdominal", "Flexores de cadera"],
@@ -234,6 +257,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Flexiona la columna llevando costillas hacia pelvis; no jales con los brazos.",
   },
   {
+    equipmentId: "CG-EQP-0028",
     name: "Bancas para abdominales",
     group: "General / Core",
     muscles: ["Recto abdominal", "Oblicuos"],
@@ -241,6 +265,7 @@ export const MACHINE_GUIDE_CATALOG: readonly MachineGuideEntry[] = [
     tip: "Exhala al contraer arriba y controla la bajada sin golpear la lumbar.",
   },
   {
+    equipmentId: "CG-EQP-0062",
     name: "Banca multifuncional",
     group: "General / Core",
     muscles: ["Pecho", "Hombro", "Bíceps", "Tríceps", "Espalda", "Pierna"],

@@ -227,7 +227,7 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
   const reducedMotion = useReducedMotion();
 
   const [mode, setMode] = useState<EditorMode>("single");
-  const [title, setTitle] = useState(routine?.title ?? "");
+  const [title, setTitle] = useState(routine?.title ?? "Rutina Cronos");
   const [activeDayIndex, setActiveDayIndex] = useState(0);
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [selectorInitialTab, setSelectorInitialTab] = useState<SelectorTab>("all");
@@ -575,35 +575,36 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
           marginBottom: activeDayExercises.length > 0 || isWeeklyMode ? 16 : 0,
         }}
       >
-        {isWeeklyMode && (
-          <span
-            style={{
-              fontSize: "10px",
-              fontFamily: "ui-monospace, SFMono-Regular, monospace",
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              color: "#FF3B30",
-            }}
-          >
-            {WEEKDAYS_FULL[activeDayIndex].toUpperCase()}
-          </span>
-        )}
+        <span
+          style={{
+            fontSize: "10px",
+            fontFamily: "ui-monospace, SFMono-Regular, monospace",
+            fontWeight: 700,
+            textTransform: "uppercase",
+            letterSpacing: "0.08em",
+            color: isWeeklyMode ? "#FF3B30" : TEXT.tertiary,
+          }}
+        >
+          {isWeeklyMode
+            ? `${WEEKDAYS_FULL[activeDayIndex].toUpperCase()} · ENFOQUE DEL DÍA`
+            : "TÍTULO DE LA RUTINA (Ej. Pierna, Push o Rutina Cronos)"}
+        </span>
 
         <input
           type="text"
           value={isWeeklyMode ? activeDay.label : title}
           onChange={(e) => isWeeklyMode ? setDayLabel(activeDayIndex, e.target.value) : setTitle(e.target.value)}
-          placeholder={isWeeklyMode ? "Enfoque del día (ej. Espalda)" : "Rutina Cronos"}
+          placeholder={isWeeklyMode ? "Escribe el enfoque del día (ej. Espalda)" : "Escribe el nombre de tu rutina (por defecto: Rutina Cronos)"}
           aria-label={isWeeklyMode ? "Enfoque del día" : "Nombre de la rutina"}
           style={{
             fontSize: "16px",
             fontWeight: 700,
             color: "#FFFFFF",
-            background: "transparent",
-            border: "none",
+            background: "rgba(255, 255, 255, 0.04)",
+            border: "1px solid rgba(255, 255, 255, 0.12)",
+            borderRadius: "12px",
             outline: "none",
-            padding: 0,
+            padding: "10px 12px",
             width: "100%",
             fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
             letterSpacing: "-0.02em",
