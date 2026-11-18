@@ -102,6 +102,12 @@ const LazyCoachPortalPreview = lazy(() =>
   })),
 );
 
+const LazyPublicMachinePage = lazy(() =>
+  import("@/components/workout/PublicMachinePage").then((mod) => ({
+    default: mod.PublicMachinePage,
+  })),
+);
+
 /**
  * The dev-only component catalog and the coach-portal preview.
  *
@@ -166,6 +172,19 @@ export const router = createBrowserRouter([
   {
     element: <AppShell />,
     children: [
+      /*
+       * Public QR landing page for physical gym equipment (`/maquina/CG-EQP-XXXX`).
+       * Mounted outside `AuthGate` so guests and members scanning a machine sticker
+       * see photos, exercises and GIFs with zero login friction.
+       */
+      {
+        path: "/maquina/:equipmentId",
+        element: (
+          <Suspense fallback={<LoadingSpinner label="Cargando equipo…" />}>
+            <LazyPublicMachinePage />
+          </Suspense>
+        ),
+      },
       {
         element: <AuthGate />,
         children: [

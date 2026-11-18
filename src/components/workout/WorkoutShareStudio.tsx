@@ -8,7 +8,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Check, Copy, Download } from "lucide-react";
+import { Check, Copy, Download, Share2 } from "lucide-react";
 import {
   ACCENT,
   GLASS,
@@ -23,7 +23,9 @@ import {
   SHARE_CARDS,
   SHARE_CARD_HEIGHT,
   SHARE_CARD_WIDTH,
+  SHARE_STORY_HEIGHT,
   drawShareCard,
+  type ShareAspect,
   type ShareBackgroundId,
   type ShareCardId,
   type ShareCardInput,
@@ -42,23 +44,25 @@ export function WorkoutShareStudio({ input, onDone }: WorkoutShareStudioProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [cardId, setCardId] = useState<ShareCardId>("minimal");
   const [background, setBackground] = useState<ShareBackgroundId>("obsidian");
+  const [aspect, setAspect] = useState<ShareAspect>("story");
   const [copyState, setCopyState] = useState<CopyState>("idle");
   const [saved, setSaved] = useState(false);
+
+  const canvasHeight = aspect === "story" ? SHARE_STORY_HEIGHT : SHARE_CARD_HEIGHT;
 
   const activeCard = useMemo(
     () => SHARE_CARDS.find((card) => card.id === cardId) ?? SHARE_CARDS[0],
     [cardId],
   );
 
-  // Repaints on every change of card, background or session numbers. The canvas
-  // keeps a fixed pixel size so the export is always 1080x1350.
+  // Repaints on every change of card, background, aspect or session numbers.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const context = canvas.getContext("2d");
     if (!context) return;
-    drawShareCard(context, cardId, background, input);
-  }, [cardId, background, input]);
+    drawShareCard(context, cardId, background, input, aspect);
+  }, [cardId, background, aspect, input]);
 
   useEffect(() => {
     if (copyState === "idle") return;
@@ -101,11 +105,31 @@ export function WorkoutShareStudio({ input, onDone }: WorkoutShareStudioProps) {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `cronos-${cardId}-${Date.now()}.png`;
+    anchor.download = `cronos-${cardId}-${aspect}-${Date.now()}.png`;
     anchor.click();
     URL.revokeObjectURL(url);
     setSaved(true);
-  }, [toBlob, cardId]);
+  }, [toBlob, cardId, aspect]);
+
+  const handleNativeShare = useCallback(async () => {
+    const blob = await toBlob();
+    if (!blob) return;
+    const file = new File([blob], `cronos-entreno-${aspect}.png`, { type: "image/png" });
+    const nav = typeof navigator !== "undefined" ? navigator : null;
+    if (nav && typeof nav.share === "function" && (!nav.canShare || nav.canShare({ files: [file] }))) {
+      try {
+        await nav.share({
+          files: [file],
+          title: `Mi entreno en Cronos Gym · ${input.routineTitle}`,
+          text: `Completé ${input.routineTitle} (${Math.round(input.volumeKg)} kg movidos) en Cronos Gym.`,
+        });
+        return;
+      } catch (err) {
+        if (err instanceof Error && err.name === "AbortError") return;
+      }
+    }
+    await handleSave();
+  }, [toBlob, aspect, input.routineTitle, input.volumeKg, handleSave]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md, padding: SPACE.md }}>
@@ -143,6 +167,39 @@ export function WorkoutShareStudio({ input, onDone }: WorkoutShareStudioProps) {
         })}
       </div>
 
+      <div style={{ display: "flex", gap: SPACE.xs }}>
+        {(
+          [
+            { id: "story" as const, label: "Story 9:16 (Instagram / WA)" },
+            { id: "post" as const, label: "Post 4:5 (Feed)" },
+          ] as const
+        ).map((fmt) => {
+          const selected = fmt.id === aspect;
+          return (
+            <button
+              key={fmt.id}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => setAspect(fmt.id)}
+              style={{
+                flex: 1,
+                minHeight: 38,
+                padding: `0 ${SPACE.sm}px`,
+                borderRadius: RADIUS.control,
+                border: `1px solid ${selected ? ACCENT.base : GLASS.border}`,
+                background: selected ? ACCENT.subtle : "transparent",
+                color: selected ? TEXT.primary : TEXT.secondary,
+                fontSize: TYPE.caption.size,
+                fontWeight: 600,
+                cursor: "pointer",
+              }}
+            >
+              {fmt.label}
+            </button>
+          );
+        })}
+      </div>
+
       <div
         style={{
           display: "flex",
@@ -156,10 +213,15 @@ export function WorkoutShareStudio({ input, onDone }: WorkoutShareStudioProps) {
         <canvas
           ref={canvasRef}
           width={SHARE_CARD_WIDTH}
-          height={SHARE_CARD_HEIGHT}
+          height={canvasHeight}
           role="img"
           aria-label={`${activeCard.label} · ${SHARE_STUDIO_LABELS.canvasAriaLabel}`}
-          style={{ width: "100%", maxWidth: 320, height: "auto", display: "block" }}
+          style={{
+            width: "100%",
+            maxWidth: aspect === "story" ? 240 : 320,
+            height: "auto",
+            display: "block",
+          }}
         />
       </div>
 
@@ -202,6 +264,29 @@ export function WorkoutShareStudio({ input, onDone }: WorkoutShareStudioProps) {
           })}
         </div>
       </div>
+
+      <button
+        type="button"
+        onClick={() => void handleNativeShare()}
+        style={{
+          width: "100%",
+          minHeight: 50,
+          borderRadius: RADIUS.control,
+          border: `1px solid ${ACCENT.border}`,
+          background: ACCENT.subtle,
+          color: TEXT.primary,
+          fontSize: TYPE.subhead.size,
+          fontWeight: 700,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          gap: SPACE.xs,
+          cursor: "pointer",
+        }}
+      >
+        <Share2 size={18} aria-hidden="true" />
+        <span>Compartir en Stories / WhatsApp</span>
+      </button>
 
       <div style={{ display: "flex", gap: SPACE.sm }}>
         <button

@@ -89,6 +89,20 @@ export function OperationsRoiSection() {
 
   useEffect(() => {
     void loadAll();
+    if (typeof (supabase as { channel?: unknown }).channel !== "function") return;
+    const channel = supabase
+      .channel("cronos-machine-reports-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "machine_reports" },
+        () => {
+          void listMachineReports().then(setReports);
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [loadAll]);
 
   // Top demand ranking from store/class intents

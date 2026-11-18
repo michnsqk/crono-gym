@@ -247,7 +247,7 @@ export function WorkoutSummaryModal({
                 color: TEXT.primary,
               }}
             >
-              Workout Completed!
+              ¡Entrenamiento Completado!
             </h3>
             <button
               type="button"
@@ -297,7 +297,7 @@ export function WorkoutSummaryModal({
                   }}
                 >
                   {value === "compartir" ? <Share2 size={14} aria-hidden="true" /> : null}
-                  {value === "compartir" ? "Compartir" : "Resumen"}
+                  {value === "compartir" ? "Compartir Story" : "Resumen"}
                 </button>
               );
             })}

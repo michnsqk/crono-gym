@@ -14,9 +14,11 @@
 
 import { ACCENT, SURFACE, TEXT } from "../../design/tokens";
 
-/** The board every card is composed on, in design pixels (4:5, a phone story). */
+/** The board every card is composed on, in design pixels (4:5 post or 9:16 Instagram Story). */
 export const SHARE_CARD_WIDTH = 1080;
 export const SHARE_CARD_HEIGHT = 1350;
+export const SHARE_STORY_HEIGHT = 1920;
+export type ShareAspect = "post" | "story";
 
 export type ShareCardId = "minimal" | "metrics-map" | "bento" | "hero-map";
 export type ShareBackgroundId = "obsidian" | "crimson" | "editorial" | "glass";
@@ -175,12 +177,12 @@ function label(ctx: CanvasRenderingContext2D, value: string, x: number, y: numbe
   ctx.restore();
 }
 
-function backdrop(ctx: CanvasRenderingContext2D, p: Paint) {
-  const gradient = ctx.createLinearGradient(0, 0, 0, SHARE_CARD_HEIGHT);
+function backdrop(ctx: CanvasRenderingContext2D, p: Paint, boardHeight: number) {
+  const gradient = ctx.createLinearGradient(0, 0, 0, boardHeight);
   gradient.addColorStop(0, p.top);
   gradient.addColorStop(1, p.bottom);
   ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT);
+  ctx.fillRect(0, 0, SHARE_CARD_WIDTH, boardHeight);
 
   const glow = ctx.createRadialGradient(
     SHARE_CARD_WIDTH / 2,
@@ -193,28 +195,39 @@ function backdrop(ctx: CanvasRenderingContext2D, p: Paint) {
   glow.addColorStop(0, p.glow);
   glow.addColorStop(1, "rgba(0, 0, 0, 0)");
   ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, SHARE_CARD_WIDTH, SHARE_CARD_HEIGHT * 0.6);
+  ctx.fillRect(0, 0, SHARE_CARD_WIDTH, boardHeight * 0.6);
 }
 
-function footer(ctx: CanvasRenderingContext2D, input: ShareCardInput, p: Paint) {
-  const y = SHARE_CARD_HEIGHT - 84;
+function footer(
+  ctx: CanvasRenderingContext2D,
+  input: ShareCardInput,
+  p: Paint,
+  boardHeight: number,
+) {
+  const y = boardHeight - 84;
   ctx.strokeStyle = p.tileBorder;
   ctx.lineWidth = 2;
   ctx.beginPath();
-  ctx.moveTo(88, y - 56);
-  ctx.lineTo(SHARE_CARD_WIDTH - 88, y - 56);
+  ctx.moveTo(88, y - 62);
+  ctx.lineTo(SHARE_CARD_WIDTH - 88, y - 62);
   ctx.stroke();
 
-  text(ctx, input.routineTitle, 88, y, {
-    size: 30,
-    weight: 600,
-    color: p.inkSoft,
-    maxWidth: 620,
+  text(ctx, `CRONOS GYM · ${input.routineTitle}`, 88, y - 10, {
+    size: 28,
+    weight: 700,
+    color: p.ink,
+    maxWidth: 580,
   });
-  text(ctx, input.dateLabel, SHARE_CARD_WIDTH - 88, y, {
-    size: 30,
+  text(ctx, input.dateLabel, 88, y + 26, {
+    size: 24,
     weight: 600,
     color: p.inkFaint,
+    maxWidth: 580,
+  });
+  text(ctx, "cronogym.vercel.app", SHARE_CARD_WIDTH - 88, y + 6, {
+    size: 26,
+    weight: 700,
+    color: p.accent,
     align: "right",
   });
 }
@@ -303,7 +316,6 @@ function drawMinimal(ctx: CanvasRenderingContext2D, input: ShareCardInput, p: Pa
     color: p.inkSoft,
     align: "center",
   });
-  footer(ctx, input, p);
 }
 
 function drawMetricsMap(ctx: CanvasRenderingContext2D, input: ShareCardInput, p: Paint) {
@@ -324,7 +336,6 @@ function drawMetricsMap(ctx: CanvasRenderingContext2D, input: ShareCardInput, p:
 
   const maxSets = input.muscles.reduce((n, m) => Math.max(n, m.sets), 0);
   muscleBars(ctx, input, p, 88, 860, SHARE_CARD_WIDTH - 176, maxSets);
-  footer(ctx, input, p);
 }
 
 function drawBento(ctx: CanvasRenderingContext2D, input: ShareCardInput, p: Paint) {
@@ -362,8 +373,6 @@ function drawBento(ctx: CanvasRenderingContext2D, input: ShareCardInput, p: Pain
       align: "right",
     });
   });
-
-  footer(ctx, input, p);
 }
 
 function drawHeroMap(ctx: CanvasRenderingContext2D, input: ShareCardInput, p: Paint) {
@@ -382,7 +391,6 @@ function drawHeroMap(ctx: CanvasRenderingContext2D, input: ShareCardInput, p: Pa
 
   const maxSets = input.muscles.reduce((n, m) => Math.max(n, m.sets), 0);
   muscleBars(ctx, input, p, 88, 660, SHARE_CARD_WIDTH - 176, maxSets);
-  footer(ctx, input, p);
 }
 
 const PAINTERS: Record<ShareCardId, (ctx: CanvasRenderingContext2D, input: ShareCardInput, p: Paint) => void> = {
@@ -395,21 +403,33 @@ const PAINTERS: Record<ShareCardId, (ctx: CanvasRenderingContext2D, input: Share
 /**
  * Paints one card into a context already sized to the board.
  *
- * The context is scaled from design pixels to its own size, so a caller can use
- * 540x675 for a preview or 1080x1350 for the export and get the same layout.
+ * Supports both 4:5 posts (`1080×1350`) and 9:16 Instagram Stories (`1080×1920`).
  */
 export function drawShareCard(
   ctx: CanvasRenderingContext2D,
   cardId: ShareCardId,
   background: ShareBackgroundId,
   input: ShareCardInput,
+  aspect: ShareAspect = "post",
 ) {
+  const boardHeight = aspect === "story" ? SHARE_STORY_HEIGHT : SHARE_CARD_HEIGHT;
   const scale = ctx.canvas.width / SHARE_CARD_WIDTH;
   ctx.save();
   ctx.scale(scale, scale);
   const p = paint(background);
-  backdrop(ctx, p);
-  PAINTERS[cardId](ctx, input, p);
+  backdrop(ctx, p, boardHeight);
+
+  if (aspect === "story") {
+    label(ctx, "ENTRENO COMPLETADO · CRONOS GYM", 88, 128, p.accent);
+    ctx.save();
+    ctx.translate(0, (boardHeight - SHARE_CARD_HEIGHT) * 0.42);
+    PAINTERS[cardId](ctx, input, p);
+    ctx.restore();
+  } else {
+    PAINTERS[cardId](ctx, input, p);
+  }
+
+  footer(ctx, input, p, boardHeight);
   ctx.restore();
 }
 

@@ -35,8 +35,11 @@ import {
   Award,
   Minus,
   Compass,
+  Bell,
+  AlertTriangle,
 } from "lucide-react";
 import { GlassButton } from "@/components/ui/GlassButton";
+import { requestFloorSpot, submitMachineReport } from "@/services/gymOperationsService";
 import { loadRestSeconds, saveRestSeconds } from "../lib/workout/restPreferences";
 import {
   recommendSmartRest,
@@ -887,6 +890,8 @@ interface ExerciseStageProps {
   prBadge?: { e1rmKg: number; weightKg: number; reps: number } | null;
   onOpenBiomechanics?: () => void;
   biomechanicsNote?: string | null;
+  onRequestSpot?: () => void;
+  onReportMachine?: () => void;
 }
 
 /**
@@ -919,6 +924,8 @@ function ExerciseStage({
   prBadge,
   onOpenBiomechanics,
   biomechanicsNote,
+  onRequestSpot,
+  onReportMachine,
 }: ExerciseStageProps) {
   const media = resolveMedia("exercise-gif", exercise.id, exercise.gif_url);
   const { src, failed, onLoad, onError } = useMediaSrc(media);
@@ -1154,6 +1161,24 @@ function ExerciseStage({
             icon={<Info size={14} strokeWidth={2} aria-hidden="true" />}
           >
             Guía
+          </DockButton>
+        )}
+        {onRequestSpot && (
+          <DockButton
+            label="Pedir Spot o ayuda al coach en piso"
+            onClick={onRequestSpot}
+            icon={<Bell size={14} strokeWidth={2} aria-hidden="true" />}
+          >
+            Spot / Coach
+          </DockButton>
+        )}
+        {onReportMachine && (
+          <DockButton
+            label="Reportar falla en esta máquina"
+            onClick={onReportMachine}
+            icon={<AlertTriangle size={14} strokeWidth={2} aria-hidden="true" />}
+          >
+            Reportar falla
           </DockButton>
         )}
       </div>
@@ -1688,6 +1713,7 @@ export function ActiveWorkout({
   const [isAjustarOpen, setIsAjustarOpen] = useState(false);
   const [smartGuidesOpen, setSmartGuidesOpen] = useState(false);
   const [substituteOpen, setSubstituteOpen] = useState(false);
+  const [machineReportOpen, setMachineReportOpen] = useState(false);
   /** The overload modal, and the rank sheet that explains the next goal. */
   const [overloadOpen, setOverloadOpen] = useState(false);
   const [rankSheetOpen, setRankSheetOpen] = useState(false);
@@ -2925,7 +2951,67 @@ export function ActiveWorkout({
                 prBadge={sessionPrByExercise[selected.exercise.id] ?? null}
                 onOpenBiomechanics={() => setBiomechanicsModalOpen(true)}
                 biomechanicsNote={biomechanicsByExercise[selected.exercise.id] ?? null}
+                onRequestSpot={() => {
+                  const station = equipmentForSelected?.name || locationLabel;
+                  const exName = cleanExerciseName(getExerciseDisplayName(selected.exercise));
+                  void requestFloorSpot({
+                    userId,
+                    athleteName: profile?.display_name || "Atleta Cronos",
+                    exerciseName: exName,
+                    stationLabel: station,
+                  }).then(() => {
+                    setNotice("¡Alerta enviada al coach en piso! Ya va en camino.");
+                  });
+                }}
+                onReportMachine={() => setMachineReportOpen((prev) => !prev)}
               />
+
+              {machineReportOpen && (
+                <section
+                  className="mx-auto w-full max-w-[560px] space-y-2 rounded-2xl border border-amber-500/30 bg-[#1C1C1E] p-3.5"
+                  aria-label="Reportar falla de máquina"
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-bold text-amber-300">
+                      Reportar falla en {equipmentForSelected?.name ?? locationLabel}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setMachineReportOpen(false)}
+                      className="text-xs text-neutral-400"
+                    >
+                      Cerrar
+                    </button>
+                  </div>
+                  <div className="flex flex-wrap gap-1.5">
+                    {["Cable o polea dañada", "Asiento o pin atorado", "Falta maneral / discos", "Ruido o daño"].map((reason) => (
+                      <button
+                        key={reason}
+                        type="button"
+                        onClick={() => {
+                          const eqId =
+                            equipmentForSelected?.id ??
+                            selectedCatalogExercise?.effectiveEquipmentId ??
+                            "GENERAL";
+                          const eqName = equipmentForSelected?.name ?? locationLabel;
+                          void submitMachineReport({
+                            equipmentId: eqId,
+                            equipmentName: eqName,
+                            reportedBy: userId,
+                            reason,
+                          }).then(() => {
+                            setMachineReportOpen(false);
+                            setNotice(`Reporte enviado para ${eqName}. ¡Gracias!`);
+                          });
+                        }}
+                        className="min-h-10 rounded-full border border-white/10 bg-black/50 px-3 text-xs font-semibold text-white active:scale-95"
+                      >
+                        {reason}
+                      </button>
+                    ))}
+                  </div>
+                </section>
+              )}
 
               {substituteOpen && (
                 <section

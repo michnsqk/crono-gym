@@ -346,3 +346,12 @@ CREATE POLICY "routine_template_exercises_update_staff" ON public.routine_templa
   WITH CHECK ((select public.has_role('coach'::public.app_role)) OR (select public.has_role('admin'::public.app_role)) OR (select public.has_role('developer'::public.app_role)));
 CREATE POLICY "routine_template_exercises_delete_staff" ON public.routine_template_exercises FOR DELETE TO authenticated
   USING ((select public.has_role('coach'::public.app_role)) OR (select public.has_role('admin'::public.app_role)) OR (select public.has_role('developer'::public.app_role)));
+
+
+-- 3. Add covering indexes for Sprint 2 foreign keys
+CREATE INDEX IF NOT EXISTS idx_coach_exercise_requests_coach_id
+  ON public.coach_exercise_requests (coach_id);
+CREATE INDEX IF NOT EXISTS idx_routine_template_exercises_template_id
+  ON public.routine_template_exercises (template_id);
+CREATE INDEX IF NOT EXISTS idx_routine_templates_created_by
+  ON public.routine_templates (created_by);

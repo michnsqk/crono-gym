@@ -192,4 +192,12 @@ describe("route table", () => {
     if (import.meta.env.DEV) return;
     expect(routePaths()).not.toContain("/dev/ui");
   });
+
+  it("mounts the public QR machine route outside AuthGate", () => {
+    const appShellChildren = router.routes[0]?.children ?? [];
+    const publicMachineRoute = appShellChildren.find(
+      (r) => (r as { path?: string }).path === "/maquina/:equipmentId",
+    );
+    expect(publicMachineRoute).toBeTruthy();
+  });
 });

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import QRCode from "qrcode";
 import {
+  AlertTriangle,
   ArrowLeft,
   Camera,
   Check,
@@ -16,7 +17,11 @@ import { MACHINE_GUIDE_CATALOG, type MachineGuideEntry } from "@/data/machineGui
 import { equipmentMap } from "@/data/equipmentMap";
 import { CRONOS_MACHINERY_EXERCISES } from "@/lib/catalog/machinerySeedExercises";
 import { resolveMediaUrl } from "@/lib/media/mediaResolver";
-import { openPrintableMachineQrSheet } from "@/services/gymOperationsService";
+import {
+  openPrintableMachineQrSheet,
+  submitMachineReport,
+} from "@/services/gymOperationsService";
+import { supabase } from "@lib/supabase";
 import { ACCENT, GLASS, SCRIM, STATUS, SURFACE, TEXT, Z_INDEX } from "@/design/tokens";
 
 export interface GymMachinesAtlasModalProps {
@@ -36,6 +41,8 @@ export function GymMachinesAtlasModal({
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [showQrPanel, setShowQrPanel] = useState(false);
   const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportSent, setReportSent] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -43,6 +50,8 @@ export function GymMachinesAtlasModal({
     setActiveViewIdx(0);
     setShowQrPanel(false);
     setExpandedExerciseId(null);
+    setReportOpen(false);
+    setReportSent(false);
   }, [open, initialEquipmentId]);
 
   const selectedMachine = useMemo(
@@ -67,7 +76,7 @@ export function GymMachinesAtlasModal({
 
   const machineQrUrl = useMemo(() => {
     if (!selectedMachine || typeof window === "undefined") return "";
-    return `${window.location.origin}/rutinas?machine=${encodeURIComponent(
+    return `${window.location.origin}/maquina/${encodeURIComponent(
       selectedMachine.equipmentId,
     )}`;
   }, [selectedMachine]);
@@ -291,20 +300,72 @@ export function GymMachinesAtlasModal({
                   ))}
                 </div>
 
-                <button
-                  type="button"
-                  onClick={() => setShowQrPanel((v) => !v)}
-                  className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition"
-                  style={{
-                    backgroundColor: showQrPanel ? ACCENT.base : GLASS.fillRaised,
-                    color: "#FFFFFF",
-                    border: `1px solid ${showQrPanel ? ACCENT.base : GLASS.border}`,
-                  }}
-                >
-                  <QrCode className="h-3.5 w-3.5" />
-                  <span>{showQrPanel ? "Ocultar QR" : "QR de esta máquina"}</span>
-                </button>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setShowQrPanel((v) => !v)}
+                    className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition"
+                    style={{
+                      backgroundColor: showQrPanel ? ACCENT.base : GLASS.fillRaised,
+                      color: "#FFFFFF",
+                      border: `1px solid ${showQrPanel ? ACCENT.base : GLASS.border}`,
+                    }}
+                  >
+                    <QrCode className="h-3.5 w-3.5" />
+                    <span>{showQrPanel ? "Ocultar QR" : "QR de esta máquina"}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportSent(false);
+                      setReportOpen((v) => !v);
+                    }}
+                    className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition"
+                    style={{
+                      backgroundColor: GLASS.fillRaised,
+                      color: "#FBBF24",
+                      border: `1px solid ${GLASS.border}`,
+                    }}
+                  >
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    <span>Reportar falla</span>
+                  </button>
+                </div>
               </div>
+
+              {reportSent && (
+                <p className="text-xs font-semibold" style={{ color: STATUS.success.text }}>
+                  ✓ Reporte enviado en vivo a administración de Cronos Gym.
+                </p>
+              )}
+
+              {reportOpen && (
+                <div className="flex flex-wrap gap-1.5 pt-1">
+                  {["Cable o polea", "Asiento / Pin", "Falta maneral", "Ruido o daño"].map((reason) => (
+                    <button
+                      key={reason}
+                      type="button"
+                      onClick={() => {
+                        void (async () => {
+                          const { data } = await supabase.auth.getSession().catch(() => ({ data: { session: null } }));
+                          await submitMachineReport({
+                            equipmentId: selectedMachine.equipmentId,
+                            equipmentName: selectedMachine.name,
+                            reportedBy: data.session?.user.id ?? "",
+                            reason,
+                          });
+                          setReportOpen(false);
+                          setReportSent(true);
+                        })();
+                      }}
+                      className="rounded-full px-3 py-1 text-[11px] font-semibold text-white"
+                      style={{ backgroundColor: ACCENT.subtle, border: `1px solid ${ACCENT.border}` }}
+                    >
+                      {reason}
+                    </button>
+                  ))}
+                </div>
+              )}
 
               <p className="text-xs leading-relaxed" style={{ color: TEXT.secondary }}>
                 <span className="font-semibold text-white">Tip biomecánico: </span>

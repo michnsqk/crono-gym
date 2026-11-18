@@ -72,8 +72,10 @@ export function AppShell() {
   const { collapsed, toggle } = useSideNavCollapsed();
   const { updateReady, applySafeUpdate } = usePwaUpdateVault();
 
-  // Immersive mode: hide chrome on /entrenar only while a workout session is active.
-  const isImmersive = pathname === "/entrenar" && isActive;
+  // Immersive mode: hide chrome on /entrenar while active, and for guest QR machine scans.
+  const isImmersive =
+    (pathname === "/entrenar" && isActive) ||
+    (pathname.startsWith("/maquina/") && !user);
 
   return (
     <div

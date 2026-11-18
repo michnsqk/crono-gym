@@ -546,7 +546,7 @@ export function openPrintableMachineQrSheet(baseOrigin?: string): void {
   void (async () => {
     const cards = await Promise.all(
       MACHINE_GUIDE_CATALOG.map(async (m) => {
-        const url = `${origin}/rutinas?machine=${encodeURIComponent(m.equipmentId)}`;
+        const url = `${origin}/maquina/${encodeURIComponent(m.equipmentId)}`;
         let qrDataUrl = "";
         try {
           qrDataUrl = await QRCode.toDataURL(url, {

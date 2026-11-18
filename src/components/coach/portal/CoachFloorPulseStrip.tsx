@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { AlertCircle, Check, Users } from "lucide-react";
-import { ACCENT, TEXT } from "@/design/tokens";
+import { ACCENT, STATUS, TEXT } from "@/design/tokens";
+import { supabase } from "@lib/supabase";
 import {
   listSpotRequests,
   resolveSpotRequest,
@@ -24,6 +25,20 @@ export function CoachFloorPulseStrip({
 
   useEffect(() => {
     void listSpotRequests().then(setSpots);
+    if (typeof (supabase as { channel?: unknown }).channel !== "function") return;
+    const channel = supabase
+      .channel("cronos-spot-requests-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "spot_requests" },
+        () => {
+          void listSpotRequests().then(setSpots);
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, []);
 
   return (
@@ -36,6 +51,19 @@ export function CoachFloorPulseStrip({
           </span>
           <span className="font-mono text-sm font-bold tabular-nums text-white">
             {activeAthletesCount}
+          </span>
+          <span
+            className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider"
+            style={{
+              backgroundColor: spots.length > 0 ? ACCENT.subtle : STATUS.success.muted,
+              color: spots.length > 0 ? ACCENT.text : STATUS.success.text,
+            }}
+          >
+            <span
+              className={`h-1.5 w-1.5 rounded-full ${spots.length > 0 ? "animate-ping" : "animate-pulse"}`}
+              style={{ backgroundColor: spots.length > 0 ? ACCENT.base : STATUS.success.base }}
+            />
+            {spots.length > 0 ? `EN VIVO · ${spots.length} SPOT` : "EN VIVO"}
           </span>
         </div>
 
