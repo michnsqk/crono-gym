@@ -49,7 +49,7 @@ export function CoachBanner({ coachId, onRequestRoutine, onExerciseHelp }: Coach
     try {
       const { data, error: readError } = await supabase
         .from("coaches")
-        .select("display_name, is_available, shift" as "display_name, is_available")
+        .select("display_name, is_available, shift")
         .eq("id", coachId)
         .maybeSingle();
 

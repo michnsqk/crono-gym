@@ -94,10 +94,10 @@ function writeLocal<T>(key: string, value: T): void {
   }
 }
 
-// Helper for additive tables that may not yet be in generated Database types
-function dynamicTable(table: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as any).from(table);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function safeUuid(value: string | null | undefined): string | null {
+  return value && UUID_RE.test(value.trim()) ? value.trim() : null;
 }
 
 // ------------------------------------------------------------------ Challenges
@@ -105,11 +105,12 @@ function dynamicTable(table: string) {
 export async function listGymChallenges(): Promise<GymChallenge[]> {
   const local = readLocal<GymChallenge[]>(KEYS.challenges, []);
   try {
-    const { data, error } = await dynamicTable("gym_challenges")
+    const { data, error } = await supabase
+      .from("gym_challenges")
       .select("*")
       .order("created_at", { ascending: false });
     if (!error && Array.isArray(data)) {
-      const mapped: GymChallenge[] = data.map((r: Record<string, unknown>) => ({
+      const mapped: GymChallenge[] = data.map((r) => ({
         id: String(r.id),
         title: String(r.title ?? ""),
         targetSessions: Number(r.target_sessions ?? 16),
@@ -151,14 +152,14 @@ export async function createGymChallenge(
   writeLocal(KEYS.challenges, [entry, ...current]);
 
   try {
-    await dynamicTable("gym_challenges").update({ active: false }).eq("active", true);
-    await dynamicTable("gym_challenges").insert({
+    await supabase.from("gym_challenges").update({ active: false }).eq("active", true);
+    await supabase.from("gym_challenges").insert({
       id: entry.id,
       title: entry.title,
       target_sessions: entry.targetSessions,
       month_label: entry.monthLabel,
       active: true,
-      created_by: actorId,
+      created_by: safeUuid(actorId),
     });
   } catch {
     // Fallback saved locally
@@ -173,11 +174,12 @@ export async function createGymChallenge(
 export async function listMachineReports(): Promise<MachineReport[]> {
   const local = readLocal<MachineReport[]>(KEYS.reports, []);
   try {
-    const { data, error } = await dynamicTable("machine_reports")
+    const { data, error } = await supabase
+      .from("machine_reports")
       .select("*")
       .order("created_at", { ascending: false });
     if (!error && Array.isArray(data)) {
-      const mapped: MachineReport[] = data.map((r: Record<string, unknown>) => ({
+      const mapped: MachineReport[] = data.map((r) => ({
         id: String(r.id),
         equipmentId: String(r.equipment_id ?? ""),
         equipmentName: String(r.equipment_name ?? ""),
@@ -211,11 +213,11 @@ export async function submitMachineReport(input: {
   writeLocal(KEYS.reports, [entry, ...current]);
 
   try {
-    await dynamicTable("machine_reports").insert({
+    await supabase.from("machine_reports").insert({
       id: entry.id,
       equipment_id: entry.equipmentId,
       equipment_name: entry.equipmentName,
-      reported_by: entry.reportedBy,
+      reported_by: safeUuid(input.reportedBy),
       reason: entry.reason,
       status: "open",
     });
@@ -235,7 +237,7 @@ export async function updateMachineReportStatus(
   );
   writeLocal(KEYS.reports, current);
   try {
-    await dynamicTable("machine_reports").update({ status }).eq("id", id);
+    await supabase.from("machine_reports").update({ status }).eq("id", id);
   } catch {
     // Local fallback applied
   }
@@ -262,12 +264,12 @@ export async function recordDemandIntent(
   writeLocal(KEYS.intents, [entry, ...current].slice(0, 500));
 
   try {
-    await dynamicTable("store_intents").insert({
+    await supabase.from("store_intents").insert({
       id: entry.id,
       kind: entry.kind,
       item_id: entry.itemId,
       item_title: entry.itemTitle,
-      user_id: entry.userId,
+      user_id: safeUuid(entry.userId),
     });
   } catch {
     // Fallback saved locally
@@ -277,12 +279,13 @@ export async function recordDemandIntent(
 export async function listDemandIntents(): Promise<DemandIntent[]> {
   const local = readLocal<DemandIntent[]>(KEYS.intents, []);
   try {
-    const { data, error } = await dynamicTable("store_intents")
+    const { data, error } = await supabase
+      .from("store_intents")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(200);
     if (!error && Array.isArray(data)) {
-      const mapped: DemandIntent[] = data.map((r: Record<string, unknown>) => ({
+      const mapped: DemandIntent[] = data.map((r) => ({
         id: String(r.id),
         kind: (r.kind as "store" | "class") ?? "store",
         itemId: String(r.item_id ?? ""),
@@ -317,9 +320,9 @@ export async function requestFloorSpot(input: {
   writeLocal(KEYS.spots, [entry, ...current].slice(0, 50));
 
   try {
-    await dynamicTable("spot_requests").insert({
+    await supabase.from("spot_requests").insert({
       id: entry.id,
-      user_id: entry.userId,
+      user_id: safeUuid(entry.userId),
       athlete_name: entry.athleteName,
       exercise_name: entry.exerciseName,
       station_label: entry.stationLabel,
@@ -334,13 +337,14 @@ export async function requestFloorSpot(input: {
 export async function listSpotRequests(): Promise<SpotRequest[]> {
   const local = readLocal<SpotRequest[]>(KEYS.spots, []);
   try {
-    const { data, error } = await dynamicTable("spot_requests")
+    const { data, error } = await supabase
+      .from("spot_requests")
       .select("*")
       .neq("status", "done")
       .order("created_at", { ascending: false })
       .limit(25);
     if (!error && Array.isArray(data)) {
-      const mapped: SpotRequest[] = data.map((r: Record<string, unknown>) => ({
+      const mapped: SpotRequest[] = data.map((r) => ({
         id: String(r.id),
         userId: String(r.user_id ?? ""),
         athleteName: String(r.athlete_name ?? "Socio"),
@@ -364,7 +368,7 @@ export async function resolveSpotRequest(id: string): Promise<void> {
   );
   writeLocal(KEYS.spots, current);
   try {
-    await dynamicTable("spot_requests").update({ status: "done" }).eq("id", id);
+    await supabase.from("spot_requests").update({ status: "done" }).eq("id", id);
   } catch {
     // Local fallback applied
   }
@@ -390,9 +394,9 @@ export async function appendAdminAudit(
   writeLocal(KEYS.audit, [entry, ...current].slice(0, 100));
 
   try {
-    await dynamicTable("admin_audit_logs").insert({
+    await supabase.from("admin_audit_logs").insert({
       id: entry.id,
-      actor_id: actorId,
+      actor_id: safeUuid(actorId),
       action,
       target,
       details,
@@ -405,12 +409,13 @@ export async function appendAdminAudit(
 export async function listAdminAuditLogs(): Promise<AdminAuditEntry[]> {
   const local = readLocal<AdminAuditEntry[]>(KEYS.audit, []);
   try {
-    const { data, error } = await dynamicTable("admin_audit_logs")
+    const { data, error } = await supabase
+      .from("admin_audit_logs")
       .select("*")
       .order("created_at", { ascending: false })
       .limit(40);
     if (!error && Array.isArray(data)) {
-      const mapped: AdminAuditEntry[] = data.map((r: Record<string, unknown>) => ({
+      const mapped: AdminAuditEntry[] = data.map((r) => ({
         id: String(r.id),
         actorId: String(r.actor_id ?? ""),
         action: String(r.action ?? ""),
@@ -430,7 +435,8 @@ export async function listAdminAuditLogs(): Promise<AdminAuditEntry[]> {
 export async function getGymServiceStatus(): Promise<GymServiceMode> {
   const local = readLocal<GymServiceMode>(KEYS.status, "active");
   try {
-    const { data, error } = await dynamicTable("gym_service_status")
+    const { data, error } = await supabase
+      .from("gym_service_status")
       .select("status")
       .eq("id", "primary")
       .maybeSingle();
@@ -451,10 +457,10 @@ export async function setGymServiceStatus(
 ): Promise<void> {
   writeLocal(KEYS.status, status);
   try {
-    await dynamicTable("gym_service_status").upsert({
+    await supabase.from("gym_service_status").upsert({
       id: "primary",
       status,
-      updated_by: actorId,
+      updated_by: safeUuid(actorId),
       updated_at: new Date().toISOString(),
     });
   } catch {

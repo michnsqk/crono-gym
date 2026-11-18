@@ -28,12 +28,6 @@ type GymClass = {
 type Schedule = { class_id: string; day_of_week: number; start_time: string };
 const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
-// Helper for tables not yet typed in generated Supabase types
-function dynamicFrom(table: string) {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (supabase as any).from(table);
-}
-
 export function GymClubHubSection({
   userId,
   compactPreview = false,
@@ -52,21 +46,37 @@ export function GymClubHubSection({
 
   const load = useCallback(async () => {
     const [p, c, s] = await Promise.all([
-      dynamicFrom("products")
+      supabase
+        .from("products")
         .select("*")
         .eq("is_active", true)
         .order("created_at", { ascending: false }),
-      dynamicFrom("gym_classes").select("*").eq("is_active", true),
-      dynamicFrom("gym_schedules").select("*"),
+      supabase.from("gym_classes").select("*").eq("is_active", true),
+      supabase.from("gym_schedules").select("*"),
     ]);
 
-    const remoteProducts = ((p.data ?? []) as Product[]).map((item) => {
+    const remoteProducts: Product[] = (p.data ?? []).map((item) => {
       const meta = findStoreMeta(item.id, item.name);
-      return { ...item, ...meta, image_path: item.image_path ?? meta?.imageUrl };
+      return {
+        id: item.id,
+        name: item.name,
+        category: meta?.category,
+        price_cents: Math.round(Number(item.price ?? 0) * 100),
+        stock: Number(item.stock ?? 0),
+        ...meta,
+        image_path: item.image_url ?? meta?.imageUrl,
+      };
     });
-    const remoteClasses = ((c.data ?? []) as GymClass[]).map((item) => {
-      const meta = findClassMeta(item.id, item.name);
-      return { ...item, ...meta, price_cents: meta?.priceCents ?? item.price_cents };
+    const remoteClasses: GymClass[] = (c.data ?? []).map((item) => {
+      const meta = findClassMeta(item.id, item.title);
+      return {
+        id: item.id,
+        name: item.title,
+        instructor: item.instructor ?? undefined,
+        capacity: Number(item.capacity ?? 20),
+        ...meta,
+        price_cents: meta?.priceCents,
+      };
     });
     const localProducts = readLocalProducts();
     const localClasses = readLocalClasses();
@@ -101,7 +111,7 @@ export function GymClubHubSection({
   const reserve = async (product: Product) => {
     const ticketNumber = `CRN-${Math.floor(100 + Math.random() * 900)}`;
     void recordDemandIntent("store", product.id, product.name, userId);
-    const { error } = await dynamicFrom("purchase_tickets").insert({
+    const { error } = await supabase.from("purchase_tickets").insert({
       ticket_number: ticketNumber,
       user_id: userId,
       product_id: product.id,

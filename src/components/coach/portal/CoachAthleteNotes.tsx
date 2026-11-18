@@ -59,7 +59,7 @@ export function CoachAthleteNotes({ athleteId }: CoachAthleteNotesProps) {
       return;
     }
 
-    setContent((data ?? { content: "" }).content);
+    setContent(data?.content ?? "");
   }, [athleteId, coachId]);
 
   useEffect(() => {

@@ -150,8 +150,9 @@ export function VipRoutineBuilder({ athleteId, isTemplate = false, onSaved }: Vi
 
     if (!mounted.current) return;
 
-    if (phaseRow.data?.phase) {
-      setAthletePhase(phaseRow.data.phase);
+    const rawPhase = phaseRow.data?.phase;
+    if (rawPhase === "maintenance" || rawPhase === "deload" || rawPhase === "overload") {
+      setAthletePhase(rawPhase);
     }
 
     const notes = requestRow.data?.athlete_notes ?? null;

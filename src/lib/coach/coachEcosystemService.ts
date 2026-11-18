@@ -68,19 +68,10 @@ export function sanitizeCoachName(name?: string | null): string {
   if (UUID_FRAGMENT.test(trimmed)) return DEFAULT_COACH_NAME;
   return trimmed;
 }
-// The remote instance may not have these optional tables/RPCs deployed yet. They
-// are disabled from the very first render so the browser console never emits a
-// `404 (Not Found)` on first load (before the circuit breaker would trip). The
-// local cache and the static catalog remain the supported source until the
-// schema is deployed; the breaker still records a disabled remote on a real
-// failure so a later deploy can be picked up in a fresh session.
-const disabledRemotes = new Set<string>([
-  "routine_templates",
-  "coach_exercise_requests",
-  "coach_offers",
-  "clone_routine_template",
-  "admin_list_users_with_roles",
-]);
+// Optional cloud tables (`coach_offers`, `coach_exercise_requests`,
+// `routine_templates`) are now deployed; this set stays empty at startup and
+// only records a disabled remote if the client is offline or hits a real error.
+const disabledRemotes = new Set<string>();
 
 function remoteDisabled(key: string): boolean {
   if (disabledRemotes.has(key)) return true;
@@ -134,13 +125,13 @@ function writeCache<T>(key: string, value: T): void {
  */
 async function fetchCoachTemplates(): Promise<EcosystemTemplate[]> {
   try {
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("routines")
       .select("id,title,description,is_template,routine_exercises(day_index)")
       .eq("is_template", true)
       .order("created_at", { ascending: false });
     if (error || !Array.isArray(data)) return [];
-    return data.map((row: any) => {
+    return data.map((row) => {
       const links = Array.isArray(row.routine_exercises) ? row.routine_exercises : [];
       return {
         id: row.id,
@@ -150,7 +141,7 @@ async function fetchCoachTemplates(): Promise<EcosystemTemplate[]> {
         goal: null,
         category: "Coach",
         isPublished: true,
-        days: new Set(links.map((link: any) => link.day_index)).size,
+        days: new Set(links.map((link) => link.day_index)).size,
         exercises: links.length,
       } as EcosystemTemplate;
     });
@@ -164,37 +155,37 @@ async function fetchCoachTemplates(): Promise<EcosystemTemplate[]> {
  * target user's library. Mirrors the routine header and its `routine_exercises` rows.
  */
 async function cloneCoachTemplate(templateId: string, userId: string): Promise<string> {
-  const { data: template, error: templateError } = await (supabase as any)
+  const { data: template, error: templateError } = await supabase
     .from("routines")
     .select("id,title,description,is_template,routine_exercises(exercise_id,target_sets,rest_seconds,order_index,day_index,day_label,target_reps_min,target_reps_max)")
     .eq("id", templateId)
     .eq("is_template", true)
     .maybeSingle();
   if (templateError || !template) throw templateError ?? new Error("Plantilla no encontrada");
-  const { data: routine, error: routineError } = await (supabase as any)
+  const { data: routine, error: routineError } = await supabase
     .from("routines")
     .insert({ user_id: userId, title: template.title, description: template.description, source: "user" })
     .select("id")
     .single();
   if (routineError || !routine) throw routineError ?? new Error("No se pudo crear la rutina");
-  const links = (template.routine_exercises ?? []).map((row: any) => ({
+  const links = (template.routine_exercises ?? []).map((row) => ({
     routine_id: routine.id,
     exercise_id: row.exercise_id,
     target_sets: row.target_sets,
     rest_seconds: row.rest_seconds,
     order_index: row.order_index,
     day_index: row.day_index,
-    day_label: row.day_label,
+    day_label: row.day_label ?? "",
     target_reps_min: row.target_reps_min,
     target_reps_max: row.target_reps_max,
   }));
-  const { error: linksError } = await (supabase as any).from("routine_exercises").insert(links);
+  const { error: linksError } = await supabase.from("routine_exercises").insert(links);
   if (linksError) {
-    await (supabase as any).from("routines").delete().eq("id", routine.id);
+    await supabase.from("routines").delete().eq("id", routine.id);
     throw linksError;
   }
   emitSync("template-cloned");
-  return routine.id as string;
+  return routine.id;
 }
 
 export const coachEcosystemService = {
@@ -216,9 +207,9 @@ export const coachEcosystemService = {
     });
     fallback.coachName = sanitizeCoachName(fallback.coachName);
     if (remoteDisabled("coach_offers")) return fallback;
-    let data: any = null;
+    let data = null;
     try {
-      const response = await (supabase as any)
+      const response = await supabase
         .from("coach_offers")
         .select("coach_id,price_mxn,specialty,shift,billing_cycle,benefits")
         .eq("coach_id", coachId)
@@ -233,12 +224,16 @@ export const coachEcosystemService = {
       return fallback;
     }
     if (!data) return fallback;
-    const offer = {
+    const cycle = data.billing_cycle;
+    const offer: CoachOffer = {
       coachId,
       priceMxn: Number(data.price_mxn) || fallback.priceMxn,
       specialty: data.specialty || fallback.specialty,
       shift: data.shift || fallback.shift,
-      billingCycle: data.billing_cycle || fallback.billingCycle,
+      billingCycle:
+        cycle === "mensual" || cycle === "por_rutina" || cycle === "trimestral"
+          ? cycle
+          : fallback.billingCycle,
       benefits: Array.isArray(data.benefits) ? data.benefits : fallback.benefits,
     };
     writeCache(`offer:${coachId}`, offer);
@@ -252,7 +247,7 @@ export const coachEcosystemService = {
     // already reads; `coach_offers` has no name column. Best-effort: a missing row or
     // a restrictive policy must not block saving the price and benefits locally.
     try {
-      await (supabase as any).from("profiles").update({ display_name: coachName }).eq("user_id", offer.coachId);
+      await supabase.from("profiles").update({ display_name: coachName }).eq("user_id", offer.coachId);
     } catch {
       // The local cache still holds the offer for this device.
     }
@@ -261,7 +256,7 @@ export const coachEcosystemService = {
       emitSync("offer");
       return nextOffer;
     }
-    const { error } = await (supabase as any).from("coach_offers").upsert({
+    const { error } = await supabase.from("coach_offers").upsert({
       coach_id: offer.coachId,
       price_mxn: offer.priceMxn,
       specialty: offer.specialty,
@@ -283,7 +278,7 @@ export const coachEcosystemService = {
     if (remoteDisabled("coach_session_requests")) {
       return readCache<EcosystemRequest[]>(`requests:${coachId}`, []);
     }
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("coach_session_requests")
       .select("*")
       .eq("coach_id", coachId)
@@ -295,7 +290,7 @@ export const coachEcosystemService = {
     }
     if (!data) return readCache<EcosystemRequest[]>(`requests:${coachId}`, []);
     const localRequests = readCache<EcosystemRequest[]>(`requests:${coachId}`, []);
-    const requests = data.map((row: any) => ({
+    const requests = data.map((row) => ({
       id: row.id,
       athleteId: row.athlete_id,
       coachId: row.coach_id,
@@ -320,7 +315,7 @@ export const coachEcosystemService = {
     const cached = readCache<EcosystemRequest[]>(`requests:${coachId}`, []);
     writeCache(`requests:${coachId}`, [localRequest, ...cached]);
     if (!remoteDisabled("coach_session_requests")) {
-      const { error } = await (supabase as any).from("coach_session_requests").insert({
+      const { error } = await supabase.from("coach_session_requests").insert({
         athlete_id: athleteId,
         coach_id: coachId,
         status: "pending",
@@ -333,7 +328,7 @@ export const coachEcosystemService = {
 
   async activateAthleteVipCash(athleteId: string, priceMxn: number): Promise<void> {
     writeCache(`vip-price:${athleteId}`, priceMxn);
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("coach_session_requests")
       .update({ status: "active" })
       .eq("athlete_id", athleteId)
@@ -358,7 +353,7 @@ export const coachEcosystemService = {
         exercises: template.days.reduce((total, day) => total + day.exercises.length, 0),
       }));
     } else {
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from("routine_templates")
         .select("id,title,description,level,goal,category,is_published,routine_template_exercises(day_index)")
         .order("created_at", { ascending: false });
@@ -377,17 +372,21 @@ export const coachEcosystemService = {
           exercises: template.days.reduce((total, day) => total + day.exercises.length, 0),
         }));
       } else {
-        base = data.map((row: any) => {
+        base = data.map((row) => {
           const links = Array.isArray(row.routine_template_exercises) ? row.routine_template_exercises : [];
+          const lvl = row.level;
           return {
             id: row.id,
             title: row.title,
             description: row.description ?? null,
-            level: row.level,
+            level:
+              lvl === "beginner" || lvl === "intermediate" || lvl === "advanced"
+                ? lvl
+                : "beginner",
             goal: row.goal ?? null,
             category: row.category ?? null,
             isPublished: Boolean(row.is_published),
-            days: new Set(links.map((link: any) => link.day_index)).size,
+            days: new Set(links.map((link) => link.day_index)).size,
             exercises: links.length,
           } as EcosystemTemplate;
         });
@@ -406,11 +405,11 @@ export const coachEcosystemService = {
     // Static official templates ship with the app; clone them first.
     const localTemplate = ROUTINE_TEMPLATES.find((template) => template.id === templateId);
     if (localTemplate) {
-      const { data: exercises, error: exercisesError } = await (supabase as any)
+      const { data: exercises, error: exercisesError } = await supabase
         .from("exercises")
         .select("id,name,name_es");
       if (exercisesError) throw exercisesError;
-      const { data: routine, error: routineError } = await (supabase as any)
+      const { data: routine, error: routineError } = await supabase
         .from("routines")
         .insert({ user_id: userId, title: localTemplate.title, source: "user" })
         .select("id")
@@ -430,13 +429,13 @@ export const coachEcosystemService = {
             target_reps_min: exercise.repsMin,
             target_reps_max: exercise.repsMax,
           } : null;
-        }).filter(Boolean),
+        }).filter((x): x is NonNullable<typeof x> => x !== null),
       );
       if (links.length === 0) throw new Error("La plantilla no tiene ejercicios disponibles");
-      const { error: linksError } = await (supabase as any).from("routine_exercises").insert(links);
+      const { error: linksError } = await supabase.from("routine_exercises").insert(links);
       if (linksError) throw linksError;
       emitSync("template-cloned");
-      return routine.id as string;
+      return routine.id;
     }
     // Otherwise it is a coach-authored template stored in `routines` (is_template).
     return cloneCoachTemplate(templateId, userId);
@@ -446,7 +445,7 @@ export const coachEcosystemService = {
     if (remoteDisabled("coach_exercise_requests")) {
       return readCache<ExerciseRequest[]>(`exercise-requests:${coachId}`, []);
     }
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("coach_exercise_requests")
       .select("id,name,body_part,equipment,notes,status,created_at")
       .eq("coach_id", coachId)
@@ -455,13 +454,13 @@ export const coachEcosystemService = {
       disableRemote("coach_exercise_requests");
       return readCache<ExerciseRequest[]>(`exercise-requests:${coachId}`, []);
     }
-    return (data ?? []).map((row: any) => ({
+    return (data ?? []).map((row) => ({
       id: row.id,
       name: row.name,
       bodyPart: row.body_part,
       equipment: row.equipment,
       notes: row.notes ?? "",
-      status: row.status,
+      status: row.status === "approved" ? "approved" : "pending",
       createdAt: row.created_at,
     }));
   },
@@ -470,7 +469,7 @@ export const coachEcosystemService = {
     if (remoteDisabled("coach_exercise_requests")) {
       return readCache<ExerciseRequest[]>("exercise-requests:all", []);
     }
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("coach_exercise_requests")
       .select("id,name,body_part,equipment,notes,status,created_at")
       .eq("status", "pending")
@@ -479,13 +478,13 @@ export const coachEcosystemService = {
       disableRemote("coach_exercise_requests");
       return readCache<ExerciseRequest[]>("exercise-requests:all", []);
     }
-    const rows = (data ?? []).map((row: any) => ({
+    const rows: ExerciseRequest[] = (data ?? []).map((row) => ({
       id: row.id,
       name: row.name,
       bodyPart: row.body_part,
       equipment: row.equipment,
       notes: row.notes ?? "",
-      status: row.status,
+      status: row.status === "approved" ? "approved" : "pending",
       createdAt: row.created_at,
     }));
     writeCache("exercise-requests:all", rows);
@@ -501,7 +500,7 @@ export const coachEcosystemService = {
       emitSync("exercise-request");
       return;
     }
-    const { error } = await (supabase as any).from("coach_exercise_requests").insert({
+    const { error } = await supabase.from("coach_exercise_requests").insert({
       coach_id: coachId,
       name: input.name,
       body_part: input.bodyPart,
@@ -524,7 +523,7 @@ export const coachEcosystemService = {
   async renameExerciseGlobal(exerciseId: string, newSpanishName: string): Promise<void> {
     const name = newSpanishName.trim();
     if (!name) throw new Error("El nombre no puede estar vacío");
-    const { error } = await (supabase as any).from("exercises").update({ name_es: name }).eq("id", exerciseId);
+    const { error } = await supabase.from("exercises").update({ name_es: name }).eq("id", exerciseId);
     const names = readCache<Record<string, string>>("exercise-renames", {});
     writeCache("exercise-renames", { ...names, [exerciseId]: name });
     if (error) emitSync("exercise-rename-offline");
