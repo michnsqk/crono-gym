@@ -31,6 +31,8 @@ export function CoachBanner({ coachId, onRequestRoutine, onExerciseHelp }: Coach
   const [coach, setCoach] = useState<{
     display_name: string;
     is_available: boolean;
+    shift?: string | null;
+    specialty?: string | null;
   } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function CoachBanner({ coachId, onRequestRoutine, onExerciseHelp }: Coach
     try {
       const { data, error: readError } = await supabase
         .from("coaches")
-        .select("display_name, is_available")
+        .select("display_name, is_available, shift, specialty" as "display_name, is_available")
         .eq("id", coachId)
         .maybeSingle();
 
@@ -124,6 +126,7 @@ export function CoachBanner({ coachId, onRequestRoutine, onExerciseHelp }: Coach
               }}
             >
               {coach.display_name}
+              {coach.shift ? ` · Turno ${coach.shift}` : ""}
             </p>
           </div>
         </div>

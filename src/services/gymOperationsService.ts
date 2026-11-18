@@ -11,8 +11,10 @@
  * - Full Gym CSV Export & Printable 77-Machine QR Sheet
  */
 
+import QRCode from "qrcode";
 import { supabase } from "@lib/supabase";
 import { equipmentMap } from "@/data/equipmentMap";
+import { MACHINE_GUIDE_CATALOG } from "@/data/machineGuideCatalog";
 import { downloadCsvFile, escapeCsvCell } from "@/utils/workoutCsvCodec";
 
 export type GymServiceMode = "active" | "warning_day5" | "paused_day7";
@@ -528,28 +530,72 @@ export async function exportFullGymDatabaseCsv(actorId: string): Promise<number>
 export function openPrintableMachineQrSheet(baseOrigin?: string): void {
   if (typeof window === "undefined") return;
   const origin = baseOrigin ?? window.location.origin;
-  const machineIds = Object.keys(equipmentMap).sort();
-  const cardsHtml = machineIds
-    .map(
-      (id) => `
-      <div style="border:1px solid #d4d4d8;border-radius:12px;padding:12px;text-align:center;break-inside:avoid;">
-        <div style="font-family:monospace;font-weight:700;font-size:13px;margin-bottom:4px;">${id}</div>
-        <div style="font-size:11px;color:#52525b;word-break:break-all;">${origin}/maquina/${id}</div>
-      </div>`,
-    )
-    .join("");
-
-  const html = `<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Cronos Gym · QRs Maquinaria</title></head>
-  <body style="font-family:system-ui,sans-serif;padding:24px;">
-    <h1 style="margin:0 0 8px 0;font-size:20px;">Cronos Gym · Plantilla de Códigos QR (${machineIds.length} máquinas)</h1>
-    <p style="margin:0 0 18px 0;color:#52525b;font-size:13px;">Imprime o genera cada QR apuntando a la ruta individual de máquina.</p>
-    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">${cardsHtml}</div>
-    <script>window.print();</script>
-  </body></html>`;
-
   const w = window.open("", "_blank");
-  if (w) {
+  if (!w) return;
+
+  w.document.write(
+    "<!doctype html><html lang='es'><head><meta charset='utf-8'/><title>Generando QRs Cronos Gym...</title></head><body style='font-family:system-ui,sans-serif;padding:24px;'>Generando códigos QR oficiales de las 31 máquinas de Cronos Gym...</body></html>",
+  );
+
+  void (async () => {
+    const cards = await Promise.all(
+      MACHINE_GUIDE_CATALOG.map(async (m) => {
+        const url = `${origin}/rutinas?machine=${encodeURIComponent(m.equipmentId)}`;
+        let qrDataUrl = "";
+        try {
+          qrDataUrl = await QRCode.toDataURL(url, {
+            width: 220,
+            margin: 1,
+            color: { dark: "#000000", light: "#FFFFFF" },
+          });
+        } catch {
+          qrDataUrl = "";
+        }
+        return `
+      <div class="card">
+        <div class="brand">CRONOS GYM · ESCANEA PARA VER EJERCICIOS Y GIFS</div>
+        ${qrDataUrl ? `<img class="qr" src="${qrDataUrl}" alt="QR ${m.equipmentId}" />` : ""}
+        <div class="name">${m.name}</div>
+        <div class="group">${m.group} · ${m.equipmentId}</div>
+        <div class="url">${url}</div>
+      </div>`;
+      }),
+    );
+
+    const html = `<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Cronos Gym · QRs Maquinaria (${MACHINE_GUIDE_CATALOG.length} máquinas)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 20px; color: #111; }
+    .toolbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #e11d48; }
+    .toolbar h1 { font-size: 18px; margin: 0; }
+    .print-btn { background: #e11d48; color: #fff; border: none; border-radius: 8px; padding: 8px 16px; font-weight: 700; cursor: pointer; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .card { border: 2px solid #111; border-radius: 14px; padding: 12px; text-align: center; break-inside: avoid; page-break-inside: avoid; }
+    .brand { font-size: 9px; font-weight: 800; letter-spacing: 0.08em; color: #e11d48; margin-bottom: 6px; }
+    .qr { width: 150px; height: 150px; display: block; margin: 0 auto 6px; }
+    .name { font-size: 13px; font-weight: 800; margin-bottom: 2px; }
+    .group { font-size: 10px; font-weight: 600; color: #444; margin-bottom: 4px; }
+    .url { font-size: 8px; color: #666; word-break: break-all; }
+    @media print {
+      .toolbar { display: none; }
+      body { margin: 8px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <h1>Cronos Gym · Plantilla de Códigos QR (${MACHINE_GUIDE_CATALOG.length} máquinas)</h1>
+    <button class="print-btn" onclick="window.print()">Imprimir / Guardar PDF</button>
+  </div>
+  <div class="grid">${cards.join("")}</div>
+</body>
+</html>`;
+
+    w.document.open();
     w.document.write(html);
     w.document.close();
-  }
+  })();
 }

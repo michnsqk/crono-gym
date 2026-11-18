@@ -753,7 +753,13 @@ export function RoutinesPage() {
                   <div style={{ minWidth: 0 }}>
                     <p style={{ margin: 0, color: TEXT.primary, fontWeight: 700 }}>{template.title}</p>
                     <p style={{ margin: `${SPACE.xs}px 0 0`, color: TEXT.tertiary, fontSize: TYPE.caption.size }}>
-                      {template.level} · {template.days} días · {template.exercises} ejercicios{template.goal ? ` · ${template.goal}` : ""}
+                      {(template.level === "beginner"
+                        ? "Principiante"
+                        : template.level === "intermediate"
+                          ? "Intermedio"
+                          : template.level === "advanced"
+                            ? "Avanzado"
+                            : template.level)} · {template.days} días · {template.exercises} ejercicios{template.goal ? ` · ${template.goal}` : ""}
                     </p>
                   </div>
                   <GlassButton

@@ -309,6 +309,221 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     ],
     chipSummary: "Barra: Romana · Agarre neutro sagital",
   },
+  {
+    equipmentId: "CG-EQP-0046",
+    name: "Maneral V Metálico (Extensión Pesada de Tríceps)",
+    shortName: "Maneral V Metálico",
+    imageUrl: "/images/gym-equipment/CG-EQP-0046_maneral-v-metalico_vista-01.jpg",
+    gripOrientation: "Neutro (Semipronado)",
+    family: "arms_isolation",
+    biomechanicalFocus:
+      "Ángulo en V rígido que concentra la fuerza de extensión de codo sin la inestabilidad de la cuerda, ideal para cargas altas en tríceps.",
+    whyUseIt:
+      "Coloca las muñecas en un ángulo diagonal natural (45°) que reduce el estrés cubital respecto a la barra recta y permite empujar más peso en polea alta.",
+    primaryMuscles: ["Tríceps (Cabeza Lateral y Medial)"],
+    secondaryMuscles: ["Tríceps (Cabeza Larga)", "Ancóneo"],
+    muscleSlugs: ["triceps", "forearm"],
+    recommendedSide: "back",
+    recommendedExercises: [
+      "Extensión de tríceps en polea alta con maneral V",
+      "Press cerrado de tríceps en polea alta",
+    ],
+    chipSummary: "Maneral: V Metálico · Tríceps pesado",
+  },
+  {
+    equipmentId: "CG-EQP-0049",
+    name: "Maneral Agarre Cerrado Metálico (Triángulo Paralelo)",
+    shortName: "Triángulo Cerrado Metálico",
+    imageUrl: "/images/gym-equipment/CG-EQP-0049_maneral-agarre-cerrado-metalico_vista-01.jpg",
+    gripOrientation: "Neutro (Semipronado)",
+    family: "pull_back",
+    biomechanicalFocus:
+      "Mantiene los codos pegados al torso durante la extensión sagital del hombro, maximizando el estiramiento y tracción del dorsal ancho inferior.",
+    whyUseIt:
+      "El agarre paralelo compacto alinea el bíceps y el braquiorradial en su línea de fuerza óptima, evitando que los antebrazos fallen antes que la espalda.",
+    primaryMuscles: ["Dorsal Ancho (Fibras Inferiores)", "Redondo Mayor"],
+    secondaryMuscles: ["Romboides", "Trapecio Medio", "Bíceps / Braquiorradial"],
+    muscleSlugs: ["upper-back", "trapezius", "biceps"],
+    recommendedSide: "back",
+    recommendedExercises: [
+      "Remo sentado en polea baja con triángulo cerrado",
+      "Jalón al pecho en polea alta con triángulo cerrado",
+    ],
+    chipSummary: "Maneral: Triángulo Cerrado · Dorsal bajo",
+  },
+  {
+    equipmentId: "CG-EQP-0047",
+    name: "Arnés de Cuello con Cadena (Estabilidad Cervical)",
+    shortName: "Arnés de Cuello",
+    imageUrl: "/images/gym-equipment/CG-EQP-0047_arnes-cuello_vista-01.jpg",
+    gripOrientation: "Rotación Libre / Neutro-Prono",
+    family: "pull_back",
+    biomechanicalFocus:
+      "Aplica resistencia axial controlada directamente sobre los extensores cervicales y el trapecio superior en rango controlado.",
+    whyUseIt:
+      "Fortalece la musculatura profunda del cuello y el trapecio alto para proteger la columna cervical en deportes de contacto y levantamientos pesados.",
+    primaryMuscles: ["Trapecio Superior", "Extensores Cervicales (Esplenio / Semiespinoso)"],
+    secondaryMuscles: ["Elevador de la Escápula"],
+    muscleSlugs: ["trapezius", "neck"],
+    recommendedSide: "back",
+    recommendedExercises: [
+      "Extensión cervical sentado con arnés y disco",
+      "Isométricos cervicales en polea con arnés",
+    ],
+    chipSummary: "Accesorio: Arnés de Cuello · Cervical/Trapecio",
+  },
+  {
+    equipmentId: "CG-EQP-0048",
+    name: "Cinturón de Lastre con Cadena (Fondos y Dominadas)",
+    shortName: "Cinturón de Lastre",
+    imageUrl: "/images/gym-equipment/CG-EQP-0048_cinturon-lastre-cadena_vista-01.jpg",
+    gripOrientation: "Rotación Libre / Neutro-Prono",
+    family: "pull_back",
+    biomechanicalFocus:
+      "Suspende discos directamente desde el centro de gravedad pélvico para aplicar sobrecarga progresiva en movimientos de peso corporal.",
+    whyUseIt:
+      "Descomprime la columna lumbar mientras añade carga vertical limpia en dominadas y fondos sin tener que sujetar una mancuerna con las rodillas.",
+    primaryMuscles: ["Dorsal Ancho", "Pectoral Inferior", "Tríceps"],
+    secondaryMuscles: ["Core / Estabilizadores Escapulares", "Bíceps"],
+    muscleSlugs: ["upper-back", "chest", "triceps"],
+    recommendedSide: "back",
+    recommendedExercises: [
+      "Dominadas pronas o neutras con cinturón de lastre",
+      "Fondos en paralelas lastrados para pecho o tríceps",
+    ],
+    chipSummary: "Accesorio: Cinturón de Lastre · Calistenia pesada",
+  },
+  {
+    equipmentId: "CG-EQP-0052",
+    name: "Barra Z Estándar (Curl y Press Francés)",
+    shortName: "Barra Z Estándar",
+    imageUrl: "/images/gym-equipment/CG-EQP-0052_barra-z_vista-01.jpg",
+    gripOrientation: "Semisupinado (Ángulo anatómico)",
+    family: "arms_isolation",
+    biomechanicalFocus:
+      "La doble curvatura ergonómica coloca la articulación radiocubital a ~30° de la supinación total, descargando muñecas y epicóndilos.",
+    whyUseIt:
+      "Recluta de forma sinérgica el bíceps braquial y el braquial anterior en curls, y permite bajar detrás de la frente en press francés sin dolor de codo.",
+    primaryMuscles: ["Bíceps Braquial", "Braquial Anterior", "Tríceps (Cabeza Larga)"],
+    secondaryMuscles: ["Braquiorradial", "Flexores del Antebrazo"],
+    muscleSlugs: ["biceps", "triceps", "forearm"],
+    recommendedSide: "front",
+    recommendedExercises: [
+      "Curl de bíceps con barra Z de pie o en banco Scott",
+      "Press francés (rompecráneos) con barra Z",
+      "Curl spider en banco inclinado con barra Z",
+    ],
+    chipSummary: "Barra: Z Estándar · Semi-supino ergonómico",
+  },
+  {
+    equipmentId: "CG-EQP-0059",
+    name: "Barra Z Olímpica (Mangas Giratorias 50 mm)",
+    shortName: "Barra Z Olímpica",
+    imageUrl: "/images/gym-equipment/CG-EQP-0059_barra-z-olimpica_vista-01.jpg",
+    gripOrientation: "Semisupinado (Ángulo anatómico)",
+    family: "arms_isolation",
+    biomechanicalFocus:
+      "Combina los ángulos semi-supino y semi-prono de la barra Z con mangas olímpicas rotatorias que eliminan el torque inercial de los discos.",
+    whyUseIt:
+      "Ideal para sobrecarga pesada en brazos: los discos giran libremente sobre los rodamientos, evitando que la barra tuerza tus muñecas a mitad del recorrido.",
+    primaryMuscles: ["Bíceps Braquial", "Tríceps (Cabeza Larga y Lateral)"],
+    secondaryMuscles: ["Braquial Anterior", "Braquiorradial"],
+    muscleSlugs: ["biceps", "triceps", "forearm"],
+    recommendedSide: "front",
+    recommendedExercises: [
+      "Curl pesado con barra Z olímpica",
+      "Press francés acostado con barra Z olímpica",
+      "Remo al mentón agarre ancho en barra Z",
+    ],
+    chipSummary: "Barra: Z Olímpica · Carga pesada sin torque",
+  },
+  {
+    equipmentId: "CG-EQP-0054",
+    name: "Barra Hexagonal / Trap Bar (Peso Muerto y Granjero)",
+    shortName: "Barra Hexagonal",
+    imageUrl: "/images/gym-equipment/CG-EQP-0054_barra-hexagonal_vista-01.jpg",
+    gripOrientation: "Neutro (Semipronado)",
+    family: "legs_glutes",
+    biomechanicalFocus:
+      "Permite al atleta colocarse dentro del centro de masa de la carga con agarre neutro bilateral, reduciendo el brazo de palanca sobre L4-L5.",
+    whyUseIt:
+      "Reparte el trabajo de forma equilibrada entre cuádriceps y cadena posterior con mucho menor cizallamiento lumbar que el peso muerto con barra recta.",
+    primaryMuscles: ["Cuádriceps", "Glúteo Mayor", "Isquiotibiales", "Trapecio Superior"],
+    secondaryMuscles: ["Erectores Espinales", "Agarre / Antebrazo", "Core"],
+    muscleSlugs: ["quadriceps", "gluteal", "hamstring", "trapezius"],
+    recommendedSide: "front",
+    recommendedExercises: [
+      "Peso muerto con barra hexagonal (agarre alto o bajo)",
+      "Encogimientos de trapecio con barra hexagonal",
+      "Paseo del granjero (Farmer's Walk) en barra hexagonal",
+    ],
+    chipSummary: "Barra: Hexagonal · Centro de masa alineado",
+  },
+  {
+    equipmentId: "CG-EQP-0055",
+    name: "Barra Olímpica 20 kg (Fuerza Compuesta)",
+    shortName: "Barra Olímpica 20 kg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0055_barra-olimpica_vista-01.jpg",
+    gripOrientation: "Prono (Palmas abajo)",
+    family: "legs_glutes",
+    biomechanicalFocus:
+      "Eje recto de acero de 20 kg con moleteado olímpico y mangas giratorias de 50 mm para máxima producción de fuerza bilateral.",
+    whyUseIt:
+      "Herramienta base para los básicos multiarticulares (sentadilla, press de banca, peso muerto, press militar y remo Pendlay) con progresión exacta.",
+    primaryMuscles: ["Cuádriceps / Glúteo", "Pectoral Mayor", "Cadena Posterior"],
+    secondaryMuscles: ["Deltoides", "Tríceps", "Erectores Espinales"],
+    muscleSlugs: ["quadriceps", "gluteal", "chest", "hamstring", "lower-back"],
+    recommendedSide: "front",
+    recommendedExercises: [
+      "Sentadilla libre con barra olímpica y peso muerto rumano",
+      "Press de banca plano/inclinado y press militar de pie",
+      "Remo con barra inclinado (Pendlay / Yates)",
+    ],
+    chipSummary: "Barra: Olímpica 20 kg · Básicos compuestos",
+  },
+  {
+    equipmentId: "CG-EQP-0074",
+    name: "Soporte Landmine (Pivote Multidireccional T-Bar)",
+    shortName: "Soporte Landmine",
+    imageUrl: "/images/gym-equipment/CG-EQP-0074_soporte-landmine_vista-01.jpg",
+    gripOrientation: "Neutro (Semipronado)",
+    family: "pull_back",
+    biomechanicalFocus:
+      "Ancla un extremo de la barra olímpica en un pivote de 360°, transformando la carga vertical en una curva de resistencia en arco diagonal.",
+    whyUseIt:
+      "Permite realizar remos en punta (T-Bar / Meadows) con gran tracción dorsal y presses diagonales muy amigables para hombros con pinzamiento.",
+    primaryMuscles: ["Dorsal Ancho", "Espalda Media (Romboides / Trapecio)", "Deltoides Anterior"],
+    secondaryMuscles: ["Oblicuos / Core Anti-rotación", "Pectoral Clavicular"],
+    muscleSlugs: ["upper-back", "trapezius", "deltoids", "obliques"],
+    recommendedSide: "back",
+    recommendedExercises: [
+      "Remo en punta (T-Bar) con soporte Landmine y maneral V",
+      "Remo Meadows unilateral en Landmine",
+      "Press Landmine unilateral de hombro y rotaciones de core",
+    ],
+    chipSummary: "Accesorio: Landmine · Arco diagonal T-Bar",
+  },
+  {
+    equipmentId: "CG-EQP-0077",
+    name: "Arm Blaster (Aislador Pectoral de Bíceps)",
+    shortName: "Arm Blaster",
+    imageUrl: "/images/gym-equipment/CG-EQP-0077_arm-blaster_vista-01.jpg",
+    gripOrientation: "Supino (Palmas arriba)",
+    family: "arms_isolation",
+    biomechanicalFocus:
+      "Placa curva de aluminio que apoya los tríceps frente a las costillas e impide que los codos retrocedan o se adelanten por inercia.",
+    whyUseIt:
+      "Convierte cualquier curl de pie con barra Z o mancuernas en un aislamiento estricto tipo predicador vertical, eliminando el balanceo lumbar.",
+    primaryMuscles: ["Bíceps Braquial (Cabeza Corta y Larga)"],
+    secondaryMuscles: ["Braquial Anterior", "Braquiorradial"],
+    muscleSlugs: ["biceps", "forearm"],
+    recommendedSide: "front",
+    recommendedExercises: [
+      "Curl estricto con barra Z y Arm Blaster",
+      "Curl con mancuernas simultáneo o martillo en Arm Blaster",
+    ],
+    chipSummary: "Accesorio: Arm Blaster · Codos fijos 100%",
+  },
 ];
 
 export const FOOT_STANCE_MATRIX: readonly FootStanceZone[] = [

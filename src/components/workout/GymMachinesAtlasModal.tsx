@@ -8,6 +8,7 @@ import {
   ChevronRight,
   Download,
   Dumbbell,
+  Printer,
   QrCode,
   X,
 } from "lucide-react";
@@ -15,6 +16,7 @@ import { MACHINE_GUIDE_CATALOG, type MachineGuideEntry } from "@/data/machineGui
 import { equipmentMap } from "@/data/equipmentMap";
 import { CRONOS_MACHINERY_EXERCISES } from "@/lib/catalog/machinerySeedExercises";
 import { resolveMediaUrl } from "@/lib/media/mediaResolver";
+import { openPrintableMachineQrSheet } from "@/services/gymOperationsService";
 import { ACCENT, GLASS, SCRIM, STATUS, SURFACE, TEXT, Z_INDEX } from "@/design/tokens";
 
 export interface GymMachinesAtlasModalProps {
@@ -33,12 +35,14 @@ export function GymMachinesAtlasModal({
   const [activeViewIdx, setActiveViewIdx] = useState(0);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
   const [showQrPanel, setShowQrPanel] = useState(false);
+  const [expandedExerciseId, setExpandedExerciseId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
     setSelectedMachineId(initialEquipmentId ?? null);
     setActiveViewIdx(0);
     setShowQrPanel(false);
+    setExpandedExerciseId(null);
   }, [open, initialEquipmentId]);
 
   const selectedMachine = useMemo(
@@ -166,19 +170,36 @@ export function GymMachinesAtlasModal({
             </div>
           </div>
 
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar Atlas de Máquinas"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
-            style={{
-              backgroundColor: GLASS.fillRaised,
-              border: `1px solid ${GLASS.border}`,
-              color: TEXT.secondary,
-            }}
-          >
-            <X className="h-4 w-4" />
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            {!selectedMachine && (
+              <button
+                type="button"
+                onClick={() => openPrintableMachineQrSheet()}
+                className="inline-flex h-9 items-center gap-1.5 rounded-full px-3 text-[11px] font-bold"
+                style={{
+                  backgroundColor: ACCENT.subtle,
+                  border: `1px solid ${ACCENT.border}`,
+                  color: ACCENT.text,
+                }}
+              >
+                <Printer className="h-3.5 w-3.5" />
+                <span>Imprimir {MACHINE_GUIDE_CATALOG.length} QRs</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Cerrar Atlas de Máquinas"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full"
+              style={{
+                backgroundColor: GLASS.fillRaised,
+                border: `1px solid ${GLASS.border}`,
+                color: TEXT.secondary,
+              }}
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
         </div>
 
         {/* VISTA DETALLE DE UNA MÁQUINA (Fotos + Ejercicios con GIF + QR) */}
@@ -345,40 +366,79 @@ export function GymMachinesAtlasModal({
                 <div className="grid gap-2.5 sm:grid-cols-2">
                   {selectedMachineExercises.map((ex) => {
                     const gifSrc = resolveMediaUrl(ex.gif_url ?? ex.image ?? "");
+                    const isExpanded = expandedExerciseId === ex.id;
+                    const instructions = Array.isArray(ex.instructions) && ex.instructions.length > 0
+                      ? ex.instructions
+                      : [selectedMachine.tip];
                     return (
-                      <div
+                      <button
                         key={ex.id}
-                        className="flex items-center gap-3 rounded-2xl p-2.5"
+                        type="button"
+                        onClick={() =>
+                          setExpandedExerciseId((prev) => (prev === ex.id ? null : ex.id))
+                        }
+                        className="flex flex-col gap-2.5 rounded-2xl p-2.5 text-left transition-colors"
                         style={{
                           backgroundColor: SURFACE.base,
-                          border: `1px solid ${GLASS.border}`,
+                          border: `1px solid ${isExpanded ? ACCENT.border : GLASS.border}`,
                         }}
                       >
-                        <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black/50">
-                          {gifSrc ? (
-                            <img
-                              src={gifSrc}
-                              alt={ex.name_es ?? ex.name}
-                              className="h-full w-full object-cover"
-                              loading="lazy"
-                            />
-                          ) : (
-                            <div className="flex h-full w-full items-center justify-center">
-                              <Dumbbell className="h-5 w-5 text-neutral-500" />
-                            </div>
-                          )}
+                        <div className="flex w-full items-center gap-3">
+                          <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-black/50">
+                            {gifSrc ? (
+                              <img
+                                src={gifSrc}
+                                alt={ex.name_es ?? ex.name}
+                                className="h-full w-full object-cover"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center">
+                                <Dumbbell className="h-5 w-5 text-neutral-500" />
+                              </div>
+                            )}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-xs font-bold text-white">
+                              {ex.name_es ?? ex.name}
+                            </p>
+                            <p className="mt-0.5 line-clamp-2 text-[11px] text-neutral-400">
+                              {instructions[0]}
+                            </p>
+                            <span
+                              className="mt-1 inline-block text-[10px] font-bold"
+                              style={{ color: ACCENT.text }}
+                            >
+                              {isExpanded ? "Ocultar GIF y técnica ▲" : "Ver GIF y técnica paso a paso ▼"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-xs font-bold text-white">
-                            {ex.name_es ?? ex.name}
-                          </p>
-                          <p className="mt-0.5 line-clamp-2 text-[11px] text-neutral-400">
-                            {Array.isArray(ex.instructions) && ex.instructions[0]
-                              ? ex.instructions[0]
-                              : selectedMachine.tip}
-                          </p>
-                        </div>
-                      </div>
+
+                        {isExpanded && (
+                          <div
+                            className="w-full space-y-2 rounded-xl p-2.5"
+                            style={{
+                              backgroundColor: GLASS.fillFaint,
+                              border: `1px solid ${GLASS.border}`,
+                            }}
+                          >
+                            {gifSrc && (
+                              <div className="mx-auto aspect-square w-44 overflow-hidden rounded-xl bg-black">
+                                <img
+                                  src={gifSrc}
+                                  alt={ex.name_es ?? ex.name}
+                                  className="h-full w-full object-contain"
+                                />
+                              </div>
+                            )}
+                            <ol className="list-decimal space-y-1 pl-4 text-[11px] text-neutral-200">
+                              {instructions.map((step, idx) => (
+                                <li key={idx}>{step}</li>
+                              ))}
+                            </ol>
+                          </div>
+                        )}
+                      </button>
                     );
                   })}
                 </div>
