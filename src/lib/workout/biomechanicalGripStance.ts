@@ -92,7 +92,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0038",
     name: "Maneral Cuerda (Tríceps / Face Pull / Martillo)",
     shortName: "Maneral Cuerda",
-    imageUrl: "/images/gym-equipment/CG-EQP-0038_maneral-cuerda_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0038_maneral-cuerda_vista-01.webp",
     gripOrientation: "Rotación Libre / Neutro-Prono",
     family: "arms_isolation",
     biomechanicalFocus:
@@ -116,7 +116,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0037",
     name: "Maneral Barra Recta Corta Giratoria",
     shortName: "Barra Recta Corta",
-    imageUrl: "/images/gym-equipment/CG-EQP-0037_maneral-barra-recta_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0037_maneral-barra-recta_vista-01.webp",
     gripOrientation: "Prono (Palmas abajo)",
     family: "arms_isolation",
     biomechanicalFocus:
@@ -139,7 +139,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0039",
     name: "Maneral Barra Z (EZ) para Polea",
     shortName: "Maneral Barra Z",
-    imageUrl: "/images/gym-equipment/CG-EQP-0039_maneral-barra-z_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0039_maneral-barra-z_vista-01.webp",
     gripOrientation: "Semisupinado (Ángulo anatómico)",
     family: "arms_isolation",
     biomechanicalFocus:
@@ -161,7 +161,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0040",
     name: "Maneral Estribo Individual (D-Handle Unilateral)",
     shortName: "Estribo Unilateral",
-    imageUrl: "/images/gym-equipment/CG-EQP-0040_maneral-estribo_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0040_maneral-estribo_vista-01.webp",
     gripOrientation: "Rotación Libre / Neutro-Prono",
     family: "arms_isolation",
     biomechanicalFocus:
@@ -184,7 +184,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0041",
     name: "Barra Larga de Jalón al Pecho (Lat Bar Clásica)",
     shortName: "Barra Larga Jalón",
-    imageUrl: "/images/gym-equipment/CG-EQP-0041_maneral-barra-larga-jalon_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0041_maneral-barra-larga-jalon_vista-01.webp",
     gripOrientation: "Prono (Palmas abajo)",
     family: "pull_back",
     biomechanicalFocus:
@@ -205,7 +205,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0043",
     name: "Barra Larga con Agarraderas Neutras (Tipo MAG / Paralelo Ancho)",
     shortName: "Barra Anatómica Neutro Ancho",
-    imageUrl: "/images/gym-equipment/CG-EQP-0043_maneral-barra-larga-agarraderas_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0043_maneral-barra-larga-agarraderas_vista-01.webp",
     gripOrientation: "Neutro (Semipronado)",
     family: "pull_back",
     biomechanicalFocus:
@@ -226,7 +226,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0044",
     name: "Maneral Triángulo / Doble D de Agarre Cerrado",
     shortName: "Triángulo Doble D",
-    imageUrl: "/images/gym-equipment/CG-EQP-0044_maneral-agarre-cerrado_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0044_maneral-agarre-cerrado_vista-01.webp",
     gripOrientation: "Neutro (Semipronado)",
     family: "pull_back",
     biomechanicalFocus:
@@ -248,7 +248,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0042",
     name: "Maneral V para Tríceps (Pressdown en V)",
     shortName: "Maneral V Tríceps",
-    imageUrl: "/images/gym-equipment/CG-EQP-0042_maneral-v_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0042_maneral-v_vista-01.webp",
     gripOrientation: "Semisupinado (Ángulo anatómico)",
     family: "arms_isolation",
     biomechanicalFocus:
@@ -269,7 +269,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0045",
     name: "Tobillera Acolchada para Polea Baja",
     shortName: "Tobillera de Polea",
-    imageUrl: "/images/gym-equipment/CG-EQP-0045_tobillera-polea_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0045_tobillera-polea_vista-01.webp",
     gripOrientation: "Tobillera / Tracción Distal",
     family: "legs_glutes",
     biomechanicalFocus:
@@ -291,7 +291,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0053",
     name: "Barra Romana / Suiza (Agarre Neutro Paralelo)",
     shortName: "Barra Romana",
-    imageUrl: "/images/gym-equipment/CG-EQP-0053_barra-romana_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0053_barra-romana_vista-01.webp",
     gripOrientation: "Neutro (Semipronado)",
     family: "arms_isolation",
     biomechanicalFocus:
@@ -313,7 +313,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0046",
     name: "Maneral V Metálico (Extensión Pesada de Tríceps)",
     shortName: "Maneral V Metálico",
-    imageUrl: "/images/gym-equipment/CG-EQP-0046_maneral-v-metalico_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0046_maneral-v-metalico_vista-01.webp",
     gripOrientation: "Neutro (Semipronado)",
     family: "arms_isolation",
     biomechanicalFocus:
@@ -334,7 +334,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0049",
     name: "Maneral Agarre Cerrado Metálico (Triángulo Paralelo)",
     shortName: "Triángulo Cerrado Metálico",
-    imageUrl: "/images/gym-equipment/CG-EQP-0049_maneral-agarre-cerrado-metalico_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0049_maneral-agarre-cerrado-metalico_vista-01.webp",
     gripOrientation: "Neutro (Semipronado)",
     family: "pull_back",
     biomechanicalFocus:
@@ -355,7 +355,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0047",
     name: "Arnés de Cuello con Cadena (Estabilidad Cervical)",
     shortName: "Arnés de Cuello",
-    imageUrl: "/images/gym-equipment/CG-EQP-0047_arnes-cuello_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0047_arnes-cuello_vista-01.webp",
     gripOrientation: "Rotación Libre / Neutro-Prono",
     family: "pull_back",
     biomechanicalFocus:
@@ -376,7 +376,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0048",
     name: "Cinturón de Lastre con Cadena (Fondos y Dominadas)",
     shortName: "Cinturón de Lastre",
-    imageUrl: "/images/gym-equipment/CG-EQP-0048_cinturon-lastre-cadena_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0048_cinturon-lastre-cadena_vista-01.webp",
     gripOrientation: "Rotación Libre / Neutro-Prono",
     family: "pull_back",
     biomechanicalFocus:
@@ -397,7 +397,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0052",
     name: "Barra Z Estándar (Curl y Press Francés)",
     shortName: "Barra Z Estándar",
-    imageUrl: "/images/gym-equipment/CG-EQP-0052_barra-z_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0052_barra-z_vista-01.webp",
     gripOrientation: "Semisupinado (Ángulo anatómico)",
     family: "arms_isolation",
     biomechanicalFocus:
@@ -419,7 +419,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0059",
     name: "Barra Z Olímpica (Mangas Giratorias 50 mm)",
     shortName: "Barra Z Olímpica",
-    imageUrl: "/images/gym-equipment/CG-EQP-0059_barra-z-olimpica_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0059_barra-z-olimpica_vista-01.webp",
     gripOrientation: "Semisupinado (Ángulo anatómico)",
     family: "arms_isolation",
     biomechanicalFocus:
@@ -441,7 +441,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0054",
     name: "Barra Hexagonal / Trap Bar (Peso Muerto y Granjero)",
     shortName: "Barra Hexagonal",
-    imageUrl: "/images/gym-equipment/CG-EQP-0054_barra-hexagonal_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0054_barra-hexagonal_vista-01.webp",
     gripOrientation: "Neutro (Semipronado)",
     family: "legs_glutes",
     biomechanicalFocus:
@@ -463,7 +463,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0055",
     name: "Barra Olímpica 20 kg (Fuerza Compuesta)",
     shortName: "Barra Olímpica 20 kg",
-    imageUrl: "/images/gym-equipment/CG-EQP-0055_barra-olimpica_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0055_barra-olimpica_vista-01.webp",
     gripOrientation: "Prono (Palmas abajo)",
     family: "legs_glutes",
     biomechanicalFocus:
@@ -485,7 +485,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0074",
     name: "Soporte Landmine (Pivote Multidireccional T-Bar)",
     shortName: "Soporte Landmine",
-    imageUrl: "/images/gym-equipment/CG-EQP-0074_soporte-landmine_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0074_soporte-landmine_vista-01.webp",
     gripOrientation: "Neutro (Semipronado)",
     family: "pull_back",
     biomechanicalFocus:
@@ -507,7 +507,7 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     equipmentId: "CG-EQP-0077",
     name: "Arm Blaster (Aislador Pectoral de Bíceps)",
     shortName: "Arm Blaster",
-    imageUrl: "/images/gym-equipment/CG-EQP-0077_arm-blaster_vista-01.jpg",
+    imageUrl: "/images/gym-equipment/CG-EQP-0077_arm-blaster_vista-01.webp",
     gripOrientation: "Supino (Palmas arriba)",
     family: "arms_isolation",
     biomechanicalFocus:

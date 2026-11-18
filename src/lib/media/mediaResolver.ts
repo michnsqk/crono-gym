@@ -4,7 +4,7 @@
  * The app had a dozen media call sites and three different conventions:
  *
  *  - the catalog stores `videos/0001-2gPfomN.gif`, relative to the dataset,
- *  - the equipment map stores `public/images/gym-equipment/CG-EQP-0001_….jpg`,
+ *  - the equipment map stores `public/images/gym-equipment/CG-EQP-0001_….webp`,
  *    which Vite serves at the root as `/images/gym-equipment/…`,
  *  - the seeded `exercises` table stores an absolute GitHub raw URL.
  *

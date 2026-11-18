@@ -7,14 +7,19 @@
  * se abre el asistente (CronosBottomSheet, ahora en modo pantalla completa).
  */
 
-import { useEffect, useState } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { useLocation } from "react-router-dom";
 import { supabase } from "@lib/supabase";
 import { useActiveSession } from "@/context/ActiveSessionContext";
 import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { ACCENT, TEXT } from "@/design/tokens";
 import { CRONOS_LABELS as T } from "@/lib/i18n";
-import { CronosBottomSheet } from "./CronosBottomSheet";
+
+const loadCronosBottomSheet = () => import("./CronosBottomSheet");
+
+const LazyCronosBottomSheet = lazy(() =>
+  loadCronosBottomSheet().then((m) => ({ default: m.CronosBottomSheet })),
+);
 
 export const COACH_PORTAL_PATH = "/coach/portal";
 const WORKOUT_PATH = "/entrenar";
@@ -47,6 +52,25 @@ export function CoachFloatingButton({ userId }: CoachFloatingButtonProps = {}) {
     };
   }, [userId]);
 
+  useEffect(() => {
+    if (answer === undefined || answer === null || pathname === COACH_PORTAL_PATH) return;
+    if (typeof window === "undefined") return;
+    const win = window as Window & {
+      requestIdleCallback?: (cb: () => void, opts?: { timeout: number }) => number;
+      cancelIdleCallback?: (id: number) => void;
+    };
+    if (typeof win.requestIdleCallback === "function") {
+      const idleId = win.requestIdleCallback(() => {
+        void loadCronosBottomSheet();
+      }, { timeout: 2000 });
+      return () => win.cancelIdleCallback?.(idleId);
+    }
+    const timer = window.setTimeout(() => {
+      void loadCronosBottomSheet();
+    }, 1500);
+    return () => window.clearTimeout(timer);
+  }, [answer, pathname]);
+
   const initialContext =
     pathname === WORKOUT_PATH && session !== null ? session.title : null;
 
@@ -67,6 +91,12 @@ export function CoachFloatingButton({ userId }: CoachFloatingButtonProps = {}) {
         ]
           .filter(Boolean)
           .join(" ")}
+        onMouseEnter={() => {
+          void loadCronosBottomSheet();
+        }}
+        onTouchStart={() => {
+          void loadCronosBottomSheet();
+        }}
         onClick={() => setOpen(true)}
         aria-label={T.fabAriaLabel}
         data-testid="coach-fab"
@@ -85,12 +115,14 @@ export function CoachFloatingButton({ userId }: CoachFloatingButtonProps = {}) {
       </button>
 
       {open && (
-        <CronosBottomSheet
-          open
-          onClose={() => setOpen(false)}
-          userId={answer}
-          initialContext={initialContext}
-        />
+        <Suspense fallback={null}>
+          <LazyCronosBottomSheet
+            open
+            onClose={() => setOpen(false)}
+            userId={answer}
+            initialContext={initialContext}
+          />
+        </Suspense>
       )}
     </>
   );

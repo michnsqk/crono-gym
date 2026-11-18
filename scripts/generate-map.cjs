@@ -15,8 +15,8 @@ const args = new Set(process.argv.slice(2));
 const CHECK = args.has('--check');
 const STRICT = args.has('--strict');
 
-// CG-EQP-####_[nombre]_vista-##.jpg (insensible a mayúsculas/minúsculas, acepta .JPG, acentos y ñ)
-const FILE_PATTERN = /^(CG-EQP-\d{4})_([\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*)_vista-(\d{2})\.jpg$/iu;
+// CG-EQP-####_[nombre]_vista-##.(jpg|webp) (insensible a mayúsculas/minúsculas, acentos y ñ)
+const FILE_PATTERN = /^(CG-EQP-\d{4})_([\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*)_vista-(\d{2})\.(?:jpe?g|webp)$/iu;
 
 const rel = (p) => path.relative(ROOT, p).split(path.sep).join('/');
 const normalizeEol = (s) => s.replace(/\r\n/g, '\n');

@@ -3,8 +3,11 @@ import { Outlet, useLocation, useNavigate, useOutletContext, useSearchParams } f
 import { supabase } from "@lib/supabase";
 import { AuthModal } from "./components/AuthModal";
 import { BrandLockup } from "./components/shell/BrandLockup";
-import { Onboarding } from "./components/Onboarding";
 import { SegmentedControl } from "./components/ui/SegmentedControl";
+
+const Onboarding = lazy(() =>
+  import("./components/Onboarding").then((m) => ({ default: m.Onboarding })),
+);
 
 const DashboardPage = lazy(() =>
   import("./components/dashboard/DashboardPage").then((m) => ({ default: m.DashboardPage })),
@@ -217,13 +220,15 @@ export function AuthGate() {
           profileLoading || profile === null ? (
             <p className="text-neutral-500">Cargando tu perfil…</p>
           ) : (
-            <Onboarding
-              profile={profile}
-              onSave={updateProfile}
-              // Finishing the wizard drops the user on the daily log, which is
-              // the one view that is never locked.
-              onFinish={() => navigate("/")}
-            />
+            <Suspense fallback={<div className="min-h-screen bg-black" />}>
+              <Onboarding
+                profile={profile}
+                onSave={updateProfile}
+                // Finishing the wizard drops the user on the daily log, which is
+                // the one view that is never locked.
+                onFinish={() => navigate("/")}
+              />
+            </Suspense>
           )
         ) : (
           <div key={location.pathname} className="cronos-page-transition w-full">

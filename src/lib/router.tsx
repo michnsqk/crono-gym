@@ -30,8 +30,7 @@ import {
   TrainView,
 } from "@/App";
 import { HubSkeleton } from "@/components/hub/HubSkeleton";
-import { UiCatalogPage } from "@/components/dev/UiCatalogPage";
-import { CoachPortalPreview } from "@/components/dev/CoachPortalPreview";
+import { NotFoundPage } from "@/components/shell/NotFoundPage";
 import { AdminGate } from "@/components/profile/AdminGate";
 import { DeveloperGate } from "@/components/profile/DeveloperGate";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
@@ -91,6 +90,18 @@ const LazyAdminHub = lazy(() =>
   })),
 );
 
+const LazyUiCatalogPage = lazy(() =>
+  import("@/components/dev/UiCatalogPage").then((mod) => ({
+    default: mod.UiCatalogPage,
+  })),
+);
+
+const LazyCoachPortalPreview = lazy(() =>
+  import("@/components/dev/CoachPortalPreview").then((mod) => ({
+    default: mod.CoachPortalPreview,
+  })),
+);
+
 /**
  * The dev-only component catalog and the coach-portal preview.
  *
@@ -105,8 +116,22 @@ const LazyAdminHub = lazy(() =>
  */
 const devRoutes = import.meta.env.DEV
   ? [
-      { path: "/dev/ui", element: <UiCatalogPage /> },
-      { path: "/dev/coach-portal", element: <CoachPortalPreview /> },
+      {
+        path: "/dev/ui",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <LazyUiCatalogPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/dev/coach-portal",
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <LazyCoachPortalPreview />
+          </Suspense>
+        ),
+      },
     ]
   : [];
 
@@ -231,10 +256,13 @@ export const router = createBrowserRouter([
             path: "/developer",
             element: (
               <DeveloperGate>
-                <UiCatalogPage />
+                <Suspense fallback={<LoadingSpinner />}>
+                  <LazyUiCatalogPage />
+                </Suspense>
               </DeveloperGate>
             ),
           },
+          { path: "*", element: <NotFoundPage /> },
         ],
       },
       /*
@@ -244,6 +272,7 @@ export const router = createBrowserRouter([
        * here: in a production build this array is empty and the paths do not resolve at all.
        */
       ...devRoutes,
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
 ]);
