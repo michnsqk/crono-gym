@@ -25,7 +25,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadCatalog } from "@/lib/catalog/catalogLoader";
 import { toExercises } from "@/lib/catalog/exerciseAdapter";
-import { mergeMachineryExercises } from "@/lib/catalog/machinerySeedExercises";
+import {
+  CRONOS_MACHINERY_EXERCISES,
+  mergeMachineryExercises,
+} from "@/lib/catalog/machinerySeedExercises";
 import {
   CATALOG_UPDATED_EVENT,
   filterDeletedExercises,
@@ -55,7 +58,19 @@ export interface ExerciseCatalogState {
 export { normaliseExerciseName, CATALOG_UPDATED_EVENT };
 
 export function useExerciseCatalog(): ExerciseCatalogState {
-  const [exercises, setExercises] = useState<Exercise[]>([]);
+  const [exercises, setExercises] = useState<Exercise[]>(() => {
+    const cached = catalogCache.get("catalog");
+    if (cached) {
+      return filterDeletedExercises([
+        ...toExercises(mergeMachineryExercises(cached)),
+        ...readCustomExercises(),
+      ]);
+    }
+    return filterDeletedExercises([
+      ...toExercises([...CRONOS_MACHINERY_EXERCISES]),
+      ...readCustomExercises(),
+    ]);
+  });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const loadedRef = useRef(false);

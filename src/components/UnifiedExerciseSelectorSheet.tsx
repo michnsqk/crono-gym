@@ -8,7 +8,7 @@
  *
  * No duplica lógica ni catálogo. No cambia contratos de integración.
  */
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Activity, Check, ChevronDown, Dumbbell, Flame, Minus, Search, Sparkles, X } from "lucide-react";
 import type { CSSProperties } from "react";
@@ -294,8 +294,35 @@ export function UnifiedExerciseSelectorSheet({
 
   useEffect(() => { if (exercises.length === 0) return; setLocalExercises(exercises); }, [exercises]);
 
+  const deferredQuery = useDeferredValue(query);
+
+  const searchMetaById = useMemo(() => {
+    const fold = (s: string) =>
+      s
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .toLowerCase()
+        .trim();
+    const map = new Map<
+      string,
+      { haystack: string; name: string; body: string; equipmentCategory: string }
+    >();
+    for (const ex of baseRows) {
+      const name = fold(`${ex.name_es ?? ""} ${ex.name ?? ""}`);
+      const body = fold(`${formatSelectorBodyPart(ex.body_part ?? "")} ${ex.target ?? ""}`);
+      const haystack = `${name} ${fold(ex.body_part ?? "")} ${body} ${fold(ex.equipment ?? "")}`;
+      map.set(ex.id, {
+        haystack,
+        name,
+        body,
+        equipmentCategory: getEquipmentCategory(ex.equipment),
+      });
+    }
+    return map;
+  }, [baseRows]);
+
   const filtered = useMemo(() => {
-    const q = normaliseExerciseName(query);
+    const q = normaliseExerciseName(deferredQuery);
     if (!q && !selectedEquipmentCategory && selectedMuscles.length === 0) return baseRows;
 
     const foldSearch = (s: string) =>
@@ -304,39 +331,41 @@ export function UnifiedExerciseSelectorSheet({
         .replace(/[\u0300-\u036f]/g, "")
         .toLowerCase()
         .trim();
-    const queryTokens = foldSearch(query)
-      .split(/\s+/)
-      .filter((t) => t.length > 0);
+    const qFold = foldSearch(deferredQuery);
+    const queryTokens = qFold.split(/\s+/).filter((t) => t.length > 0);
 
     const attributeFiltered = baseRows.filter((ex) => {
+      const meta = searchMetaById.get(ex.id);
       if (q) {
-        const haystack = foldSearch(
-          `${ex.name_es ?? ""} ${ex.name ?? ""} ${ex.body_part ?? ""} ${ex.target ?? ""} ${ex.equipment ?? ""}`,
-        );
+        const haystack = meta?.haystack ?? "";
         const partialTokenMatch =
           queryTokens.length > 0 && queryTokens.every((tk) => haystack.includes(tk));
-        if (!partialTokenMatch && !matchesSemanticExerciseSearch(ex, query)) {
+        if (!partialTokenMatch && !matchesSemanticExerciseSearch(ex, deferredQuery)) {
           return false;
         }
       }
-      if (selectedEquipmentCategory && getEquipmentCategory(ex.equipment) !== selectedEquipmentCategory) return false;
+      if (
+        selectedEquipmentCategory &&
+        (meta?.equipmentCategory ?? getEquipmentCategory(ex.equipment)) !== selectedEquipmentCategory
+      ) {
+        return false;
+      }
       return true;
     });
     if (q) {
-      const qFold = foldSearch(query);
       attributeFiltered.sort((a, b) => {
-        const aName = foldSearch(`${a.name_es ?? ""} ${a.name ?? ""}`);
-        const bName = foldSearch(`${b.name_es ?? ""} ${b.name ?? ""}`);
-        const aBody = foldSearch(`${formatSelectorBodyPart(a.body_part ?? "")} ${a.target ?? ""}`);
-        const bBody = foldSearch(`${formatSelectorBodyPart(b.body_part ?? "")} ${b.target ?? ""}`);
-        const aScore = (aName.includes(qFold) ? 4 : 0) + (aBody.includes(qFold) ? 2 : 0);
-        const bScore = (bName.includes(qFold) ? 4 : 0) + (bBody.includes(qFold) ? 2 : 0);
+        const aMeta = searchMetaById.get(a.id);
+        const bMeta = searchMetaById.get(b.id);
+        const aScore =
+          (aMeta?.name.includes(qFold) ? 4 : 0) + (aMeta?.body.includes(qFold) ? 2 : 0);
+        const bScore =
+          (bMeta?.name.includes(qFold) ? 4 : 0) + (bMeta?.body.includes(qFold) ? 2 : 0);
         return bScore - aScore;
       });
     }
     if (tab === "warmup" || selectedMuscles.length === 0) return attributeFiltered;
     return filterByMuscles(attributeFiltered, selectedMuscles).results;
-  }, [baseRows, query, selectedEquipmentCategory, selectedMuscles, tab]);
+  }, [baseRows, deferredQuery, searchMetaById, selectedEquipmentCategory, selectedMuscles, tab]);
 
   const visibleCount = page * PAGE_SIZE;
   const displayed = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);

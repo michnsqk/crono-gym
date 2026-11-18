@@ -28,8 +28,20 @@ import { useReducedMotion } from "@/hooks/useReducedMotion";
 import { hapticLight, hapticSuccess } from "@/lib/haptics";
 import { translateBodyPart } from "@/lib/i18n";
 import { loadCatalog } from "@/lib/catalog/catalogLoader";
+import { CRONOS_MACHINERY_EXERCISES } from "@/lib/catalog/machinerySeedExercises";
 import { resolveMediaUrl } from "@/lib/media/mediaResolver";
 import { ACCENT, GLASS, MOTION, SOLID, SURFACE, TEXT } from "@/design/tokens";
+
+const QUICK_MUSCLE_PICKERS: readonly { label: string; slug: Slug }[] = [
+  { label: "+ Pecho", slug: "chest" },
+  { label: "+ Espalda", slug: "upper-back" },
+  { label: "+ Pierna", slug: "quadriceps" },
+  { label: "+ Glúteo", slug: "gluteal" },
+  { label: "+ Hombros", slug: "deltoids" },
+  { label: "+ Bíceps", slug: "biceps" },
+  { label: "+ Tríceps", slug: "triceps" },
+  { label: "+ Abdomen", slug: "abs" },
+];
 
 const WEEKDAYS_SHORT = ["L", "M", "X", "J", "V", "S", "D"];
 const WEEKDAYS_FULL = ["Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado", "Domingo"];
@@ -256,8 +268,23 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
       : [emptyDay(0, null, "training")];
   });
 
-  // Load catalog and build exercise media map for GIF rendering
-  const [exerciseMediaMap, setExerciseMediaMap] = useState<Map<string, string>>(new Map());
+  // Load catalog and build exercise media map for GIF rendering (seeded immediately with Cronos machinery)
+  const [exerciseMediaMap, setExerciseMediaMap] = useState<Map<string, string>>(() => {
+    const map = new Map<string, string>();
+    for (const ex of CRONOS_MACHINERY_EXERCISES) {
+      const gifUrl = resolveMediaUrl(ex.gif_url) || resolveMediaUrl(ex.image);
+      if (gifUrl) {
+        map.set(ex.id, gifUrl);
+        const nameKey = ex.name.trim().toLowerCase().replace(/\s+/g, " ");
+        if (!map.has(nameKey)) map.set(nameKey, gifUrl);
+        if (ex.name_es) {
+          const esKey = ex.name_es.trim().toLowerCase().replace(/\s+/g, " ");
+          if (!map.has(esKey)) map.set(esKey, gifUrl);
+        }
+      }
+    }
+    return map;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -661,10 +688,10 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         </label>
       )}
 
-      {/* Resumen + Mapa Muscular Interactivo: visible únicamente cuando ya hay ejercicios */}
-      {activeDayExercises.length > 0 && (
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 14 }}>
-          <div style={{ flex: 1, minWidth: 0, display: "flex", flexDirection: "column", gap: 10 }}>
+      {/* Mapa Muscular Interactivo + Selector Rápido por Músculo (siempre visible en días de entreno) */}
+      {activeDay?.kind !== "rest" && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 12, marginTop: 12 }}>
+          {activeDayExercises.length > 0 && (
             <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
               <span
                 style={{
@@ -718,20 +745,74 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
                 {dayTotalSets(activeDay)} series
               </span>
             </div>
+          )}
+
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <DualMiniMuscleMap
+              counts={activeTelemetry.counts}
+              onMusclePress={(slug) => {
+                hapticLight();
+                setSelectorInitialMuscle(slug);
+                setSelectorInitialTab("all");
+                setSelectorOpen(true);
+              }}
+            />
           </div>
 
-          <DualMiniMuscleMap
-            counts={activeTelemetry.counts}
-            onMusclePress={(slug) => {
-              hapticLight();
-              setSelectorInitialMuscle(slug);
-              setSelectorInitialTab("all");
-              setSelectorOpen(true);
-            }}
-          />
           <p style={{ margin: 0, fontSize: "11px", color: TEXT.tertiary, textAlign: "center" }}>
-            Toca un músculo en el mapa para añadir ejercicios específicos
+            Toca un músculo en el mapa o elige un grupo rápido para agregar ejercicios:
           </p>
+
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              gap: 6,
+              justifyContent: "center",
+            }}
+          >
+            {QUICK_MUSCLE_PICKERS.map((item) => {
+              const count = activeTelemetry.counts.get(item.slug) ?? 0;
+              return (
+                <button
+                  key={item.slug}
+                  type="button"
+                  onClick={() => {
+                    hapticLight();
+                    setSelectorInitialMuscle(item.slug);
+                    setSelectorInitialTab("all");
+                    setSelectorOpen(true);
+                  }}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    padding: "6px 11px",
+                    borderRadius: "9999px",
+                    border: `1px solid ${count > 0 ? ACCENT.border : GLASS.border}`,
+                    background: count > 0 ? ACCENT.subtle : "rgba(255,255,255,0.04)",
+                    color: count > 0 ? ACCENT.text : TEXT.secondary,
+                    fontSize: "11px",
+                    fontWeight: 600,
+                    cursor: "pointer",
+                  }}
+                >
+                  <span>{item.label}</span>
+                  {count > 0 && (
+                    <span
+                      style={{
+                        fontSize: "10px",
+                        fontWeight: 700,
+                        opacity: 0.9,
+                      }}
+                    >
+                      ({count}s)
+                    </span>
+                  )}
+                </button>
+              );
+            })}
+          </div>
         </div>
       )}
     </div>
@@ -1022,6 +1103,38 @@ export function RoutineEditor({ routine, onSave, onClose }: RoutineEditorProps) 
         </div>
         <ChevronRight size={18} style={{ color: TEXT.tertiary, flexShrink: 0 }} aria-hidden="true" />
       </button>
+
+      {canSave && (
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saveStatus === "saving"}
+          style={{
+            marginTop: 8,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            gap: 8,
+            width: "100%",
+            minHeight: 48,
+            padding: "12px 20px",
+            borderRadius: "16px",
+            border: "none",
+            background: ACCENT.base,
+            color: "#FFFFFF",
+            fontSize: "14px",
+            fontWeight: 700,
+            cursor: saveStatus === "saving" ? "wait" : "pointer",
+            boxShadow: `0 4px 16px ${ACCENT.glow}`,
+          }}
+        >
+          <span>
+            {saveStatus === "saving"
+              ? "Guardando rutina…"
+              : `Guardar ${title.trim() || "Rutina Cronos"}`}
+          </span>
+        </button>
+      )}
     </div>
   );
 
