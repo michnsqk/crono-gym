@@ -89,6 +89,11 @@ export function ActiveWorkoutView({
           routineTitle={routineTitle}
           planned={planned}
           onFinished={handleFinish}
+          onExit={() => {
+            end();
+            onLeftWorkout();
+            navigate(HOME_PATH, { replace: true });
+          }}
         />
       </ErrorBoundary>
 

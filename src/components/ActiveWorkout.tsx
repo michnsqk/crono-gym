@@ -1617,6 +1617,8 @@ interface ActiveWorkoutProps {
    * only screen that can still say something about them, so they travel here.
    */
   onFinished: (exercises: readonly DraftExercise[]) => void;
+  /** Optional exit handler when leaving the pre-start screen. */
+  onExit?: () => void;
 }
 
 export function ActiveWorkout({
@@ -1625,6 +1627,7 @@ export function ActiveWorkout({
   routineTitle,
   planned,
   onFinished,
+  onExit,
 }: ActiveWorkoutProps) {
   const [logId] = useState(() => newSessionId());
   const { exercises: catalogExercises } = useExerciseCatalog() as any;
@@ -2804,7 +2807,7 @@ export function ActiveWorkout({
           routineTitle={routineTitle}
           planned={planned}
           onStart={() => setStarted(true)}
-          onExit={end}
+          onExit={onExit ?? end}
         />
       ) : items.length === 0 ? (
         <section

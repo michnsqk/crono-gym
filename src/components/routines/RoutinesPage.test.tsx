@@ -33,8 +33,8 @@ describe("RoutinesPage (Bloque 1)", () => {
       </MemoryRouter>,
     );
     expect(screen.getByRole("heading", { name: "Rutinas" })).toBeTruthy();
-    expect(screen.getByRole("radio", { name: "Mis Rutinas" })).toBeTruthy();
-    expect(screen.getByRole("radio", { name: "Catálogo" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Mis Rutinas" })).toBeTruthy();
+    expect(screen.getByRole("tab", { name: "Catálogo Cronos" })).toBeTruthy();
     expect(screen.getAllByRole("button", { name: "Nueva rutina" }).length).toBeGreaterThan(0);
     expect(screen.getByText("Crea tu primera rutina")).toBeTruthy();
   });

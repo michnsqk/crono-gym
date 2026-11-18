@@ -72,8 +72,8 @@ export function AppShell() {
   const { collapsed, toggle } = useSideNavCollapsed();
   const { updateReady, applySafeUpdate } = usePwaUpdateVault();
 
-  // Immersive mode: hide chrome on /entrenar (active or pre-workout) for Apple Fitness+ focus.
-  const isImmersive = pathname === "/entrenar";
+  // Immersive mode: hide chrome on /entrenar only while a workout session is active.
+  const isImmersive = pathname === "/entrenar" && isActive;
 
   return (
     <div

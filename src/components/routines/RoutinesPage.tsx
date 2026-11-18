@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Plus, AlertCircle, Loader2, ChevronRight, Compass } from "lucide-react";
+import { Plus, AlertCircle, Loader2, ChevronRight, Compass, Dumbbell } from "lucide-react";
 import { BiomechanicalGripStanceModal } from "@/components/workout/BiomechanicalGripStanceModal";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import type { WorkspaceOutletContext } from "@/App";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
-import { SegmentedControl } from "@/components/ui/SegmentedControl";
 import { useRoutines } from "@/hooks/useGymData";
 import type { RoutineWithExercises } from "@/hooks/useGymData";
 import { useActiveSession } from "@/context/ActiveSessionContext";
@@ -46,7 +45,7 @@ type CatalogTemplate = {
 };
 const TAB_OPTIONS = [
   { value: "mine", label: ROUTINES_UI_LABELS.tabMine },
-  { value: "catalog", label: ROUTINES_UI_LABELS.tabCatalog },
+  { value: "catalog", label: "Catálogo Cronos" },
 ] as const;
 
 export function RoutinesPage() {
@@ -75,6 +74,9 @@ export function RoutinesPage() {
   const [advancedMode] = useAdvancedMode();
   const [simpleQuickOpen, setSimpleQuickOpen] = useState(false);
   const [biomechanicsOpen, setBiomechanicsOpen] = useState(false);
+  const [biomechanicsTab, setBiomechanicsTab] = useState<
+    "foot_stance" | "attachments" | "upper_angle" | "machines"
+  >("foot_stance");
   const { isActive, start, session, discardRecoverableDraft } = useActiveSession();
   const navigate = useNavigate();
 
@@ -580,7 +582,10 @@ export function RoutinesPage() {
         <>
           <button
             type="button"
-            onClick={() => setBiomechanicsOpen(true)}
+            onClick={() => {
+              setBiomechanicsTab("foot_stance");
+              setBiomechanicsOpen(true);
+            }}
             className="flex w-full items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-left"
             style={{
               backgroundColor: GLASS.fillRaised,
@@ -601,12 +606,57 @@ export function RoutinesPage() {
             </div>
             <ChevronRight size={15} className="shrink-0" style={{ color: TEXT.tertiary }} />
           </button>
-          <SegmentedControl
-            value={tab}
-            options={TAB_OPTIONS}
-            onChange={(value) => setTab(value as RoutineTab)}
-            ariaLabel={ROUTINES_UI_LABELS.title}
-          />
+          <button
+            type="button"
+            onClick={() => {
+              setBiomechanicsTab("machines");
+              setBiomechanicsOpen(true);
+            }}
+            className="flex w-full items-center justify-between gap-2 rounded-2xl px-3.5 py-2.5 text-left"
+            style={{
+              backgroundColor: GLASS.fillRaised,
+              border: `1px solid ${GLASS.border}`,
+              color: TEXT.primary,
+            }}
+          >
+            <div className="flex items-center gap-2 min-w-0">
+              <Dumbbell size={16} className="shrink-0" style={{ color: ACCENT.text }} />
+              <div className="min-w-0">
+                <span className="block text-xs font-bold truncate" style={{ color: TEXT.primary }}>
+                  Atlas de Máquinas del Gym
+                </span>
+                <span className="block text-[11px] truncate" style={{ color: TEXT.secondary }}>
+                  32 equipos · Qué músculos trabaja y ejercicios por máquina
+                </span>
+              </div>
+            </div>
+            <ChevronRight size={15} className="shrink-0" style={{ color: TEXT.tertiary }} />
+          </button>
+          <div
+            role="tablist"
+            aria-label={ROUTINES_UI_LABELS.title}
+            className="grid grid-cols-2 gap-1.5 rounded-2xl border border-white/10 bg-[#1C1C1E] p-1"
+          >
+            {TAB_OPTIONS.map((option) => {
+              const active = tab === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setTab(option.value as RoutineTab)}
+                  className={`flex min-h-[44px] items-center justify-center rounded-xl px-3 text-sm font-semibold transition ${
+                    active
+                      ? "bg-[#2C2C2E] text-white shadow-sm"
+                      : "text-neutral-400 hover:text-neutral-200"
+                  }`}
+                >
+                  {option.label}
+                </button>
+              );
+            })}
+          </div>
         </>
       )}
 
@@ -1022,6 +1072,7 @@ export function RoutinesPage() {
       ) : null}
       <BiomechanicalGripStanceModal
         open={biomechanicsOpen}
+        initialTab={biomechanicsTab}
         onClose={() => setBiomechanicsOpen(false)}
       />
     </div>

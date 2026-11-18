@@ -41,6 +41,7 @@ export interface BiomechanicalGripStanceModalProps {
   onClose: () => void;
   context?: BiomechanicsContextInput | null;
   exerciseTitle?: string | null;
+  initialTab?: BiomechanicsAtlasTab | "machines";
   onApply?: (selection: BiomechanicalSelectionPayload) => void;
 }
 
@@ -67,10 +68,11 @@ export function BiomechanicalGripStanceModal({
   onClose,
   context,
   exerciseTitle,
+  initialTab,
   onApply,
 }: BiomechanicalGripStanceModalProps) {
   const [activeTab, setActiveTab] = useState<BiomechanicsAtlasTab | "machines">(() =>
-    resolveInitialBiomechanicsTab(context),
+    initialTab ?? resolveInitialBiomechanicsTab(context),
   );
   const [machineGroupFilter, setMachineGroupFilter] = useState<
     "Todas" | MachineGuideEntry["group"]
@@ -87,7 +89,7 @@ export function BiomechanicalGripStanceModal({
 
   useEffect(() => {
     if (!open) return;
-    setActiveTab(resolveInitialBiomechanicsTab(context));
+    setActiveTab(initialTab ?? resolveInitialBiomechanicsTab(context));
     setSelectedAttachmentDetailOpen(false);
     if (
       context?.equipmentId &&
