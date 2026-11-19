@@ -609,6 +609,7 @@ export function ProgressView() {
               if (value === "rangos") navigate("/rangos", { replace: true });
             }}
             ariaLabel="Vista de progreso"
+            fullWidth
           />
           <Suspense fallback={<p className="text-sm text-neutral-500">Cargando gráficas…</p>}>
             <ProgressCharts stats={stats} />
@@ -683,6 +684,7 @@ export function RangosView() {
           if (value === "progreso") navigate("/progreso", { replace: true });
         }}
         ariaLabel="Vista de rangos"
+        fullWidth
       />
       {searchParams.get(MUSCLE_PARAM) && (
         <p

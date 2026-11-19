@@ -270,13 +270,13 @@ const hoverRules = hoverTargets
     <div className={`space-y-4 ${className}`}>
       <style>{rules}</style>
 
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex w-full items-center justify-between gap-2">
         <div
           role="radiogroup"
           aria-label={T.viewLabel}
           className={
             plainStage
-              ? "flex rounded-xl border border-white/10 p-1"
+              ? "flex shrink-0 rounded-xl border border-white/10 p-0.5"
               : "flex rounded-lg border border-white/10 bg-neutral-950/60 p-0.5"
           }
           style={plainStage ? { backgroundColor: SURFACE.l2 } : undefined}
@@ -296,7 +296,7 @@ const hoverRules = hoverTargets
                 onClick={() => setSide(option)}
                 className={
                   plainStage
-                    ? "flex min-h-[44px] items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-transform duration-150 active:scale-[0.98]"
+                    ? "flex items-center gap-1 rounded-lg px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-transform duration-150 active:scale-[0.98]"
                     : `flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs transition ${
                         active
                           ? "bg-accent text-neutral-950"

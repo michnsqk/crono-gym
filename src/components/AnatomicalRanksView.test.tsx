@@ -153,6 +153,7 @@ describe("AnatomicalRanksView", () => {
     }
 
     fireEvent.click(screen.getByRole("tab", { name: "Volumen" }));
+    expect(screen.getByRole("heading", { name: "Volumen por músculo" })).toBeTruthy();
     const legendRegion = document.getElementById("rank-scale-legend")!;
     expect(within(legendRegion).getByText("Mantenimiento")).toBeTruthy();
     expect(within(legendRegion).getByText("Hipertrofia óptima")).toBeTruthy();

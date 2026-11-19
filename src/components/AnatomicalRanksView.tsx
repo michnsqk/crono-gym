@@ -143,19 +143,20 @@ export function AnatomicalRanksView({
     return dimmed;
   }, [map, filter, filteredMuscles]);
 
+  const gridTitle = activeTab === "volume" ? "Volumen por músculo" : T.bodyMapLegend;
+
   const scaleToggle = (
     <button
       type="button"
       aria-expanded={legendOpen}
       aria-controls="rank-scale-legend"
       onClick={() => setLegendOpen((open) => !open)}
-      className="flex h-11 items-center gap-1.5 rounded-xl border border-white/10 px-3 text-xs font-medium whitespace-nowrap transition-transform duration-150 active:scale-[0.98]"
-      style={{ backgroundColor: SURFACE.l2, color: TEXT.secondary }}
+      className="flex h-8 shrink-0 items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2.5 text-[11px] font-medium whitespace-nowrap text-zinc-300 transition-transform duration-150 active:scale-[0.98]"
     >
-      <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <Info className="h-3 w-3 shrink-0" aria-hidden="true" />
       <span>Escala</span>
       <ChevronDown
-        className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${
+        className={`h-3 w-3 shrink-0 transition-transform duration-150 ${
           legendOpen ? "rotate-180" : ""
         }`}
         aria-hidden="true"
@@ -307,7 +308,7 @@ export function AnatomicalRanksView({
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-white">
-                {T.bodyMapLegend}
+                {gridTitle}
               </h2>
               <div
                 className="flex flex-wrap items-center gap-1.5"
@@ -327,7 +328,7 @@ export function AnatomicalRanksView({
                       key={pill.id}
                       type="button"
                       onClick={() => setFilter(pill.id)}
-                      className="h-11 rounded-xl px-3 text-xs font-medium whitespace-nowrap transition-transform duration-150 active:scale-[0.98]"
+                      className="h-8 rounded-full px-3 text-xs font-medium whitespace-nowrap transition-transform duration-150 active:scale-[0.98]"
                       style={{
                         backgroundColor: active ? ACCENT.base : SURFACE.l2,
                         color: active ? TEXT.primary : TEXT.secondary,
@@ -349,7 +350,7 @@ export function AnatomicalRanksView({
               </p>
             ) : (
               <ul
-                aria-label={T.bodyMapLegend}
+                aria-label={gridTitle}
                 className="grid grid-cols-2 gap-2.5"
               >
                 {filteredMuscles.map((entry) => (

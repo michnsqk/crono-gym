@@ -23,6 +23,7 @@ export interface SegmentedControlProps {
   onChange: (value: string) => void;
   ariaLabel: string;
   className?: string;
+  fullWidth?: boolean;
 }
 
 export function SegmentedControl({
@@ -31,6 +32,7 @@ export function SegmentedControl({
   onChange,
   ariaLabel,
   className = "",
+  fullWidth = false,
 }: SegmentedControlProps) {
   const reducedMotion = useReducedMotion();
 
@@ -42,13 +44,22 @@ export function SegmentedControl({
     borderRadius: RADIUS.card,
     gap: SPACE.xs,
     padding: SPACE.xs,
+    ...(fullWidth && options.length !== 2
+      ? { gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }
+      : {}),
   };
 
   return (
     <div
       role="radiogroup"
       aria-label={ariaLabel}
-      className={`inline-flex items-center overflow-hidden border ${className}`}
+      className={`${
+        fullWidth
+          ? options.length === 2
+            ? "grid w-full grid-cols-2"
+            : "grid w-full"
+          : "inline-flex"
+      } items-center overflow-hidden border ${className}`}
       style={glassStyle}
     >
       {options.map((option) => {
@@ -63,7 +74,9 @@ export function SegmentedControl({
             role="radio"
             aria-checked={active}
             onClick={() => onChange(option.value)}
-            className="flex items-center justify-center gap-1.5 text-center outline-none transition"
+            className={`flex items-center justify-center gap-1.5 text-center outline-none transition ${
+              fullWidth ? "w-full py-2" : ""
+            }`}
             style={{
               backgroundColor: active ? SOLID.card : "transparent",
               color: active ? TEXT.primary : TEXT.tertiary,
