@@ -19,7 +19,7 @@ export const supabase: SupabaseClient<Database> = createClient<Database>(
       autoRefreshToken: true,
       detectSessionInUrl: true,
       storageKey: "cronos_auth_token",
-      storage: window.localStorage,
+      storage: typeof window !== "undefined" ? window.localStorage : undefined,
     },
     realtime: {
       params: { eventsPerSecond: 2 },

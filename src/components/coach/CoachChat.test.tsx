@@ -18,9 +18,11 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { CoachChat } from "./CoachChat";
 import { COACH_LABELS as T } from "@/lib/i18n";
 import { AuthModalProvider } from "@/context/AuthModalContext";
+import { ActiveSessionProvider } from "@/context/ActiveSessionContext";
 import { DEFAULT_GYM_SETTINGS, type GymSettings } from "@/context/GymSettingsContext";
 import { CoachRequestError, type CoachError, type ChatMessage } from "@/lib/ai/types";
 import type { CoachContext } from "@/lib/coach/types";
@@ -95,9 +97,16 @@ vi.mock("@/lib/ai/chatStorage", async (importOriginal) => {
   return { ...original, saveChat, loadChat, pruneChatHistory };
 });
 
+vi.mock("@/lib/ai/cloudChatService", () => ({
+  loadCloudChatThreads: vi.fn(async () => []),
+  syncCloudChatThread: vi.fn(async () => true),
+  deleteCloudChatThread: vi.fn(async () => undefined),
+}));
+
 // -------------------------------------------------------------- lifecycle
 
 beforeEach(() => {
+  window.localStorage.clear();
   askCoach.mockReset().mockResolvedValue({ message: "ok" });
   saveChat.mockClear().mockResolvedValue(true);
   loadChat.mockReset().mockResolvedValue([]);
@@ -109,7 +118,13 @@ afterEach(() => {
 });
 
 function renderChat(overrides: Partial<GymSettings> = {}) {
-  return render(<CoachChat userId="test-user" context={CONTEXT} gymSettings={{ ...GYM, ...overrides }} />);
+  return render(
+    <MemoryRouter>
+      <ActiveSessionProvider>
+        <CoachChat userId="test-user" context={CONTEXT} gymSettings={{ ...GYM, ...overrides }} />
+      </ActiveSessionProvider>
+    </MemoryRouter>,
+  );
 }
 
 /**
@@ -121,16 +136,22 @@ function renderChat(overrides: Partial<GymSettings> = {}) {
 function renderChatWithAuth(overrides: Partial<GymSettings> = {}) {
   const open = vi.fn();
   render(
-    <AuthModalProvider open={open}>
-      <CoachChat userId="test-user" context={CONTEXT} gymSettings={{ ...GYM, ...overrides }} />
-    </AuthModalProvider>,
+    <MemoryRouter>
+      <ActiveSessionProvider>
+        <AuthModalProvider open={open}>
+          <CoachChat userId="test-user" context={CONTEXT} gymSettings={{ ...GYM, ...overrides }} />
+        </AuthModalProvider>
+      </ActiveSessionProvider>
+    </MemoryRouter>,
   );
   return { open };
 }
 
+const CHAT_INPUT_PLACEHOLDER = "Pregunta lo que quieras a Cronos";
+
 /** Types into the box and submits. */
 async function ask(text: string) {
-  const box = screen.getByPlaceholderText(T.chatPlaceholder);
+  const box = screen.getByPlaceholderText(CHAT_INPUT_PLACEHOLDER);
   fireEvent.change(box, { target: { value: text } });
   fireEvent.click(screen.getByRole("button", { name: T.chatSend }));
 }
@@ -229,7 +250,7 @@ describe("a successful exchange", () => {
     renderChat();
     await screen.findByText(T.chatEmpty);
 
-    const box = screen.getByPlaceholderText(T.chatPlaceholder);
+    const box = screen.getByPlaceholderText(CHAT_INPUT_PLACEHOLDER);
     fireEvent.change(box, { target: { value: "con enter" } });
     fireEvent.keyDown(box, { key: "Enter" });
     await waitFor(() => expect(askCoach).toHaveBeenCalledTimes(1));
@@ -273,7 +294,7 @@ describe("a successful exchange", () => {
     await ask("hola");
 
     await waitFor(() =>
-      expect((screen.getByPlaceholderText(T.chatPlaceholder) as HTMLTextAreaElement).value)
+      expect((screen.getByPlaceholderText(CHAT_INPUT_PLACEHOLDER) as HTMLTextAreaElement).value)
         .toBe(""),
     );
   });
@@ -396,7 +417,7 @@ describe("failures", () => {
     renderChat();
     await screen.findByText(T.chatEmpty);
 
-    const box = screen.getByPlaceholderText(T.chatPlaceholder);
+    const box = screen.getByPlaceholderText(CHAT_INPUT_PLACEHOLDER);
     // maxLength is one over, so the box accepts the paste and the component refuses it.
     fireEvent.change(box, { target: { value: "a".repeat(501) } });
 
@@ -615,6 +636,6 @@ describe("accessibility", () => {
     renderChat();
     await screen.findByText(T.chatEmpty);
     // The textarea's accessible name comes from its own label element.
-    expect(screen.getByLabelText(T.chatPlaceholder)).toBeTruthy();
+    expect(screen.getByLabelText(CHAT_INPUT_PLACEHOLDER)).toBeTruthy();
   });
 });
