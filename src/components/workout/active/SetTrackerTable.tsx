@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Check, Disc, X } from "lucide-react";
+import { Check, Disc, Trash2 } from "lucide-react";
 import type { SetEntry } from "@/lib/workout/types";
 import type { OverloadTarget } from "@/lib/overload";
 import { GLASS, SCRIM, SURFACE, TEXT, TYPE, Z_INDEX } from "@/design/tokens";
@@ -18,6 +18,8 @@ export interface SetTrackerTableProps {
   onOpenPlates?: (index: number, currentWeight: string) => void;
   canRemove?: boolean;
   totalSets?: number;
+  isActiveSet?: boolean;
+  hideRepeatedPrevious?: boolean;
 }
 
 const SET_TYPE_OPTIONS: Array<{
@@ -94,6 +96,8 @@ export function SetTrackerTable({
   onOpenPlates,
   canRemove = false,
   totalSets = 1,
+  isActiveSet = false,
+  hideRepeatedPrevious = false,
 }: SetTrackerTableProps) {
   const setNumber = index + 1;
   const [typeMenuOpen, setTypeMenuOpen] = useState(false);
@@ -107,8 +111,8 @@ export function SetTrackerTable({
   const previousText =
     previousKg != null && previousReps != null
       ? formatWeight
-        ? `${formatWeight(previousKg)} × ${previousReps}`
-        : `${previousKg}kg × ${previousReps}`
+        ? `${formatWeight(previousKg)}×${previousReps}`
+        : `${previousKg}kg×${previousReps}`
       : "—";
 
   const hasPrevious = previousKg != null && previousReps != null;
@@ -149,26 +153,21 @@ export function SetTrackerTable({
     <div
       role="group"
       aria-label={`Serie ${setNumber}`}
+      className={isActiveSet ? "rounded-xl border border-white/15 px-1.5 py-2 transition-all" : "rounded-xl border border-transparent px-1.5 py-2 transition-all"}
       style={{
         display: "flex",
         flexDirection: "column",
-        gap: 4,
-        padding: "6px 4px",
-        borderBottom: index > 0 ? "1px solid rgba(255, 255, 255, 0.06)" : "none",
-        background: isCompleted ? "rgba(48, 209, 88, 0.06)" : "transparent",
-        borderRadius: 10,
-        transition: "background 200ms ease",
+        gap: 6,
+        borderTop: index > 0 && !isActiveSet ? "1px solid rgba(255, 255, 255, 0.06)" : undefined,
+        background: isCompleted
+          ? "rgba(48, 209, 88, 0.06)"
+          : isActiveSet
+            ? "rgba(255, 255, 255, 0.03)"
+            : "transparent",
+        opacity: isCompleted ? 0.72 : 1,
       }}
     >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "32px minmax(68px, 1fr) minmax(68px, 1fr) 44px 28px",
-          alignItems: "center",
-          gap: 6,
-          minHeight: 44,
-        }}
-      >
+      <div className="grid grid-cols-[28px_1fr_1fr_44px] items-center gap-2.5">
       {/* Serie Badge - Tap to open type selector */}
       <button
         type="button"
@@ -178,9 +177,9 @@ export function SetTrackerTable({
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 32,
-          height: 32,
-          borderRadius: 10,
+          width: 28,
+          height: 28,
+          borderRadius: 9,
           background: currentOption.bg,
           border: `1px solid ${currentOption.border}`,
           color: currentOption.color,
@@ -374,25 +373,21 @@ export function SetTrackerTable({
         onFocus={(e) => {
           e.target.select();
         }}
-        className="cronos-set-input h-11 min-w-[68px] w-full font-mono text-center"
+        className="cronos-set-input h-12 w-full rounded-xl text-center font-mono text-base font-bold tabular-nums transition-transform duration-150"
         style={{
-          background: "#2C2C2E",
+          backgroundColor: "rgba(44, 44, 46, 0.90)",
           border: "1px solid rgba(255, 255, 255, 0.10)",
-          borderRadius: 12,
           padding: "0 6px",
           color: TEXT.primary,
-          fontSize: "15px",
-          fontFamily: TYPE.mono.font,
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 700,
           outline: "none",
-          transition: "border-color 150ms ease, background 150ms ease",
         }}
         onFocusCapture={(e) => {
           e.currentTarget.style.borderColor = "rgba(255, 59, 48, 0.6)";
+          e.currentTarget.style.boxShadow = "0 0 0 2px rgba(255, 59, 48, 0.25)";
         }}
         onBlurCapture={(e) => {
           e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.10)";
+          e.currentTarget.style.boxShadow = "none";
         }}
       />
 
@@ -407,25 +402,21 @@ export function SetTrackerTable({
         onFocus={(e) => {
           e.target.select();
         }}
-        className="cronos-set-input h-11 min-w-[68px] w-full font-mono text-center"
+        className="cronos-set-input h-12 w-full rounded-xl text-center font-mono text-base font-bold tabular-nums transition-transform duration-150"
         style={{
-          background: "#2C2C2E",
+          backgroundColor: "rgba(44, 44, 46, 0.90)",
           border: "1px solid rgba(255, 255, 255, 0.10)",
-          borderRadius: 12,
           padding: "0 6px",
           color: TEXT.primary,
-          fontSize: "15px",
-          fontFamily: TYPE.mono.font,
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 700,
           outline: "none",
-          transition: "border-color 150ms ease, background 150ms ease",
         }}
         onFocusCapture={(e) => {
           e.currentTarget.style.borderColor = "rgba(255, 59, 48, 0.6)";
+          e.currentTarget.style.boxShadow = "0 0 0 2px rgba(255, 59, 48, 0.25)";
         }}
         onBlurCapture={(e) => {
           e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.10)";
+          e.currentTarget.style.boxShadow = "none";
         }}
       />
 
@@ -443,86 +434,43 @@ export function SetTrackerTable({
           }
           onChange(index, { ...entry, completed: !entry.completed });
         }}
-        className="rounded-full transition-transform active:scale-[0.98]"
+        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full transition-transform duration-150 active:scale-[0.98]"
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 44,
-          height: 44,
-          borderRadius: 9999,
           background: isCompleted ? "#30D158" : "#2C2C2E",
           color: isCompleted ? "#000" : "rgba(255, 255, 255, 0.45)",
-          border: isCompleted ? "1px solid #30D158" : "1px solid rgba(255, 255, 255, 0.06)",
+          border: isCompleted ? "1px solid #30D158" : "1px solid rgba(255, 255, 255, 0.08)",
           cursor: "pointer",
-          flexShrink: 0,
-          transition: "all 150ms ease",
           boxShadow: isCompleted ? "0 0 14px rgba(48, 209, 88, 0.45)" : "none",
         }}
       >
         <Check size={16} strokeWidth={3} />
       </button>
-
-      {/* Remove Button */}
-      {canRemove && totalSets > 1 ? (
-        <button
-          type="button"
-          onClick={handleRemove}
-          aria-label={`Eliminar serie ${setNumber}`}
-          className="transition-transform active:scale-[0.98]"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 28,
-            height: 36,
-            borderRadius: 10,
-            background: "rgba(122, 47, 61, 0.15)",
-            border: "1px solid rgba(224, 141, 156, 0.3)",
-            color: "#E08D9C",
-            cursor: "pointer",
-            flexShrink: 0,
-            transition: "all 150ms ease",
-          }}
-        >
-          <X size={13} strokeWidth={2} aria-hidden="true" />
-        </button>
-      ) : (
-        <span aria-hidden="true" />
-      )}
       </div>
 
-      {/* Compact secondary telemetry strip: Anterior (tap-to-fill) + RPE + Discos */}
-      <div
-        className="flex items-center justify-between gap-2 pl-[38px] pr-1"
-        style={{ minHeight: 24 }}
-      >
-        {hasPrevious ? (
+      {/* Bottom utility strip: Ant (single line, no truncation) + RPE + Discos + Eliminar (ml-auto) */}
+      <div className="flex items-center gap-2 pl-[38px]">
+        {hasPrevious && (
           <button
             type="button"
             onClick={handleFillFromPrevious}
             aria-label={`Rellenar con valores anteriores: ${previousText}`}
-            className="min-w-0 truncate font-mono text-[11px] tabular-nums"
+            className="whitespace-nowrap font-mono text-[11px] tabular-nums text-neutral-400"
             style={{
               background: "transparent",
               border: "none",
               padding: 0,
-              color: TEXT.secondary,
               cursor: "pointer",
-              textAlign: "left",
             }}
           >
-            Ant: {previousText}
+            {hideRepeatedPrevious ? "Usar anterior" : `Ant: ${previousText}`}
           </button>
-        ) : (
-          <span aria-hidden="true" />
         )}
 
-        <div className="flex shrink-0 items-center gap-2">
+        <div className="ml-auto flex items-center gap-1.5">
           <button
             type="button"
             aria-label={`RPE serie ${setNumber}: ${entry.rpe || "—"}`}
-            className="rounded-md px-1.5 py-0.5 font-mono text-[11px] tabular-nums"
+            className="rounded-lg px-2 py-1 font-mono text-[11px] tabular-nums transition-transform duration-150 active:scale-[0.98]"
             style={{
               background: "rgba(255, 255, 255, 0.05)",
               border: `1px solid ${GLASS.border}`,
@@ -538,7 +486,7 @@ export function SetTrackerTable({
               onClick={() => onOpenPlates(index, entry.weight)}
               aria-label={`Calcular discos serie ${setNumber}`}
               title="Calcular discos por lado"
-              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px]"
+              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] transition-transform duration-150 active:scale-[0.98]"
               style={{
                 background: "rgba(255, 255, 255, 0.05)",
                 border: `1px solid ${GLASS.border}`,
@@ -548,6 +496,22 @@ export function SetTrackerTable({
             >
               <Disc size={11} strokeWidth={2} aria-hidden="true" />
               <span>Discos</span>
+            </button>
+          )}
+          {canRemove && totalSets > 1 && (
+            <button
+              type="button"
+              onClick={handleRemove}
+              aria-label={`Eliminar serie ${setNumber}`}
+              title={`Eliminar serie ${setNumber}`}
+              className="inline-flex items-center justify-center rounded-lg p-1.5 text-neutral-400 transition-transform duration-150 active:scale-[0.98]"
+              style={{
+                background: "rgba(255, 255, 255, 0.04)",
+                border: `1px solid ${GLASS.border}`,
+                cursor: "pointer",
+              }}
+            >
+              <Trash2 size={12} strokeWidth={2} aria-hidden="true" />
             </button>
           )}
         </div>

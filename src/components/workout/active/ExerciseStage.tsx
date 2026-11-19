@@ -16,7 +16,7 @@ import {
   Target,
 } from "lucide-react";
 import type { EquipmentEntry } from "@/data/equipmentCatalog";
-import { ACCENT, GLASS, SPACE, TEXT, TYPE } from "@/design/tokens";
+import { ACCENT, GLASS, TEXT, TYPE } from "@/design/tokens";
 import { SET_LOGGER_LABELS } from "@/lib/i18n";
 import { resolveMedia } from "@/lib/media/mediaResolver";
 import { useMediaSrc } from "@/lib/media/useMediaSrc";
@@ -93,16 +93,7 @@ export function ExerciseStage({
 
   return (
     <section
-      style={{
-        maxWidth: "560px",
-        margin: "0 auto",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: SPACE.sm,
-        alignItems: "center",
-        padding: `0 ${SPACE.md}px`,
-      }}
+      className="mx-auto flex w-full max-w-md flex-col items-center gap-2 overflow-x-hidden px-4"
     >
       <div
         style={{
@@ -249,45 +240,46 @@ export function ExerciseStage({
         </div>
       )}
 
+      {/* Unified Apple HIG dock: primary 3-up row (Tutorial | Notas | Reemplazar) + wrapped secondary pills, zero scrollbar */}
       <div
-        className="no-scrollbar flex w-full items-center gap-1.5 overflow-x-auto rounded-full border border-white/[0.06] px-2.5 py-1.5 backdrop-blur-xl"
-        style={{ backgroundColor: "rgba(28, 28, 30, 0.80)" }}
+        className="flex w-full flex-wrap items-center justify-center gap-1.5 rounded-full border border-white/10 p-1.5"
+        style={{ backgroundColor: "rgb(28, 28, 30)" }}
       >
         <span className="sr-only">
           {completedSets} / {totalSets} series
         </span>
-        <DockButton
+        <PrimaryDockButton
           label="Demo"
           onClick={onDemo ?? (() => {})}
           icon={<Play size={14} strokeWidth={2} aria-hidden="true" />}
         >
           Tutorial
-        </DockButton>
-        <DockButton
+        </PrimaryDockButton>
+        <PrimaryDockButton
           label="Avance"
           onClick={onAdvance ?? (() => {})}
           icon={<Target size={14} strokeWidth={2} aria-hidden="true" />}
         >
           Notas
-        </DockButton>
-        <DockButton
+        </PrimaryDockButton>
+        <PrimaryDockButton
           label="Cambiar"
           onClick={onChangeExercise}
           icon={<ArrowRight size={14} strokeWidth={2} aria-hidden="true" />}
         >
           Reemplazar
-        </DockButton>
+        </PrimaryDockButton>
         <DockButton
           label="Ajustar"
           onClick={onAdjustRest}
-          icon={<RefreshCw size={14} strokeWidth={2} aria-hidden="true" />}
+          icon={<RefreshCw size={13} strokeWidth={2} aria-hidden="true" />}
         >
-          {formatClock(restSeconds)}
+          <span className="font-mono tabular-nums">{formatClock(restSeconds)}</span>
         </DockButton>
         <DockButton
           label="+ Calentamiento (W)"
           onClick={onAddWarmup}
-          icon={<Plus size={14} strokeWidth={2} aria-hidden="true" />}
+          icon={<Plus size={13} strokeWidth={2} aria-hidden="true" />}
         >
           Calentamiento
         </DockButton>
@@ -295,7 +287,7 @@ export function ExerciseStage({
           <DockButton
             label="Calculadora de discos"
             onClick={onOpenPlates}
-            icon={<Disc size={14} strokeWidth={2} aria-hidden="true" />}
+            icon={<Disc size={13} strokeWidth={2} aria-hidden="true" />}
           >
             Discos
           </DockButton>
@@ -303,16 +295,16 @@ export function ExerciseStage({
         <DockButton
           label="Postura / Agarre"
           onClick={onOpenBiomechanics ?? (() => {})}
-          icon={<Compass size={14} strokeWidth={2} aria-hidden="true" />}
+          icon={<Compass size={13} strokeWidth={2} aria-hidden="true" />}
         >
-          Postura / Agarre
+          Postura
         </DockButton>
         {totalSets > 0 && (
           <DockButton
             label={SET_LOGGER_LABELS.guideAriaLabel}
             active={guidesOpen}
             onClick={onToggleGuides}
-            icon={<Info size={14} strokeWidth={2} aria-hidden="true" />}
+            icon={<Info size={13} strokeWidth={2} aria-hidden="true" />}
           >
             Guía
           </DockButton>
@@ -321,22 +313,50 @@ export function ExerciseStage({
           <DockButton
             label="Pedir Spot o ayuda al coach en piso"
             onClick={onRequestSpot}
-            icon={<Bell size={14} strokeWidth={2} aria-hidden="true" />}
+            icon={<Bell size={13} strokeWidth={2} aria-hidden="true" />}
           >
-            Spot / Coach
+            Spot
           </DockButton>
         )}
         {onReportMachine && (
           <DockButton
             label="Reportar falla en esta máquina"
             onClick={onReportMachine}
-            icon={<AlertTriangle size={14} strokeWidth={2} aria-hidden="true" />}
+            icon={<AlertTriangle size={13} strokeWidth={2} aria-hidden="true" />}
           >
             Reportar falla
           </DockButton>
         )}
       </div>
     </section>
+  );
+}
+
+function PrimaryDockButton({
+  label,
+  icon,
+  onClick,
+  children,
+}: {
+  label: string;
+  icon: JSX.Element;
+  onClick: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      aria-label={label}
+      onClick={onClick}
+      title={label}
+      className="flex h-11 flex-[1_1_30%] items-center justify-center gap-1.5 whitespace-nowrap rounded-xl px-2 text-xs font-medium text-white transition-transform duration-150 active:scale-[0.98]"
+      style={{ backgroundColor: "rgb(44, 44, 46)" }}
+    >
+      <span aria-hidden="true" className="flex shrink-0 items-center">
+        {icon}
+      </span>
+      <span>{children}</span>
+    </button>
   );
 }
 
@@ -360,9 +380,10 @@ function DockButton({
       aria-pressed={active || undefined}
       onClick={onClick}
       title={label}
-      className={`flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-xs font-medium transition-colors ${
-        active ? "bg-white/15 text-white" : "text-neutral-200 active:bg-white/10"
+      className={`flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border border-white/10 px-2.5 text-xs font-medium transition-transform duration-150 active:scale-[0.98] ${
+        active ? "bg-white/15 text-white" : "text-neutral-200"
       }`}
+      style={active ? undefined : { backgroundColor: "rgb(28, 28, 30)" }}
     >
       <span aria-hidden="true" className="flex shrink-0 items-center">
         {icon}

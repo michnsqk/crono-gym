@@ -1413,12 +1413,14 @@ export function ActiveWorkout({
 
   return (
     <div
+      className="w-full max-w-full overflow-x-hidden"
       style={{
         display: "flex",
         flexDirection: "column",
         gap: 0,
         flex: 1,
         overflowY: "auto",
+        overflowX: "hidden",
         background: SURFACE.base,
         paddingBottom: 144, // pb-36 = 144px for BottomNav + Cronos IA clearance
       }}
@@ -1704,16 +1706,7 @@ export function ActiveWorkout({
           )}
 
           {carouselItems.length > 0 && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                alignItems: "center",
-                width: "100%",
-                marginTop: SPACE.md,
-                paddingBottom: SPACE.sm,
-              }}
-            >
+            <div className="mx-auto mt-3 flex w-full max-w-md items-center justify-center px-4 pb-2">
               <ExerciseCarousel
                 items={carouselItems}
                 selectedKey={selectedKey ?? null}
@@ -1899,7 +1892,7 @@ export function ActiveWorkout({
               */}
               <div className="sr-only">
                 {smartLoad && appliedSmartLoadByExercise[selected.exercise.id] ? (
-                  <div className="mx-auto flex w-full max-w-[560px] items-center gap-2 rounded-2xl border border-white/10 bg-neutral-900/90 px-3.5 py-2.5">
+                  <div className="mx-auto flex w-full max-w-md items-center gap-2 rounded-2xl border border-white/10 bg-neutral-900/90 px-3.5 py-2.5">
                     <span
                       aria-hidden="true"
                       className="h-1.5 w-1.5 shrink-0 rounded-full"
@@ -1914,7 +1907,7 @@ export function ActiveWorkout({
                 ) : smartLoad ? (
                   <section
                     aria-label="Recomendación de carga"
-                    className="mx-auto w-full max-w-[560px] rounded-2xl border border-white/10 bg-neutral-900/90 px-3.5 py-2.5"
+                    className="mx-auto w-full max-w-md rounded-2xl border border-white/10 bg-neutral-900/90 px-3.5 py-2.5"
                   >
                     <div className="flex items-center gap-3">
                       <div className="min-w-0 flex-1">
@@ -1951,7 +1944,7 @@ export function ActiveWorkout({
               </div>
 
           {selected.sets.length > 0 && (
-                <div style={{ padding: `0 ${SPACE.md}px ${SPACE.lg}px`, maxWidth: "560px", margin: "0 auto", width: "100%" }}>
+                <div className="mx-auto w-full max-w-md px-4 pb-6">
               {smartGuidesOpen && (
                 <div className="mb-3 space-y-1 rounded-xl bg-neutral-900 p-3 text-xs text-neutral-400">
                   <p>{SET_TYPE_GUIDES.warmup}</p><p>{SET_TYPE_GUIDES.normal}</p><p>{SET_TYPE_GUIDES.dropset}</p><p>{SET_TYPE_GUIDES.failure}</p>
@@ -2004,12 +1997,8 @@ export function ActiveWorkout({
                       controls never do.
                     */}
                     <div
+                      className="grid grid-cols-[28px_1fr_1fr_44px] items-center gap-2.5 px-1.5 pb-1.5"
                       style={{
-                        display: "grid",
-                        gridTemplateColumns: "32px minmax(68px, 1fr) minmax(68px, 1fr) 44px 28px",
-                        alignItems: "center",
-                        gap: 6,
-                        padding: "0 4px 6px 4px",
                         borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
                         marginBottom: 4,
                       }}
@@ -2018,115 +2007,122 @@ export function ActiveWorkout({
                       <div style={{ fontSize: "10px", fontWeight: 700, color: TEXT.tertiary, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center" }}>KG/LB</div>
                       <div style={{ fontSize: "10px", fontWeight: 700, color: TEXT.tertiary, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center" }}>REPS</div>
                       <div style={{ fontSize: "10px", fontWeight: 700, color: TEXT.tertiary, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center" }}>✓</div>
-                      <div aria-hidden="true" />
                     </div>
 
-                    {selected.sets.map((entry, index) => (
-                      <SetTrackerTable
-                        key={index}
-                        index={index}
-                        entry={entry}
-                        previousKg={performance[selected.exercise.id]?.bestSet?.weight ?? null}
-                        previousReps={performance[selected.exercise.id]?.bestSet?.reps ?? null}
-                        formatWeight={displayKg}
-                        overloadTarget={overload[selected.key] ?? null}
-                        previousLabel={
-                          performance[selected.exercise.id]?.bestSet?.weight != null &&
-                          performance[selected.exercise.id]?.bestSet?.reps != null
-                            ? `Repetir la última vez: ${displayKg(
-                                performance[selected.exercise.id]?.bestSet?.weight ?? 0,
-                              )} kilos por ${performance[selected.exercise.id]?.bestSet?.reps ?? 0} repeticiones`
-                            : undefined
-                        }
-                        onChange={(i, e) => updateSet(selected.key, i, e)}
-                        onRemove={(i) => removeSet(selected.key, i)}
-                        onOpenPlates={(setIdx, weightStr) => {
-                          const w = toNumber(weightStr) ?? smartLoad?.weightKg ?? 60;
-                          setPlateCalc({ open: true, setIndex: setIdx, initialWeightKg: w });
-                        }}
-                        onFillFromPrevious={(i: number) => {
-                          const prev = performance[selected.exercise.id]?.bestSet;
-                          if (prev?.weight != null && prev?.reps != null) {
-                            updateSet(selected.key, i, {
-                              ...entry,
-                              weight: String(prev.weight),
-                              reps: String(prev.reps),
-                            });
+                    {(() => {
+                      const activeSetIdx = selected.sets.findIndex((s) => !s.completed);
+                      return selected.sets.map((entry, index) => (
+                        <SetTrackerTable
+                          key={index}
+                          index={index}
+                          entry={entry}
+                          isActiveSet={index === activeSetIdx}
+                          hideRepeatedPrevious={Boolean(lastSessionShort) || index > 0}
+                          previousKg={performance[selected.exercise.id]?.bestSet?.weight ?? null}
+                          previousReps={performance[selected.exercise.id]?.bestSet?.reps ?? null}
+                          formatWeight={displayKg}
+                          overloadTarget={overload[selected.key] ?? null}
+                          previousLabel={
+                            performance[selected.exercise.id]?.bestSet?.weight != null &&
+                            performance[selected.exercise.id]?.bestSet?.reps != null
+                              ? `Repetir la última vez: ${displayKg(
+                                  performance[selected.exercise.id]?.bestSet?.weight ?? 0,
+                                )} kilos por ${performance[selected.exercise.id]?.bestSet?.reps ?? 0} repeticiones`
+                              : undefined
                           }
-                        }}
-                        canRemove={true}
-                        totalSets={selected.sets.length}
-                      />
-                    ))}
+                          onChange={(i, e) => updateSet(selected.key, i, e)}
+                          onRemove={(i) => removeSet(selected.key, i)}
+                          onOpenPlates={(setIdx, weightStr) => {
+                            const w = toNumber(weightStr) ?? smartLoad?.weightKg ?? 60;
+                            setPlateCalc({ open: true, setIndex: setIdx, initialWeightKg: w });
+                          }}
+                          onFillFromPrevious={(i: number) => {
+                            const prev = performance[selected.exercise.id]?.bestSet;
+                            if (prev?.weight != null && prev?.reps != null) {
+                              updateSet(selected.key, i, {
+                                ...entry,
+                                weight: String(prev.weight),
+                                reps: String(prev.reps),
+                              });
+                            }
+                          }}
+                          canRemove={true}
+                          totalSets={selected.sets.length}
+                        />
+                      ));
+                    })()}
 
                     {(() => {
                       const pendingIdx = selected.sets.findIndex((s) => !s.completed);
-                      if (pendingIdx === -1) return null;
-                      const pendingEntry = selected.sets[pendingIdx];
+                      const pendingEntry = pendingIdx >= 0 ? selected.sets[pendingIdx] : null;
                       const prevBest = performance[selected.exercise.id]?.bestSet;
                       const prevSetInList = pendingIdx > 0 ? selected.sets[pendingIdx - 1] : null;
                       const matchSource =
-                        prevSetInList && (toNumber(prevSetInList.weight) != null || toNumber(prevSetInList.reps) != null)
+                        pendingEntry && prevSetInList && (toNumber(prevSetInList.weight) != null || toNumber(prevSetInList.reps) != null)
                           ? { weight: prevSetInList.weight, reps: prevSetInList.reps }
-                          : prevBest?.weight != null && prevBest?.reps != null
+                          : pendingEntry && prevBest?.weight != null && prevBest?.reps != null
                             ? { weight: String(prevBest.weight), reps: String(prevBest.reps) }
                             : null;
                       const nudgePendingWeight = (delta: number) => {
+                        if (!pendingEntry || pendingIdx < 0) return;
                         const base = toNumber(pendingEntry.weight) ?? 0;
                         const nextWeight = Math.max(0, Math.round((base + delta) * 10) / 10);
                         updateSet(selected.key, pendingIdx, { ...pendingEntry, weight: String(nextWeight) });
                       };
                       const nudgePendingReps = (delta: number) => {
+                        if (!pendingEntry || pendingIdx < 0) return;
                         const base = toNumber(pendingEntry.reps) ?? 0;
                         const nextReps = Math.max(1, Math.round(base + delta));
                         updateSet(selected.key, pendingIdx, { ...pendingEntry, reps: String(nextReps) });
                       };
                       return (
-                        <div className="mt-2.5 space-y-2">
-                          <div
-                            className="grid w-full grid-cols-4 gap-1.5"
-                            role="group"
-                            aria-label="Ajuste rápido a una mano"
-                          >
-                            <button
-                              type="button"
-                              onClick={() => nudgePendingWeight(-2.5)}
-                              className="inline-flex min-h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/[0.06] px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform active:scale-95"
-                              style={{ background: SURFACE.l1 }}
+                        <div className="mt-3 space-y-2.5">
+                          {pendingEntry && (
+                            <div
+                              className="grid w-full grid-cols-4 gap-1.5"
+                              role="group"
+                              aria-label="Ajuste rápido a una mano"
                             >
-                              <Minus size={11} aria-hidden="true" />
-                              2.5 kg
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => nudgePendingWeight(2.5)}
-                              className="inline-flex min-h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/[0.06] px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform active:scale-95"
-                              style={{ background: SURFACE.l1 }}
-                            >
-                              <Plus size={11} aria-hidden="true" />
-                              2.5 kg
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => nudgePendingReps(-1)}
-                              className="inline-flex min-h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/[0.06] px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform active:scale-95"
-                              style={{ background: SURFACE.l1 }}
-                            >
-                              <Minus size={11} aria-hidden="true" />
-                              1 rep
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => nudgePendingReps(1)}
-                              className="inline-flex min-h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/[0.06] px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform active:scale-95"
-                              style={{ background: SURFACE.l1 }}
-                            >
-                              <Plus size={11} aria-hidden="true" />
-                              1 rep
-                            </button>
-                          </div>
-                          {matchSource && (
-                            <div className="flex justify-center">
+                              <button
+                                type="button"
+                                onClick={() => nudgePendingWeight(-2.5)}
+                                className="inline-flex h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/10 px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform duration-150 active:scale-[0.98]"
+                                style={{ backgroundColor: "rgb(44, 44, 46)" }}
+                              >
+                                <Minus size={11} aria-hidden="true" />
+                                2.5 kg
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => nudgePendingWeight(2.5)}
+                                className="inline-flex h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/10 px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform duration-150 active:scale-[0.98]"
+                                style={{ backgroundColor: "rgb(44, 44, 46)" }}
+                              >
+                                <Plus size={11} aria-hidden="true" />
+                                2.5 kg
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => nudgePendingReps(-1)}
+                                className="inline-flex h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/10 px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform duration-150 active:scale-[0.98]"
+                                style={{ backgroundColor: "rgb(44, 44, 46)" }}
+                              >
+                                <Minus size={11} aria-hidden="true" />
+                                1 rep
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => nudgePendingReps(1)}
+                                className="inline-flex h-10 items-center justify-center gap-0.5 whitespace-nowrap rounded-xl border border-white/10 px-1 font-mono text-[11px] font-semibold tabular-nums text-white transition-transform duration-150 active:scale-[0.98]"
+                                style={{ backgroundColor: "rgb(44, 44, 46)" }}
+                              >
+                                <Plus size={11} aria-hidden="true" />
+                                1 rep
+                              </button>
+                            </div>
+                          )}
+                          <div className="flex items-center gap-2.5">
+                            {matchSource && pendingEntry && pendingIdx >= 0 && (
                               <button
                                 type="button"
                                 onClick={() =>
@@ -2136,38 +2132,29 @@ export function ActiveWorkout({
                                     reps: matchSource.reps,
                                   })
                                 }
-                                className="inline-flex min-h-9 items-center rounded-full border border-white/[0.06] px-3.5 text-xs font-semibold text-white transition-transform active:scale-95"
-                                style={{ background: SURFACE.l1 }}
+                                className="inline-flex h-11 flex-1 items-center justify-center whitespace-nowrap rounded-xl border border-white/10 px-3 text-xs font-semibold text-white transition-transform duration-150 active:scale-[0.98]"
+                                style={{ backgroundColor: "rgb(44, 44, 46)" }}
                               >
                                 Igualar anterior
                               </button>
-                            </div>
-                          )}
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => addSet(selected.key)}
+                              aria-label="+ Agregar serie"
+                              className="flex h-11 flex-1 items-center justify-center gap-1.5 whitespace-nowrap rounded-xl border border-white/10 px-3 text-xs font-semibold text-white transition-transform duration-150 active:scale-[0.98]"
+                              style={{
+                                background: SOLID.popover,
+                                borderColor: GLASS.border,
+                              }}
+                            >
+                              <Plus size={14} strokeWidth={2} aria-hidden="true" />
+                              Agregar serie
+                            </button>
+                          </div>
                         </div>
                       );
                     })()}
-
-                    <div style={{ display: "flex", justifyContent: "center", marginTop: 8 }}>
-                      <button
-                        type="button"
-                        onClick={() => addSet(selected.key)}
-                        aria-label="+ Agregar serie"
-                        className="flex h-10 w-full items-center justify-center gap-1.5 rounded-full border text-xs font-semibold text-white transition-colors"
-                        style={{
-                          background: SOLID.popover,
-                          borderColor: GLASS.border,
-                          fontSize: TYPE.caption.size,
-                          transition: `background ${MOTION.fast} ${MOTION.easeOut}, transform ${MOTION.fast} ${MOTION.easeOut}`,
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.background = SURFACE.raised; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.background = SOLID.popover; }}
-                        onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.99)"; }}
-                        onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-                      >
-                        <Plus size={14} strokeWidth={2} aria-hidden="true" />
-                        Agregar serie
-                      </button>
-                    </div>
                   </div>
                 </div>
               )}
