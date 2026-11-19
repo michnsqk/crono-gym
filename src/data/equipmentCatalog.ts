@@ -105,7 +105,6 @@ const equipmentCategories: Record<string, EquipmentCategory> = {
   "CG-EQP-0071": "Máquina Selectorizada",
   "CG-EQP-0072": "Accesorio",
   "CG-EQP-0073": "Máquina Selectorizada",
-  "CG-EQP-0074": "Barra / Discos",
 };
 
 /**

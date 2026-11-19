@@ -482,28 +482,6 @@ export const CRONOS_ATTACHMENTS_GUIDE: readonly CronosAttachmentEntry[] = [
     chipSummary: "Barra: Olímpica 20 kg · Básicos compuestos",
   },
   {
-    equipmentId: "CG-EQP-0074",
-    name: "Soporte Landmine (Pivote Multidireccional T-Bar)",
-    shortName: "Soporte Landmine",
-    imageUrl: "/images/gym-equipment/CG-EQP-0074_soporte-landmine_vista-01.webp",
-    gripOrientation: "Neutro (Semipronado)",
-    family: "pull_back",
-    biomechanicalFocus:
-      "Ancla un extremo de la barra olímpica en un pivote de 360°, transformando la carga vertical en una curva de resistencia en arco diagonal.",
-    whyUseIt:
-      "Permite realizar remos en punta (T-Bar / Meadows) con gran tracción dorsal y presses diagonales muy amigables para hombros con pinzamiento.",
-    primaryMuscles: ["Dorsal Ancho", "Espalda Media (Romboides / Trapecio)", "Deltoides Anterior"],
-    secondaryMuscles: ["Oblicuos / Core Anti-rotación", "Pectoral Clavicular"],
-    muscleSlugs: ["upper-back", "trapezius", "deltoids", "obliques"],
-    recommendedSide: "back",
-    recommendedExercises: [
-      "Remo en punta (T-Bar) con soporte Landmine y maneral V",
-      "Remo Meadows unilateral en Landmine",
-      "Press Landmine unilateral de hombro y rotaciones de core",
-    ],
-    chipSummary: "Accesorio: Landmine · Arco diagonal T-Bar",
-  },
-  {
     equipmentId: "CG-EQP-0077",
     name: "Arm Blaster (Aislador Pectoral de Bíceps)",
     shortName: "Arm Blaster",

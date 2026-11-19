@@ -609,13 +609,6 @@ export const equipmentMap: Record<string, EquipmentData> = {
             { id: 1, src: "public/images/gym-equipment/CG-EQP-0073_maquinas-elipticas_vista-01.webp" },
         ]
     },
-    "CG-EQP-0074": {
-        id: "CG-EQP-0074",
-        name: "Soporte Landmine",
-        views: [
-            { id: 1, src: "public/images/gym-equipment/CG-EQP-0074_soporte-landmine_vista-01.webp" },
-        ]
-    },
     "CG-EQP-0075": {
         id: "CG-EQP-0075",
         name: "Banco Plano Individual",

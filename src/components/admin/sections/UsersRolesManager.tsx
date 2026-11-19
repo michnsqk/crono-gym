@@ -18,7 +18,7 @@ interface AdminUser {
 
 const ROLE_LABELS: Record<string, string> = {
   athlete: "Atleta",
-  coach: "Entrenador",
+  coach: "Coach",
   admin: "Admin",
 };
 
@@ -306,29 +306,46 @@ export function UsersRolesManager() {
             />
           </label>
 
-          <div className="grid grid-cols-[1fr_auto] items-end gap-2">
-            <label className="grid min-w-0 gap-1">
-              <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
+          <div className="grid gap-2.5">
+            <div className="grid gap-1.5">
+              <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
                 Rol a otorgar
               </span>
-              <select
-                value={role}
-                onChange={(event) => setRole(event.target.value)}
-                className="min-h-[42px] w-full rounded-xl px-3 text-sm outline-none"
+              <div
+                role="group"
+                aria-label="Rol a otorgar"
+                className="grid grid-cols-3 gap-1.5 rounded-xl p-1"
                 style={{
-                  borderRadius: RADIUS.control,
+                  backgroundColor: SURFACE.l1,
                   border: `1px solid ${GLASS.border}`,
-                  backgroundColor: GLASS.fill,
-                  color: TEXT.primary,
                 }}
               >
-                <option value="athlete">Atleta</option>
-                <option value="coach">Entrenador</option>
-                <option value="admin">Admin</option>
-              </select>
-            </label>
+                {(["athlete", "coach", "admin"] as const).map((opt) => {
+                  const active = role === opt;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setRole(opt)}
+                      className="h-10 rounded-lg px-2 text-xs font-semibold whitespace-nowrap transition-transform duration-150 active:scale-[0.98]"
+                      style={{
+                        backgroundColor: active ? ACCENT.base : "transparent",
+                        color: active ? TEXT.primary : TEXT.secondary,
+                      }}
+                    >
+                      {ROLE_LABELS[opt]}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
 
-            <GlassButton variant="primary" onClick={() => void grant()}>
+            <GlassButton
+              variant="primary"
+              className="h-11 w-full"
+              onClick={() => void grant()}
+            >
               Asignar rol
             </GlassButton>
           </div>

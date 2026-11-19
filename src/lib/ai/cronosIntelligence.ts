@@ -264,7 +264,7 @@ export function buildCronosGymInventoryBrief(userId?: string): string {
     .filter(Boolean)
     .join(" · ");
 
-  return `INVENTARIO CRONOS GYM (77 máquinas/manerales):\n${equipmentLines}\n\nFICHA 360 DEL ATLETA:\n${dossierParts}`;
+  return `INVENTARIO CRONOS GYM (76 máquinas/manerales):\n${equipmentLines}\n\nFICHA 360 DEL ATLETA:\n${dossierParts}`;
 }
 
 // ------------------------------------------------------------------ Thread Store

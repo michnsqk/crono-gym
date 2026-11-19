@@ -5,6 +5,7 @@ import { supabase } from "@/lib/supabase";
 import { coachEcosystemService } from "@/lib/coach/coachEcosystemService";
 import { equipmentMap } from "@/data/equipmentMap";
 import { CRONOS_MACHINERY_EXERCISES } from "@/lib/catalog/machinerySeedExercises";
+import { GymMachinesAtlasModal } from "@/components/workout/GymMachinesAtlasModal";
 import { ACCENT, GLASS, RADIUS, SPACE, STATUS, SURFACE, TEXT, TYPE } from "@/design/tokens";
 
 type RequestRow = {
@@ -19,6 +20,7 @@ type RequestRow = {
 export function ExerciseRequestsManager() {
   const [rows, setRows] = useState<RequestRow[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [atlasOpen, setAtlasOpen] = useState(false);
   const load = useCallback(async () => {
     try {
       const data = await coachEcosystemService.loadAllExerciseRequests();
@@ -71,7 +73,7 @@ export function ExerciseRequestsManager() {
   const curatedMachineryCount = CRONOS_MACHINERY_EXERCISES.length;
 
   return (
-    <div className="grid gap-4 pb-24">
+    <div className="grid gap-4 pb-28">
       <GlassCard style={{ padding: SPACE.lg }}>
         <div className="mb-3 flex items-center gap-2">
           <Cpu size={18} style={{ color: ACCENT.text }} aria-hidden="true" />
@@ -79,17 +81,24 @@ export function ExerciseRequestsManager() {
             className="m-0 font-bold"
             style={{ fontSize: TYPE.headline.size, color: TEXT.primary }}
           >
-            Ecosistema del Catálogo · Base y 77 Máquinas
+            Ecosistema del Catálogo · Base y {machineCount} Máquinas
           </h3>
         </div>
         <div className="grid gap-2 sm:grid-cols-3">
-          <div
-            className="rounded-xl p-3"
-            style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
+          <button
+            type="button"
+            onClick={() => setAtlasOpen(true)}
+            className="w-full cursor-pointer rounded-xl border border-white/10 p-3 text-left transition-all duration-150 hover:border-white/25 active:scale-[0.98]"
+            style={{ backgroundColor: GLASS.fill }}
           >
-            <span className="block text-xs" style={{ color: TEXT.secondary }}>
-              Maquinaria Física Cronos
-            </span>
+            <div className="flex items-center justify-between gap-2">
+              <span className="block text-xs" style={{ color: TEXT.secondary }}>
+                Maquinaria Física Cronos
+              </span>
+              <span className="text-[11px] font-semibold" style={{ color: ACCENT.text }}>
+                Ver Atlas →
+              </span>
+            </div>
             <strong
               className="mt-1 block font-mono tabular-nums"
               style={{ fontSize: TYPE.title2.size, color: TEXT.primary }}
@@ -97,9 +106,9 @@ export function ExerciseRequestsManager() {
               {machineCount}
             </strong>
             <span className="text-xs" style={{ color: TEXT.tertiary }}>
-              CG-EQP-0001 a CG-EQP-{String(machineCount).padStart(4, "0")}
+              {machineCount} máquinas activas
             </span>
-          </div>
+          </button>
           <div
             className="rounded-xl p-3"
             style={{ backgroundColor: GLASS.fill, border: `1px solid ${GLASS.border}` }}
@@ -205,6 +214,8 @@ export function ExerciseRequestsManager() {
           </div>
         )}
       </GlassCard>
+
+      <GymMachinesAtlasModal open={atlasOpen} onClose={() => setAtlasOpen(false)} />
     </div>
   );
 }

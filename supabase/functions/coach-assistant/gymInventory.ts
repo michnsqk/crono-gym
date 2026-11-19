@@ -53,7 +53,6 @@ export const GYM_INVENTORY: readonly InventorySection[] = [
       { name: "Barra hexagonal", ids: ["CG-EQP-0054"] },
       { name: "Barra romana", ids: ["CG-EQP-0053"] },
       { name: "Barra de dominadas", ids: ["CG-EQP-0051"] },
-      { name: "Soporte landmine", ids: ["CG-EQP-0074"] },
       { name: "Discos de 2.5, 5, 10, 15 y 20 kg", ids: [] },
     ],
   },

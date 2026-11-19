@@ -738,7 +738,7 @@ const SPECS: readonly SeedSpec[] = [
   {
     id: "cg-mach-0044",
     nameEs: "Press unilateral diagonal en soporte Landmine",
-    equipmentId: "CG-EQP-0074",
+    equipmentId: "CG-EQP-0055",
     equipmentText: "barbell",
     bodyPart: "shoulders",
     muscleGroup: "shoulders",
@@ -1521,7 +1521,7 @@ const SPECS: readonly SeedSpec[] = [
   {
     id: "cg-mach-0096",
     nameEs: "Press de pecho a dos manos de pie en Landmine",
-    equipmentId: "CG-EQP-0074",
+    equipmentId: "CG-EQP-0055",
     equipmentText: "barbell",
     bodyPart: "chest",
     muscleGroup: "chest",
@@ -2018,7 +2018,7 @@ const SPECS: readonly SeedSpec[] = [
   {
     id: "cg-mach-0129",
     nameEs: "Sentadilla en Landmine al pecho",
-    equipmentId: "CG-EQP-0074",
+    equipmentId: "CG-EQP-0055",
     equipmentText: "barbell",
     bodyPart: "upper legs",
     muscleGroup: "quadriceps",
@@ -2396,7 +2396,7 @@ const SPECS: readonly SeedSpec[] = [
   {
     id: "cg-mach-0154",
     nameEs: "Press de pecho en Landmine de pie o arrodillado (Pectoral Alto)",
-    equipmentId: "CG-EQP-0074",
+    equipmentId: "CG-EQP-0055",
     equipmentText: "barbell",
     bodyPart: "chest",
     muscleGroup: "chest",

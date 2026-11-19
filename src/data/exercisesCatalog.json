@@ -44523,10 +44523,10 @@
     "created_at": "2026-03-18T12:31:32.885926+00:00",
     "attribution": "© Gym visual — https://gymvisual.com/",
     "availableInCronosGym": true,
-    "equipment_id": "CG-EQP-0050",
-    "equipment_name": "Soporte Landmine",
+    "equipment_id": "CG-EQP-0055",
+    "equipment_name": "Barra Olímpica",
     "image_urls": [
-      "/images/gym-equipment/CG-EQP-0074_soporte-landmine_vista-01.webp"
+      "/images/gym-equipment/CG-EQP-0055_barra-olimpica_vista-01.webp"
     ],
     "station_key": "free_weight_area",
     "movement_pattern": "isolation"
