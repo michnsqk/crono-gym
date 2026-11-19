@@ -490,10 +490,10 @@ export function RoutinesPage() {
         <div
           style={{
             position: "fixed",
-            top: SPACE.md,
+            top: "calc(env(safe-area-inset-top, 0px) + 72px)",
             left: SPACE.md,
             right: SPACE.md,
-            zIndex: Z_INDEX.toast,
+            zIndex: 50,
             display: "flex",
             alignItems: "center",
             gap: SPACE.sm,

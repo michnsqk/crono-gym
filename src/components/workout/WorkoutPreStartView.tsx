@@ -284,12 +284,15 @@ export function WorkoutPreStartView({
                         />
                       </div>
                       <span
+                        className="font-mono whitespace-nowrap"
                         style={{
                           fontFamily: TYPE.mono.font,
                           fontVariantNumeric: "tabular-nums",
                           fontSize: TYPE.caption.size,
                           color: TEXT.tertiary,
                           minWidth: "4.5ch",
+                          whiteSpace: "nowrap",
+                          flexShrink: 0,
                           textAlign: "right",
                         }}
                       >

@@ -10,6 +10,7 @@
  */
 
 import { normaliseExerciseName } from "@/hooks/useExerciseCatalog";
+import { getExerciseDisplayName } from "@/utils/exerciseTranslation";
 
 export interface RoutineTemplate {
   id: string;
@@ -56,20 +57,32 @@ export function resolveExercise(
   const wantedSlug = slug(name);
   if (wanted === "" && wantedSlug === "") return null;
 
+  const candidateNames = (e: { name: string; name_es?: string | null }): string[] => {
+    const names = [e.name];
+    if (e.name_es) names.push(e.name_es);
+    const display = getExerciseDisplayName({ name: e.name, name_es: e.name_es ?? null });
+    if (display && display !== e.name) names.push(display);
+    return names;
+  };
+
   // 1. Exacto normalizado
-  const exact = catalog.find((e) => normaliseExerciseName(e.name) === wanted);
+  const exact = catalog.find((e) =>
+    candidateNames(e).some((c) => normaliseExerciseName(c) === wanted),
+  );
   if (exact) return { id: exact.id, name: exact.name, name_es: exact.name_es ?? null };
 
   // 2. Slug (ej. "press militar" vs "press-militar")
-  const bySlug = catalog.find((e) => slug(e.name) === wantedSlug);
+  const bySlug = catalog.find((e) =>
+    candidateNames(e).some((c) => slug(c) === wantedSlug),
+  );
   if (bySlug) return { id: bySlug.id, name: bySlug.name, name_es: bySlug.name_es ?? null };
 
   // 3. Contención (ej. "sentadilla" dentro de "sentadilla trasera")
-  const byContain = catalog.find(
-    (e) => {
-      const en = normaliseExerciseName(e.name);
-      return en.includes(wanted) || wanted.includes(en);
-    },
+  const byContain = catalog.find((e) =>
+    candidateNames(e).some((c) => {
+      const en = normaliseExerciseName(c);
+      return en !== "" && (en.includes(wanted) || wanted.includes(en));
+    }),
   );
   if (byContain) return { id: byContain.id, name: byContain.name, name_es: byContain.name_es ?? null };
 

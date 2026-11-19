@@ -402,7 +402,68 @@ export const coachEcosystemService = {
   },
 
   async cloneTemplateForUser(templateId: string, userId: string): Promise<string> {
-    // Static official templates ship with the app; clone them first.
+    // 1. Official cloud templates in `public.routine_templates` via atomic RPC
+    if (UUID_FRAGMENT.test(templateId)) {
+      const { data: rpcRoutineId, error: rpcError } = await supabase.rpc(
+        "clone_routine_template",
+        { p_template_id: templateId },
+      );
+      if (!rpcError && typeof rpcRoutineId === "string" && rpcRoutineId.length > 0) {
+        emitSync("template-cloned");
+        return rpcRoutineId;
+      }
+
+      // Direct table fallback in case the RPC isn't deployed in an environment
+      const { data: tplRow } = await supabase
+        .from("routine_templates")
+        .select(
+          "id,title,description,routine_template_exercises(exercise_id,target_sets,rest_seconds,order_index,day_index,day_label,target_reps_min,target_reps_max)",
+        )
+        .eq("id", templateId)
+        .maybeSingle();
+
+      if (tplRow) {
+        const linksRaw = Array.isArray(tplRow.routine_template_exercises)
+          ? tplRow.routine_template_exercises
+          : [];
+        if (linksRaw.length === 0) {
+          throw new Error("La plantilla no tiene ejercicios disponibles");
+        }
+        const { data: routine, error: routineError } = await supabase
+          .from("routines")
+          .insert({
+            user_id: userId,
+            title: tplRow.title,
+            description: tplRow.description,
+            source: "user",
+          })
+          .select("id")
+          .single();
+        if (routineError || !routine) {
+          throw routineError ?? new Error("No se pudo crear la rutina");
+        }
+        const links = linksRaw.map((row) => ({
+          routine_id: routine.id,
+          exercise_id: row.exercise_id,
+          target_sets: row.target_sets,
+          rest_seconds: row.rest_seconds ?? 90,
+          order_index: row.order_index,
+          day_index: row.day_index,
+          day_label: row.day_label ?? "",
+          target_reps_min: row.target_reps_min,
+          target_reps_max: row.target_reps_max,
+        }));
+        const { error: linksError } = await supabase.from("routine_exercises").insert(links);
+        if (linksError) {
+          await supabase.from("routines").delete().eq("id", routine.id);
+          throw linksError;
+        }
+        emitSync("template-cloned");
+        return routine.id;
+      }
+    }
+
+    // 2. Static official templates (offline/local fallback)
     const localTemplate = ROUTINE_TEMPLATES.find((template) => template.id === templateId);
     if (localTemplate) {
       const { data: exercises, error: exercisesError } = await supabase
@@ -431,13 +492,20 @@ export const coachEcosystemService = {
           } : null;
         }).filter((x): x is NonNullable<typeof x> => x !== null),
       );
-      if (links.length === 0) throw new Error("La plantilla no tiene ejercicios disponibles");
+      if (links.length === 0) {
+        await supabase.from("routines").delete().eq("id", routine.id);
+        throw new Error("La plantilla no tiene ejercicios disponibles");
+      }
       const { error: linksError } = await supabase.from("routine_exercises").insert(links);
-      if (linksError) throw linksError;
+      if (linksError) {
+        await supabase.from("routines").delete().eq("id", routine.id);
+        throw linksError;
+      }
       emitSync("template-cloned");
       return routine.id;
     }
-    // Otherwise it is a coach-authored template stored in `routines` (is_template).
+
+    // 3. Coach-authored template stored in `routines` (is_template = true)
     return cloneCoachTemplate(templateId, userId);
   },
 

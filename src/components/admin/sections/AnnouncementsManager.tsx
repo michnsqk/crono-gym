@@ -230,8 +230,8 @@ export function AnnouncementsManager() {
           />
         </label>
 
-        {/* Bento Row: Tipo de aviso + Fijar en /hoy en 2 columnas */}
-        <div className="grid grid-cols-2 gap-2.5">
+        {/* Bento Row: Tipo de aviso + Fijar en /hoy (apilado en móvil) */}
+        <div className="grid min-w-0 grid-cols-1 gap-3 sm:grid-cols-2">
           <label className="grid min-w-0 gap-1">
             <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Tipo de aviso
@@ -248,7 +248,7 @@ export function AnnouncementsManager() {
           </label>
           <div className="flex min-w-0 items-end">
             <label
-              className="flex min-h-[42px] w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-xl px-3 text-xs font-semibold"
+              className="flex h-11 w-full min-w-0 cursor-pointer items-center justify-between gap-2 rounded-xl px-3 text-xs font-semibold transition-transform duration-150 active:scale-[0.98]"
               style={{
                 backgroundColor: pinned ? ACCENT.subtle : GLASS.fill,
                 border: `1px solid ${pinned ? ACCENT.border : GLASS.border}`,
@@ -267,8 +267,8 @@ export function AnnouncementsManager() {
           </div>
         </div>
 
-        {/* Bento Row compacta: URL de imagen + Subir imagen */}
-        <div className="grid grid-cols-[1fr_auto] items-end gap-2">
+        {/* Bento Row: URL de imagen + Subir imagen (apilado en móvil para evitar desborde) */}
+        <div className="grid min-w-0 grid-cols-1 items-end gap-2.5 sm:grid-cols-[1fr_auto]">
           <label className="grid min-w-0 gap-1">
             <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               URL de imagen (opcional)
@@ -281,7 +281,7 @@ export function AnnouncementsManager() {
             />
           </label>
           <label
-            className="inline-flex min-h-[42px] shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3 text-xs font-semibold text-white"
+            className="inline-flex h-11 w-full shrink-0 cursor-pointer items-center justify-center gap-1.5 rounded-xl px-3.5 text-xs font-semibold text-white transition-transform duration-150 active:scale-[0.98] sm:w-auto"
             style={{
               backgroundColor: GLASS.fillRaised,
               border: `1px solid ${GLASS.border}`,

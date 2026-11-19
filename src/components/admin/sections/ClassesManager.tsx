@@ -186,7 +186,7 @@ export function ClassesManager() {
           </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2">
           <label className="grid min-w-0 gap-1">
             <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Nombre de la clase
@@ -211,7 +211,7 @@ export function ClassesManager() {
           </label>
         </div>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-3">
           <label className="grid min-w-0 gap-1">
             <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Precio (MXN)
@@ -278,7 +278,7 @@ export function ClassesManager() {
             </select>
           </label>
 
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-2">
             <label className="grid min-w-0 gap-1">
               <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
                 Día

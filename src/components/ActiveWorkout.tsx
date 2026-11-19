@@ -204,8 +204,8 @@ function SessionHeader({
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
-        gap: SPACE.md,
-        padding: `calc(10px + env(safe-area-inset-top, 0px)) 16px 10px 16px`,
+        gap: 8,
+        padding: `calc(10px + env(safe-area-inset-top, 0px)) 12px 10px 12px`,
         background: "rgba(0, 0, 0, 0.85)",
         backdropFilter: "blur(20px)",
         WebkitBackdropFilter: "blur(20px)",
@@ -220,7 +220,7 @@ function SessionHeader({
               display: "inline-flex",
               alignItems: "center",
               gap: 6,
-              padding: "6px 12px",
+              padding: "5px 9px",
               borderRadius: 9999,
               background: "rgba(48, 209, 88, 0.15)",
               border: "1px solid rgba(48, 209, 88, 0.3)",
@@ -253,14 +253,13 @@ function SessionHeader({
         {exerciseLabel && (
           <div
             style={{
-              fontSize: "12px",
+              fontSize: "11px",
               fontWeight: 600,
+              fontFamily: TYPE.mono.font,
               fontVariantNumeric: "tabular-nums",
               color: TEXT.secondary,
               whiteSpace: "nowrap",
-              minWidth: 0,
-              overflow: "hidden",
-              textOverflow: "ellipsis",
+              flexShrink: 0,
             }}
           >
             {exerciseLabel}
@@ -2007,19 +2006,17 @@ export function ActiveWorkout({
                     <div
                       style={{
                         display: "grid",
-                        gridTemplateColumns: "30px 44px minmax(0, 1fr) minmax(0, 1fr) 36px 32px 32px",
+                        gridTemplateColumns: "32px minmax(68px, 1fr) minmax(68px, 1fr) 44px 28px",
                         alignItems: "center",
-                        gap: 4,
-                        padding: "0 6px 6px 6px",
+                        gap: 6,
+                        padding: "0 4px 6px 4px",
                         borderBottom: "1px solid rgba(255, 255, 255, 0.06)",
                         marginBottom: 4,
                       }}
                     >
                       <div style={{ fontSize: "10px", fontWeight: 700, color: TEXT.tertiary, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center" }}>#</div>
-                      <div style={{ fontSize: "10px", fontWeight: 700, color: TEXT.tertiary, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center" }}>ANT.</div>
                       <div style={{ fontSize: "10px", fontWeight: 700, color: TEXT.tertiary, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center" }}>KG/LB</div>
                       <div style={{ fontSize: "10px", fontWeight: 700, color: TEXT.tertiary, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center" }}>REPS</div>
-                      <div style={{ fontSize: "10px", fontWeight: 700, color: TEXT.tertiary, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center" }}>RPE</div>
                       <div style={{ fontSize: "10px", fontWeight: 700, color: TEXT.tertiary, textTransform: "uppercase", letterSpacing: "0.08em", textAlign: "center" }}>✓</div>
                       <div aria-hidden="true" />
                     </div>
@@ -2458,7 +2455,7 @@ export function ActiveWorkout({
                     alignItems: "center",
                     justifyContent: "center",
                     gap: 4,
-                    padding: "6px 12px",
+                    padding: "5px 9px",
                     borderRadius: 16,
                     background: ACCENT.base,
                     border: "none",

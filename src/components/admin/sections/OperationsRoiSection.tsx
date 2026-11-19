@@ -214,7 +214,7 @@ export function OperationsRoiSection() {
           </span>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid min-w-0 grid-cols-2 gap-2.5 sm:grid-cols-3">
           <div className="rounded-xl bg-[#09090B] p-3">
             <div className="text-[11px]" style={{ color: TEXT.secondary }}>
               VIP Activos

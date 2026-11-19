@@ -243,7 +243,7 @@ export function PortalPanel({
 
         <nav
           aria-label="Secciones del portal"
-          className={`${card} flex items-center gap-1 overflow-x-auto p-1`}
+          className={`${card} no-scrollbar flex items-center gap-1.5 overflow-x-auto p-1.5 pr-4`}
         >
           {(
             [

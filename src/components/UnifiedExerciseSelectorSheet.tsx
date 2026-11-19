@@ -353,15 +353,57 @@ export function UnifiedExerciseSelectorSheet({
       return true;
     });
     if (q) {
-      attributeFiltered.sort((a, b) => {
-        const aMeta = searchMetaById.get(a.id);
-        const bMeta = searchMetaById.get(b.id);
-        const aScore =
-          (aMeta?.name.includes(qFold) ? 4 : 0) + (aMeta?.body.includes(qFold) ? 2 : 0);
-        const bScore =
-          (bMeta?.name.includes(qFold) ? 4 : 0) + (bMeta?.body.includes(qFold) ? 2 : 0);
-        return bScore - aScore;
-      });
+      const COMPOUND_PATTERNS = [
+        "press de banca",
+        "press inclinado",
+        "bench press",
+        "incline",
+        "sentadilla",
+        "squat",
+        "prensa",
+        "leg press",
+        "peso muerto",
+        "deadlift",
+        "jalon",
+        "pulldown",
+        "dominada",
+        "pull-up",
+        "pull up",
+        "remo",
+        "row",
+        "press militar",
+        "shoulder press",
+        "fondos",
+        "dip",
+        "curl femoral",
+        "extension de cuadriceps",
+      ];
+      const STRETCH_PATTERNS = [
+        "estiramiento",
+        "stretch",
+        "movilidad",
+        "mobility",
+        "yoga",
+        "foam",
+        "rodillo",
+      ];
+
+      const rankScore = (ex: Exercise) => {
+        const meta = searchMetaById.get(ex.id);
+        const name = meta?.name ?? "";
+        const body = meta?.body ?? "";
+        let score = (name.includes(qFold) ? 6 : 0) + (body.includes(qFold) ? 3 : 0);
+
+        if (COMPOUND_PATTERNS.some((p) => name.includes(p))) score += 10;
+        if (ex.equipment_id && ex.equipment_id !== "NONE") score += 6;
+        if ((ex as { availableInCronosGym?: boolean }).availableInCronosGym !== false) score += 2;
+        if (STRETCH_PATTERNS.some((p) => name.includes(p))) score -= 14;
+        if (ex.equipment === "band" || ex.equipment === "body weight") score -= 2;
+
+        return score;
+      };
+
+      attributeFiltered.sort((a, b) => rankScore(b) - rankScore(a));
     }
     if (tab === "warmup" || selectedMuscles.length === 0) return attributeFiltered;
     return filterByMuscles(attributeFiltered, selectedMuscles).results;
@@ -518,8 +560,8 @@ export function UnifiedExerciseSelectorSheet({
         }}
       >
         <header
+          className="px-4 py-3"
           style={{
-            padding: `${SPACE.sm}px ${SPACE.md}px`,
             borderBottom: `1px solid ${GLASS.border}`,
             background: "rgba(28,28,30,0.8)",
             backdropFilter: "blur(8px)",
@@ -584,13 +626,15 @@ export function UnifiedExerciseSelectorSheet({
 
         <div
           ref={scrollContainer}
+          className="px-4"
           style={{
             flex: 1,
             overflowY: "auto",
             overflowX: "hidden",
             overscrollBehavior: "contain",
             WebkitOverflowScrolling: "touch",
-            padding: `${SPACE.sm}px ${SPACE.md}px ${mode === "multiple" && selectedIds.size > 0 ? 144 : SPACE.xl}px`,
+            paddingTop: SPACE.sm,
+            paddingBottom: mode === "multiple" && selectedIds.size > 0 ? 144 : SPACE.xl,
           }}
         >
           <div
@@ -1139,7 +1183,22 @@ function SelectorCard({ exercise, order, selected, multiSelect, expanded, alread
 }
 
 function RemovableChip({ label, onRemove }: { label: string; onRemove: () => void }) {
-  return <button type="button" onClick={onRemove} style={{ display: "inline-flex", alignItems: "center", gap: SPACE.xs, minHeight: MOTION.minTouchTarget, padding: `0 ${SPACE.sm}px`, borderRadius: RADIUS.pill, border: `1px solid ${ACCENT.border}`, background: ACCENT.subtle, color: TEXT.primary, fontSize: TYPE.caption.size, cursor: "pointer" }}>{label}<X size={12} aria-hidden="true" /></button>;
+  return (
+    <button
+      type="button"
+      onClick={onRemove}
+      className="inline-flex h-7 items-center gap-1.5 rounded-full px-3 text-xs font-medium transition-transform duration-150 active:scale-[0.98]"
+      style={{
+        border: `1px solid ${ACCENT.border}`,
+        background: ACCENT.subtle,
+        color: TEXT.primary,
+        cursor: "pointer",
+      }}
+    >
+      <span>{label}</span>
+      <X size={12} aria-hidden="true" />
+    </button>
+  );
 }
 function StateBlock({ text, tone }: { text: string; tone?: "error" }) {
   return <div role={tone === "error" ? "alert" : undefined} style={{ padding: SPACE.section, textAlign: "center", color: tone === "error" ? DANGER.base : TEXT.tertiary, fontSize: TYPE.subhead.size }}>{text}</div>;

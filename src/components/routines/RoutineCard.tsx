@@ -201,15 +201,14 @@ export function RoutineCard({
     <GlassCard as="article" raised style={{ borderRadius: RADIUS.card, borderColor: GLASS.borderStrong, boxShadow: GLASS.shadow }}>
       <div style={{ display: "flex", flexDirection: "column", gap: SPACE.md, padding: SPACE.md }}>
         <div style={{ display: "flex", flexDirection: "column", gap: SPACE.xs }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: SPACE.sm }}>
-            <div style={{ display: "flex", alignItems: "center", gap: SPACE.xs, minWidth: 0 }}>
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
               {isWeekly && (
                 <span
                   style={{
                     display: "inline-flex",
                     alignItems: "center",
                     justifyContent: "center",
-                    minWidth: "auto",
                     padding: "2px 8px",
                     borderRadius: RADIUS.sm,
                     background: ACCENT.subtle,
@@ -218,6 +217,7 @@ export function RoutineCard({
                     fontWeight: 600,
                     letterSpacing: TYPE.label.tracking,
                     textTransform: "uppercase",
+                    whiteSpace: "nowrap",
                     flexShrink: 0,
                   }}
                 >
@@ -243,22 +243,6 @@ export function RoutineCard({
                   Asignada por tu Coach
                 </span>
               )}
-              <h3
-                style={{
-                  margin: 0,
-                  minWidth: 0,
-                  fontSize: TYPE.title2.size,
-                  lineHeight: TYPE.title2.lineHeight,
-                  fontWeight: TYPE.title2.weight,
-                  letterSpacing: TYPE.title2.tracking,
-                  color: TEXT.primary,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {routine.title}
-              </h3>
             </div>
             <button
               ref={triggerRef}
@@ -285,6 +269,22 @@ export function RoutineCard({
               <MoreHorizontal size={20} aria-hidden="true" />
             </button>
           </div>
+          <h3
+            style={{
+              margin: 0,
+              minWidth: 0,
+              fontSize: TYPE.title2.size,
+              lineHeight: TYPE.title2.lineHeight,
+              fontWeight: TYPE.title2.weight,
+              letterSpacing: TYPE.title2.tracking,
+              color: TEXT.primary,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            {routine.title}
+          </h3>
 
           {muscles.length > 0 && (
             <div style={{ display: "flex", flexWrap: "wrap", gap: SPACE.xs }}>
@@ -375,7 +375,7 @@ export function RoutineCard({
               fontVariantNumeric: "tabular-nums",
             }}
           >
-            {metrics.exerciseCount} {ROUTINES_UI_LABELS.exercises} • {metrics.trainingDays > 0 ? `${metrics.trainingDays} días` : "0 días"} • ~{metrics.minutes} {ROUTINES_UI_LABELS.minApprox}
+            {metrics.exerciseCount} {ROUTINES_UI_LABELS.exercises} • {metrics.trainingDays === 1 ? "1 día" : `${metrics.trainingDays} días`} • ~{metrics.minutes} {ROUTINES_UI_LABELS.minApprox}
           </p>
 
           {incomplete && (

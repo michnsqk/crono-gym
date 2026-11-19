@@ -250,7 +250,7 @@ export function ExerciseStage({
       )}
 
       <div
-        className="flex w-full items-center gap-1.5 overflow-x-auto rounded-full border border-white/[0.06] px-2 py-1.5 backdrop-blur-xl"
+        className="no-scrollbar flex w-full items-center gap-1.5 overflow-x-auto rounded-full border border-white/[0.06] px-2.5 py-1.5 backdrop-blur-xl"
         style={{ backgroundColor: "rgba(28, 28, 30, 0.80)" }}
       >
         <span className="sr-only">

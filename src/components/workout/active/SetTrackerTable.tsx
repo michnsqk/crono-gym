@@ -150,18 +150,25 @@ export function SetTrackerTable({
       role="group"
       aria-label={`Serie ${setNumber}`}
       style={{
-        display: "grid",
-        gridTemplateColumns: "30px 44px minmax(0, 1fr) minmax(0, 1fr) 36px 32px 32px",
-        alignItems: "center",
+        display: "flex",
+        flexDirection: "column",
         gap: 4,
-        padding: "6px 6px",
+        padding: "6px 4px",
         borderBottom: index > 0 ? "1px solid rgba(255, 255, 255, 0.06)" : "none",
         background: isCompleted ? "rgba(48, 209, 88, 0.06)" : "transparent",
         borderRadius: 10,
         transition: "background 200ms ease",
-        minHeight: 44,
       }}
     >
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "32px minmax(68px, 1fr) minmax(68px, 1fr) 44px 28px",
+          alignItems: "center",
+          gap: 6,
+          minHeight: 44,
+        }}
+      >
       {/* Serie Badge - Tap to open type selector */}
       <button
         type="button"
@@ -356,131 +363,23 @@ export function SetTrackerTable({
         </div>
       )}
 
-      {/* Anterior - Tap to fill from previous */}
-      <button
-        type="button"
-        onClick={handleFillFromPrevious}
-        disabled={!hasPrevious}
-        aria-label={
-          hasPrevious ? `Rellenar con valores anteriores: ${previousText}` : "Sin datos anteriores"
-        }
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minWidth: 0,
-          width: "100%",
-          height: "100%",
-          minHeight: 34,
-          fontSize: "11px",
-          fontFamily: TYPE.mono.font,
-          fontVariantNumeric: "tabular-nums",
-          color: hasPrevious ? TEXT.secondary : TEXT.disabled,
-          background: "transparent",
-          border: "none",
-          padding: "0 4px",
-          textAlign: "center",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          cursor: hasPrevious ? "pointer" : "not-allowed",
-          opacity: hasPrevious ? 1 : 0.4,
-          transition: "color 150ms ease, background 150ms ease",
-          borderRadius: 8,
-        }}
-        onMouseEnter={(e) => {
-          if (hasPrevious) e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-        }}
-      >
-        {previousText}
-      </button>
-
-      {/* KG/LB Input + optional plate diagram shortcut */}
-      <div style={{ display: "flex", alignItems: "center", gap: 3, minWidth: 0 }}>
-        <input
-          type="number"
-          inputMode="decimal"
-          aria-label={`Peso serie ${setNumber}`}
-          value={entry.weight}
-          placeholder="0"
-          onChange={(e) => onChange(index, { ...entry, weight: e.target.value })}
-          onFocus={(e) => {
-            e.target.select();
-          }}
-          className="cronos-set-input"
-          style={{
-            flex: 1,
-            minWidth: 0,
-            width: "100%",
-            height: 42,
-            background: "#2C2C2E",
-            border: "1px solid rgba(255, 255, 255, 0.10)",
-            borderRadius: 12,
-            padding: "0 4px",
-            textAlign: "center",
-            color: TEXT.primary,
-            fontSize: "15px",
-            fontFamily: TYPE.mono.font,
-            fontVariantNumeric: "tabular-nums",
-            fontWeight: 700,
-            outline: "none",
-            transition: "border-color 150ms ease, background 150ms ease",
-          }}
-          onFocusCapture={(e) => {
-            e.currentTarget.style.borderColor = "rgba(255, 59, 48, 0.6)";
-          }}
-          onBlurCapture={(e) => {
-            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.10)";
-          }}
-        />
-        {onOpenPlates && (
-          <button
-            type="button"
-            onClick={() => onOpenPlates(index, entry.weight)}
-            aria-label={`Calcular discos serie ${setNumber}`}
-            title="Calcular discos por lado"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 24,
-              height: 42,
-              borderRadius: 10,
-              border: `1px solid ${GLASS.border}`,
-              background: SURFACE.sunken,
-              color: TEXT.secondary,
-              cursor: "pointer",
-              flexShrink: 0,
-            }}
-          >
-            <Disc size={12} strokeWidth={2} aria-hidden="true" />
-          </button>
-        )}
-      </div>
-
-      {/* REPS Input */}
+      {/* KG/LB Input */}
       <input
         type="number"
-        inputMode="numeric"
-        aria-label={`Repeticiones serie ${setNumber}`}
-        value={entry.reps}
-        placeholder="10"
-        onChange={(e) => onChange(index, { ...entry, reps: e.target.value })}
+        inputMode="decimal"
+        aria-label={`Peso serie ${setNumber}`}
+        value={entry.weight}
+        placeholder={previousKg != null ? String(previousKg) : "0"}
+        onChange={(e) => onChange(index, { ...entry, weight: e.target.value })}
         onFocus={(e) => {
           e.target.select();
         }}
-        className="cronos-set-input"
+        className="cronos-set-input h-11 min-w-[68px] w-full font-mono text-center"
         style={{
-          width: "100%",
-          height: 42,
           background: "#2C2C2E",
           border: "1px solid rgba(255, 255, 255, 0.10)",
           borderRadius: 12,
-          padding: "0 4px",
-          textAlign: "center",
+          padding: "0 6px",
           color: TEXT.primary,
           fontSize: "15px",
           fontFamily: TYPE.mono.font,
@@ -497,41 +396,38 @@ export function SetTrackerTable({
         }}
       />
 
-      {/* RPE Button */}
-      <button
-        type="button"
-        aria-label={`RPE serie ${setNumber}: ${entry.rpe || "—"}`}
+      {/* REPS Input */}
+      <input
+        type="number"
+        inputMode="numeric"
+        aria-label={`Repeticiones serie ${setNumber}`}
+        value={entry.reps}
+        placeholder={previousReps != null ? String(previousReps) : "10"}
+        onChange={(e) => onChange(index, { ...entry, reps: e.target.value })}
+        onFocus={(e) => {
+          e.target.select();
+        }}
+        className="cronos-set-input h-11 min-w-[68px] w-full font-mono text-center"
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
-          height: 42,
-          borderRadius: 12,
           background: "#2C2C2E",
           border: "1px solid rgba(255, 255, 255, 0.10)",
-          color: TEXT.tertiary,
-          fontSize: "16px",
+          borderRadius: 12,
+          padding: "0 6px",
+          color: TEXT.primary,
+          fontSize: "15px",
           fontFamily: TYPE.mono.font,
           fontVariantNumeric: "tabular-nums",
           fontWeight: 700,
-          cursor: "pointer",
-          flexShrink: 0,
-          transition: "transform 150ms ease",
+          outline: "none",
+          transition: "border-color 150ms ease, background 150ms ease",
         }}
-        className="active:scale-[0.95]"
-        onMouseDown={(e) => {
-          e.currentTarget.style.transform = "scale(0.95)";
+        onFocusCapture={(e) => {
+          e.currentTarget.style.borderColor = "rgba(255, 59, 48, 0.6)";
         }}
-        onMouseUp={(e) => {
-          e.currentTarget.style.transform = "scale(1)";
+        onBlurCapture={(e) => {
+          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.10)";
         }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.transform = "scale(1)";
-        }}
-      >
-        {entry.rpe || "—"}
-      </button>
+      />
 
       {/* Check Button */}
       <button
@@ -547,13 +443,13 @@ export function SetTrackerTable({
           }
           onChange(index, { ...entry, completed: !entry.completed });
         }}
-        className="rounded-full transition-transform active:scale-95"
+        className="rounded-full transition-transform active:scale-[0.98]"
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          width: 32,
-          height: 32,
+          width: 44,
+          height: 44,
           borderRadius: 9999,
           background: isCompleted ? "#30D158" : "#2C2C2E",
           color: isCompleted ? "#000" : "rgba(255, 255, 255, 0.45)",
@@ -564,21 +460,22 @@ export function SetTrackerTable({
           boxShadow: isCompleted ? "0 0 14px rgba(48, 209, 88, 0.45)" : "none",
         }}
       >
-        <Check size={15} strokeWidth={3} />
+        <Check size={16} strokeWidth={3} />
       </button>
 
       {/* Remove Button */}
-      {canRemove && totalSets > 1 && (
+      {canRemove && totalSets > 1 ? (
         <button
           type="button"
           onClick={handleRemove}
           aria-label={`Eliminar serie ${setNumber}`}
+          className="transition-transform active:scale-[0.98]"
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            width: 32,
-            height: 32,
+            width: 28,
+            height: 36,
             borderRadius: 10,
             background: "rgba(122, 47, 61, 0.15)",
             border: "1px solid rgba(224, 141, 156, 0.3)",
@@ -587,18 +484,74 @@ export function SetTrackerTable({
             flexShrink: 0,
             transition: "all 150ms ease",
           }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(122, 47, 61, 0.3)";
-            e.currentTarget.style.borderColor = "rgba(224, 141, 156, 0.6)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(122, 47, 61, 0.15)";
-            e.currentTarget.style.borderColor = "rgba(224, 141, 156, 0.3)";
-          }}
         >
-          <X size={14} strokeWidth={2} aria-hidden="true" />
+          <X size={13} strokeWidth={2} aria-hidden="true" />
         </button>
+      ) : (
+        <span aria-hidden="true" />
       )}
+      </div>
+
+      {/* Compact secondary telemetry strip: Anterior (tap-to-fill) + RPE + Discos */}
+      <div
+        className="flex items-center justify-between gap-2 pl-[38px] pr-1"
+        style={{ minHeight: 24 }}
+      >
+        {hasPrevious ? (
+          <button
+            type="button"
+            onClick={handleFillFromPrevious}
+            aria-label={`Rellenar con valores anteriores: ${previousText}`}
+            className="min-w-0 truncate font-mono text-[11px] tabular-nums"
+            style={{
+              background: "transparent",
+              border: "none",
+              padding: 0,
+              color: TEXT.secondary,
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+          >
+            Ant: {previousText}
+          </button>
+        ) : (
+          <span aria-hidden="true" />
+        )}
+
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            aria-label={`RPE serie ${setNumber}: ${entry.rpe || "—"}`}
+            className="rounded-md px-1.5 py-0.5 font-mono text-[11px] tabular-nums"
+            style={{
+              background: "rgba(255, 255, 255, 0.05)",
+              border: `1px solid ${GLASS.border}`,
+              color: TEXT.tertiary,
+              cursor: "pointer",
+            }}
+          >
+            RPE {entry.rpe || "—"}
+          </button>
+          {onOpenPlates && (
+            <button
+              type="button"
+              onClick={() => onOpenPlates(index, entry.weight)}
+              aria-label={`Calcular discos serie ${setNumber}`}
+              title="Calcular discos por lado"
+              className="inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11px]"
+              style={{
+                background: "rgba(255, 255, 255, 0.05)",
+                border: `1px solid ${GLASS.border}`,
+                color: TEXT.secondary,
+                cursor: "pointer",
+              }}
+            >
+              <Disc size={11} strokeWidth={2} aria-hidden="true" />
+              <span>Discos</span>
+            </button>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

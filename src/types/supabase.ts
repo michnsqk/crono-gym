@@ -1537,6 +1537,7 @@ export type Database = {
     }
     Functions: {
       activate_vip: { Args: { target_user_id: string }; Returns: undefined }
+      clone_routine_template: { Args: { p_template_id: string }; Returns: string }
       book_gym_class: {
         Args: {
           p_athlete_name?: string

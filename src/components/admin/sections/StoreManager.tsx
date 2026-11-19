@@ -189,7 +189,7 @@ export function StoreManager() {
           />
         </label>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid min-w-0 grid-cols-1 gap-2.5 sm:grid-cols-3">
           <label className="grid min-w-0 gap-1">
             <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
               Categoría
