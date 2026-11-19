@@ -75,7 +75,7 @@ export function AppShell() {
   // Immersive mode: hide chrome on /entrenar while active, and for guest QR machine scans.
   const isImmersive =
     (pathname === "/entrenar" && isActive) ||
-    (pathname.startsWith("/maquina/") && !user);
+    ((pathname.startsWith("/maquina/") || pathname.startsWith("/rutina/")) && !user);
 
   return (
     <div

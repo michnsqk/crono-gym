@@ -133,6 +133,14 @@ export interface AssistantContext {
   heightCm?: number;
   injuries?: string;
   daysPerWeek?: number;
+  /** Today's subjective pre-workout check-in when logged. */
+  todayCheckin?: {
+    checkedOn: string;
+    energy: number | null;
+    sleepHours: number | null;
+    soreness: number | null;
+    notes?: string;
+  };
 }
 
 /** The prior turns sent with a question. Capped by the client before sending. */
@@ -309,6 +317,19 @@ export function toAssistantContext(
       ? {}
       : { bodyWeightKg: context.bodyweight.latestKg }),
     currentMuscleRanks,
+    ...(context.readinessCheckin
+      ? {
+          todayCheckin: {
+            checkedOn: context.readinessCheckin.checkedOn,
+            energy: context.readinessCheckin.energy,
+            sleepHours: context.readinessCheckin.sleepHours,
+            soreness: context.readinessCheckin.soreness,
+            ...(context.readinessCheckin.notes
+              ? { notes: context.readinessCheckin.notes.slice(0, 160) }
+              : {}),
+          },
+        }
+      : {}),
     ...profileExtras,
   };
 }

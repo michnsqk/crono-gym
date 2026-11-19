@@ -8,6 +8,8 @@ import { GlassButton } from "@/components/ui/GlassButton";
 import { GlassCard } from "@/components/ui/GlassCard";
 import { useRoutines } from "@/hooks/useGymData";
 import type { RoutineWithExercises } from "@/hooks/useGymData";
+import { useProfile } from "@/hooks/useProfile";
+import { ShareRoutineModal } from "./ShareRoutineModal";
 import { useActiveSession } from "@/context/ActiveSessionContext";
 import { TRAIN_PATH } from "@/components/shell/navItems";
 import { supabase } from "@lib/supabase";
@@ -52,6 +54,8 @@ const TAB_OPTIONS = [
 export function RoutinesPage() {
   const { userId } = useOutletContext<WorkspaceOutletContext>();
   const { routines, loading, error, refresh, upsertLocalRoutine } = useRoutines(userId);
+  const { profile } = useProfile(userId);
+  const [sharingRoutine, setSharingRoutine] = useState<RoutineWithMode | null>(null);
   // A coach's rename has to reach the list without a reload; the revision is what
   // makes the cards read the names again.
   const catalogRevision = useCatalogOverridesVersion();
@@ -861,6 +865,7 @@ export function RoutinesPage() {
               onEdit={() => openEdit(routine)}
               onPlan={() => openPlan(routine)}
               onDuplicate={handleDuplicateRoutine}
+              onShare={() => setSharingRoutine(routine)}
               onDelete={handleDeleteRoutine}
             />
           ))}
@@ -1097,6 +1102,12 @@ export function RoutinesPage() {
             setSearchParams(next, { replace: true });
           }
         }}
+      />
+      <ShareRoutineModal
+        routine={sharingRoutine}
+        userId={userId}
+        ownerName={profile?.display_name || "Atleta Cronos"}
+        onClose={() => setSharingRoutine(null)}
       />
     </div>
   );

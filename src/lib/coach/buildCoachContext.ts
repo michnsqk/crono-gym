@@ -21,6 +21,7 @@ import type {
   CoachDataGap,
   CoachEnergyFact,
   CoachMuscleFact,
+  CoachReadinessCheckin,
 } from "./types";
 
 /** How many exercises a muscle reports as its drivers. */
@@ -63,6 +64,7 @@ export interface CoachContextInput {
    */
   injuries?: string;
   daysPerWeek?: number;
+  latestCheckin?: CoachReadinessCheckin | null;
   /** Injectable so a test can pin it and a caller can label the snapshot. */
   now?: Date;
 }
@@ -111,7 +113,9 @@ export function buildCoachContext(input: CoachContextInput): CoachContext {
   // than probed, because the absence is structural: `session_checkins` has no
   // writer, so there is no state in which this gap is closed and checking for it
   // would be theatre.
-  dataGaps.push("no_readiness_checkins");
+  if (!input.latestCheckin) {
+    dataGaps.push("no_readiness_checkins");
+  }
 
   if (!profile) dataGaps.push("no_profile");
 
@@ -162,6 +166,7 @@ export function buildCoachContext(input: CoachContextInput): CoachContext {
     },
     energy: energyFact,
     muscles,
+    readinessCheckin: input.latestCheckin ?? null,
     dataGaps,
   };
 }

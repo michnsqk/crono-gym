@@ -316,8 +316,12 @@ export function setActiveThreadId(id: string | null): void {
 }
 
 export function createNewThread(initialTitle = "Nueva consulta"): CronosChatThread {
+  const id =
+    typeof globalThis.crypto?.randomUUID === "function"
+      ? globalThis.crypto.randomUUID()
+      : `${Date.now().toString(16).padStart(8, "0")}-0000-4000-8000-000000000000`;
   return {
-    id: `thread-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    id,
     title: initialTitle,
     updatedAt: new Date().toISOString(),
     messages: [],

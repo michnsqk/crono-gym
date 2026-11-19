@@ -163,6 +163,7 @@ export function useCoachContext(userId: string | null): CoachContextState {
     latestWeight,
     changeLast30Days,
     weights,
+    latestCheckin,
     loading: bodyLoading,
     error: bodyError,
   } = useBodyMetrics(userId);
@@ -197,6 +198,16 @@ export function useCoachContext(userId: string | null): CoachContextState {
         changeLast30Days,
         seriesCount: weights.length,
       },
+      latestCheckin: latestCheckin
+        ? {
+            checkedOn: latestCheckin.checked_on,
+            energy: latestCheckin.energy,
+            sleepHours: latestCheckin.sleep_hours,
+            soreness: latestCheckin.soreness,
+            stress: latestCheckin.stress,
+            notes: latestCheckin.notes,
+          }
+        : null,
       ...localExtras,
     });
   }, [
@@ -208,6 +219,7 @@ export function useCoachContext(userId: string | null): CoachContextState {
      latestWeight,
      changeLast30Days,
      weights.length,
+     latestCheckin,
      localRow?.context?.injuries,
      localRow?.context?.daysPerWeek,
      localRow?.consent?.shareAiContext,

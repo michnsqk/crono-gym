@@ -90,6 +90,11 @@ import {
   saveChat,
   toConversationTurns,
 } from "@/lib/ai/chatStorage";
+import {
+  deleteCloudChatThread,
+  loadCloudChatThreads,
+  syncCloudChatThread,
+} from "@/lib/ai/cloudChatService";
 
 const EXERCISE_KEYWORDS = [
   "rutina",
@@ -192,11 +197,29 @@ export function CoachChat({
         })),
       );
       setLoaded(true);
+
+      const cloudThreads = await loadCloudChatThreads(userId);
+      if (cancelled || cloudThreads.length === 0) return;
+      setThreads((localPrev) => {
+        const merged = new Map<string, CronosChatThread>();
+        for (const t of localPrev) merged.set(t.id, t);
+        for (const c of cloudThreads) {
+          const existing = merged.get(c.id);
+          if (!existing || c.updatedAt >= existing.updatedAt) {
+            merged.set(c.id, c);
+          }
+        }
+        const next = [...merged.values()].sort((a, b) =>
+          b.updatedAt.localeCompare(a.updatedAt),
+        );
+        saveChatThreads(next);
+        return next;
+      });
     })();
     return () => {
       cancelled = true;
     };
-  }, [initialDay]);
+  }, [initialDay, userId]);
 
   useEffect(() => {
     const list = listEndRef.current?.parentElement;
@@ -233,18 +256,21 @@ export function CoachChat({
       setActiveThreadId(targetId);
       setThreads((prev) => {
         const existing = prev.find((t) => t.id === targetId);
+        const resolvedTitle =
+          existing?.title && existing.messages.length > 0 ? existing.title : title;
         const updated: CronosChatThread = {
           id: targetId,
-          title: existing?.title && existing.messages.length > 0 ? existing.title : title,
+          title: resolvedTitle,
           updatedAt: new Date().toISOString(),
           messages: serializable,
         };
         const next = [updated, ...prev.filter((t) => t.id !== targetId)];
         saveChatThreads(next);
+        void syncCloudChatThread(userId, updated);
         return next;
       });
     },
-    [activeThreadId, feedbackByMsgId],
+    [activeThreadId, feedbackByMsgId, userId],
   );
 
   const handleNewSession = () => {
@@ -286,6 +312,7 @@ export function CoachChat({
       saveChatThreads(next);
       return next;
     });
+    void deleteCloudChatThread(userId, id);
     if (activeThreadId === id) {
       setActiveThreadState(null);
       setActiveThreadId(null);
@@ -898,7 +925,7 @@ export function CoachChat({
                 color: TEXT.primary,
               }}
             >
-              {T.chatSessionsTitle}
+              {T.chatSessionsTitle} · En la nube
             </h3>
             <button
               type="button"

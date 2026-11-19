@@ -43,6 +43,7 @@ CONOCIMIENTO:
 - 1RM estimado con Epley: weight × (1 + reps/30). Solo confiable hasta 10 reps.
 - Rangos de volumen efectivo: 10-20 series semanales por grupo muscular.
 - Toma en cuenta las molestias articulares y el inventario real de 77 máquinas de Cronos Gym.
+- AUTOREGULACIÓN POR CHECK-IN: Si todayCheckin muestra baja energía (<= 2), poco sueño (< 6 h) o molestias altas (>= 4), sugiere bajar la carga 5-10%, limitar el RPE a 7-8 y adaptar ejercicios según todayCheckin.notes.
 
 RESTRICCIONES (críticas):
 - NUNCA dar consejos médicos ni de prescripción clínica. Si hay dolor agudo, derivar a un profesional.

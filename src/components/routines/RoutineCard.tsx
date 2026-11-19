@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
-import { ChevronDown, ChevronUp, Copy, MoreHorizontal, Pencil, Play, Trash2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Copy, MoreHorizontal, Pencil, Play, Share2, Trash2 } from "lucide-react";
 import { GlassCard } from "@/components/ui/GlassCard";
 import type { RoutineWithExercises } from "@/hooks/useGymData";
 import type { Exercise } from "@/types/supabase";
@@ -25,6 +25,7 @@ export interface RoutineCardProps {
   onEdit: () => void;
   onPlan?: () => void;
   onDuplicate?: (routine: RoutineCardRoutine) => void | Promise<void>;
+  onShare?: (routine: RoutineCardRoutine) => void;
   onDelete?: (routine: RoutineCardRoutine) => void | Promise<void>;
 }
 
@@ -61,6 +62,7 @@ export function RoutineCard({
   onEdit,
   onPlan: _onPlan,
   onDuplicate,
+  onShare,
   onDelete,
 }: RoutineCardProps) {
   const reducedMotion = useReducedMotion();
@@ -153,6 +155,12 @@ export function RoutineCard({
     closeMenu();
     void onDuplicate(routine);
   }, [closeMenu, onDuplicate, routine]);
+
+  const handleShare = useCallback(() => {
+    if (!onShare) return;
+    closeMenu();
+    onShare(routine);
+  }, [closeMenu, onShare, routine]);
 
   const handleDelete = useCallback(() => {
     if (!onDelete) return;
@@ -604,6 +612,32 @@ export function RoutineCard({
               >
                 <Copy size={16} color={TEXT.secondary} aria-hidden="true" />
                 {ROUTINES_UI_LABELS.duplicate}
+              </button>
+            )}
+            {onShare && (
+              <button
+                type="button"
+                role="menuitem"
+                onClick={() => handleMenuItemClick(handleShare)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: SPACE.sm,
+                  width: "100%",
+                  minHeight: MOTION.minTouchTarget,
+                  padding: `0 ${SPACE.sm}px`,
+                  border: "none",
+                  borderRadius: RADIUS.control,
+                  background: "transparent",
+                  color: TEXT.primary,
+                  textAlign: "left",
+                  cursor: "pointer",
+                  fontSize: TYPE.subhead.size,
+                  fontWeight: 600,
+                }}
+              >
+                <Share2 size={16} color={TEXT.secondary} aria-hidden="true" />
+                Compartir link / QR
               </button>
             )}
             {onDelete && (

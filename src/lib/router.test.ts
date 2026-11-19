@@ -200,4 +200,12 @@ describe("route table", () => {
     );
     expect(publicMachineRoute).toBeTruthy();
   });
+
+  it("mounts the shared routine link route (/rutina/:code) outside AuthGate", () => {
+    const appShellChildren = router.routes[0]?.children ?? [];
+    const sharedRoutineRoute = appShellChildren.find(
+      (r) => (r as { path?: string }).path === "/rutina/:code",
+    );
+    expect(sharedRoutineRoute).toBeTruthy();
+  });
 });

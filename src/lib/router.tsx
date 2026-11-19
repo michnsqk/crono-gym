@@ -108,6 +108,12 @@ const LazyPublicMachinePage = lazy(() =>
   })),
 );
 
+const LazySharedRoutinePage = lazy(() =>
+  import("@/components/routines/SharedRoutinePage").then((mod) => ({
+    default: mod.SharedRoutinePage,
+  })),
+);
+
 /**
  * The dev-only component catalog and the coach-portal preview.
  *
@@ -182,6 +188,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingSpinner label="Cargando equipo…" />}>
             <LazyPublicMachinePage />
+          </Suspense>
+        ),
+      },
+      {
+        path: "/rutina/:code",
+        element: (
+          <Suspense fallback={<LoadingSpinner label="Cargando rutina compartida…" />}>
+            <LazySharedRoutinePage />
           </Suspense>
         ),
       },

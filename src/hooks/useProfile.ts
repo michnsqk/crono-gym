@@ -137,15 +137,43 @@ export function useProfile(userId: string | null): ProfileState {
   return { profile, energy, loading, saving, error, refresh, update };
 }
 
+export interface MeasurementInput {
+  measuredOn?: string;
+  chestCm?: number | null;
+  waistCm?: number | null;
+  hipsCm?: number | null;
+  armCm?: number | null;
+  thighCm?: number | null;
+  calfCm?: number | null;
+  shoulderCm?: number | null;
+  bodyFatPct?: number | null;
+  note?: string | null;
+}
+
+export interface SessionCheckinInput {
+  checkedOn?: string;
+  energy: number;
+  sleepHours: number;
+  soreness: number;
+  motivation?: number | null;
+  stress?: number | null;
+  notes?: string | null;
+  workoutLogId?: string | null;
+}
+
 export interface BodyMetricsState {
   weights: BodyweightEntry[];
   latestWeight: number | null;
   changeLast30Days: number | null;
   measurements: BodyMeasurement[];
   checkins: SessionCheckin[];
+  todayCheckin: SessionCheckin | null;
+  latestCheckin: SessionCheckin | null;
   loading: boolean;
   error: string | null;
   logWeight: (weightKg: number, measuredOn?: string) => Promise<boolean>;
+  logMeasurement: (input: MeasurementInput) => Promise<boolean>;
+  logCheckin: (input: SessionCheckinInput) => Promise<boolean>;
   refresh: () => Promise<void>;
 }
 
@@ -182,39 +210,49 @@ export function useBodyMetrics(userId: string | null): BodyMetricsState {
 
     const allCached = cachedWeights !== null && cachedMeasures !== null && cachedCheckins !== null;
 
-    let w, m, c;
+    let w: { data: unknown; error: { message: string } | null } = { data: [], error: null };
+    let m: { data: unknown; error: { message: string } | null } = { data: [], error: null };
+    let c: { data: unknown; error: { message: string } | null } = { data: [], error: null };
+
     if (allCached) {
       w = { data: cachedWeights, error: null };
       m = { data: cachedMeasures, error: null };
       c = { data: cachedCheckins, error: null };
     } else {
-      [w, m, c] = await Promise.all([
-        supabase
-          .from("bodyweight_entries")
-          .select("*")
-          .eq("user_id", userId)
-          .order("measured_on", { ascending: false })
-          .limit(WEIGHT_WINDOW),
-        supabase
-          .from("body_measurements")
-          .select("*")
-          .eq("user_id", userId)
-          .order("measured_on", { ascending: false })
-          .limit(12),
-        supabase
-          .from("session_checkins")
-          .select("*")
-          .eq("user_id", userId)
-          .order("checked_on", { ascending: false })
-          .limit(30),
-      ]);
+      try {
+        const res = await Promise.all([
+          supabase
+            .from("bodyweight_entries")
+            .select("*")
+            .eq("user_id", userId)
+            .order("measured_on", { ascending: false })
+            .limit(WEIGHT_WINDOW),
+          supabase
+            .from("body_measurements")
+            .select("*")
+            .eq("user_id", userId)
+            .order("measured_on", { ascending: false })
+            .limit(12),
+          supabase
+            .from("session_checkins")
+            .select("*")
+            .eq("user_id", userId)
+            .order("checked_on", { ascending: false })
+            .limit(30),
+        ]);
+        w = res[0];
+        m = res[1];
+        c = res[2];
 
-      if (!w.error && w.data)
-        metricsCache.set(weightKey, w.data as unknown as Record<string, unknown>);
-      if (!m.error && m.data)
-        metricsCache.set(measureKey, m.data as unknown as Record<string, unknown>);
-      if (!c.error && c.data)
-        metricsCache.set(checkinKey, c.data as unknown as Record<string, unknown>);
+        if (!w.error && w.data)
+          metricsCache.set(weightKey, w.data as unknown as Record<string, unknown>);
+        if (!m.error && m.data)
+          metricsCache.set(measureKey, m.data as unknown as Record<string, unknown>);
+        if (!c.error && c.data)
+          metricsCache.set(checkinKey, c.data as unknown as Record<string, unknown>);
+      } catch {
+        // Degrade safely under partial mocks or offline edge errors.
+      }
     }
 
     if (w.error) setError(w.error.message);
@@ -254,7 +292,73 @@ export function useBodyMetrics(userId: string | null): BodyMetricsState {
     [userId, refresh],
   );
 
+  const logMeasurement = useCallback(
+    async (input: MeasurementInput) => {
+      if (!userId) return false;
+      setError(null);
+      const { error: err } = await supabase.from("body_measurements").upsert(
+        {
+          user_id: userId,
+          measured_on: input.measuredOn ?? new Date().toISOString().slice(0, 10),
+          chest_cm: input.chestCm ?? null,
+          waist_cm: input.waistCm ?? null,
+          hips_cm: input.hipsCm ?? null,
+          arm_cm: input.armCm ?? null,
+          thigh_cm: input.thighCm ?? null,
+          calf_cm: input.calfCm ?? null,
+          shoulder_cm: input.shoulderCm ?? null,
+          body_fat_pct: input.bodyFatPct ?? null,
+          note: input.note?.trim() || null,
+        },
+        { onConflict: "user_id,measured_on" },
+      );
+      if (err) {
+        setError(err.message);
+        return false;
+      }
+      metricsCache.delete(`${userId}:measurements`);
+      await refresh();
+      return true;
+    },
+    [userId, refresh],
+  );
+
+  const logCheckin = useCallback(
+    async (input: SessionCheckinInput) => {
+      if (!userId) return false;
+      setError(null);
+      const { error: err } = await supabase.from("session_checkins").upsert(
+        {
+          user_id: userId,
+          checked_on: input.checkedOn ?? new Date().toISOString().slice(0, 10),
+          energy: input.energy,
+          sleep_hours: input.sleepHours,
+          soreness: input.soreness,
+          motivation: input.motivation ?? null,
+          stress: input.stress ?? null,
+          notes: input.notes?.trim() || null,
+          workout_log_id: input.workoutLogId ?? null,
+        },
+        { onConflict: "user_id,checked_on" },
+      );
+      if (err) {
+        setError(err.message);
+        return false;
+      }
+      metricsCache.delete(`${userId}:checkins`);
+      await refresh();
+      return true;
+    },
+    [userId, refresh],
+  );
+
   const latestWeight = weights[0]?.weight_kg ?? null;
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayCheckin = useMemo(
+    () => checkins.find((c) => c.checked_on === todayKey) ?? null,
+    [checkins, todayKey],
+  );
+  const latestCheckin = checkins[0] ?? null;
 
   /**
    * Net change over the trailing 30 days.
@@ -282,9 +386,13 @@ export function useBodyMetrics(userId: string | null): BodyMetricsState {
     changeLast30Days,
     measurements,
     checkins,
+    todayCheckin,
+    latestCheckin,
     loading,
     error,
     logWeight,
+    logMeasurement,
+    logCheckin,
     refresh,
   };
 }

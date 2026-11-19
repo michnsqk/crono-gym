@@ -13,30 +13,18 @@
  * Se preserva toda la lógica de negocio: borrador, sincronía, supersets, recuperación, timer deadline-based.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   X,
-  Play,
-  Target,
-  ArrowRight,
   ArrowUp,
   ArrowDown,
-  RefreshCw,
   Check,
-  Dumbbell,
   Settings,
   Plus,
-  Info,
-  ChevronRight,
-  Shield,
   Sparkles,
   Moon,
   FastForward,
-  Award,
   Minus,
-  Compass,
-  Bell,
-  AlertTriangle,
 } from "lucide-react";
 import { GlassButton } from "@/components/ui/GlassButton";
 import { requestFloorSpot, submitMachineReport } from "@/services/gymOperationsService";
@@ -85,7 +73,13 @@ import {
 import { queueAndSync } from "../lib/sessionSync";
 import { useActiveSession } from "../context/ActiveSessionContext";
 import { useGymSettings } from "../context/GymSettingsContext";
-import { useProfile } from "../hooks/useProfile";
+import { useBodyMetrics, useProfile } from "../hooks/useProfile";
+import { BAR_WEIGHTS, nearestLoadable } from "../lib/workout/weightUtils";
+import { EquipmentInspectionSheet } from "./workout/active/EquipmentInspectionSheet";
+import { SetTrackerTable } from "./workout/active/SetTrackerTable";
+import { ExerciseStage } from "./workout/active/ExerciseStage";
+import { PreWorkoutCheckinCard } from "./workout/active/PreWorkoutCheckinCard";
+import { PlateCalculatorSheet } from "./workout/active/PlateCalculatorSheet";
 import { useElapsedMs, formatElapsed } from "../hooks/useElapsedMs";
 import { RestTimer } from "./RestTimer";
 import { SET_LOGGER_LABELS, UNDO_LABELS } from "../lib/i18n";
@@ -109,8 +103,6 @@ import { useCatalogOverridesVersion } from "@/hooks/useCatalogOverrides";
 import { resolveCatalogExerciseWithOverrides } from "@/lib/catalog/resolveExercise";
 import type { EquipmentEntry, EquipmentSuggestion } from "@/data/equipmentCatalog";
 import { equipmentMap } from "@/data/equipmentMap";
-import { resolveMedia, resolveMediaUrl } from "@/lib/media/mediaResolver";
-import { useMediaSrc } from "@/lib/media/useMediaSrc";
 import { getExerciseDisplayName } from "@/utils/exerciseTranslation";
 import {
   BODYWEIGHT_LOAD_HINT,
@@ -331,901 +323,6 @@ function SessionHeader({
   );
 }
 
-/** ------------------------------------------------------------------ Set Tracker Table (Apple HIG) */
-
-interface SetTrackerTableProps {
-  index: number;
-  entry: SetEntry;
-  previousKg?: number | null;
-  previousReps?: number | null;
-  formatWeight?: (kg: number) => string;
-  previousLabel?: string;
-  overloadTarget?: OverloadTarget | null;
-  onChange: (index: number, entry: SetEntry) => void;
-  onRemove: (index: number) => void;
-  onFillFromPrevious?: (index: number) => void;
-  canRemove?: boolean;
-  totalSets?: number;
-}
-
-const SET_TYPE_OPTIONS: Array<{
-  kind: NonNullable<SetEntry["kind"]>;
-  badge: string;
-  title: string;
-  color: string;
-  bg: string;
-  border: string;
-  badgeBg: string;
-  badgeText: string;
-  badgeBorder: string;
-  help: string;
-}> = [
-  {
-    kind: "normal",
-    badge: "1",
-    title: "Serie Normal (Working Set)",
-    color: TEXT.primary,
-    bg: "rgba(44, 44, 46, 1)",
-    border: "rgba(255, 255, 255, 0.10)",
-    badgeBg: "#3F3F46",
-    badgeText: "#FFFFFF",
-    badgeBorder: "transparent",
-    help: "Serie efectiva de trabajo con tu peso objetivo manteniendo entre 1 y 3 repeticiones en reserva (RIR 1–3).",
-  },
-  {
-    kind: "warmup",
-    badge: "W",
-    title: "Calentamiento (Warm-up)",
-    color: "#FF9F0A",
-    bg: "rgba(255, 159, 10, 0.15)",
-    border: "rgba(255, 159, 10, 0.40)",
-    badgeBg: "rgba(255, 159, 10, 0.20)",
-    badgeText: "#FF9F0A",
-    badgeBorder: "rgba(255, 159, 10, 0.40)",
-    help: "Serie de aproximación con menor peso (40%–70%) para lubricar articulaciones y activar el sistema nervioso sin generar fatiga. No cuenta como serie efectiva.",
-  },
-  {
-    kind: "failure",
-    badge: "F",
-    title: "Al Fallo Muscular (Failure)",
-    color: "#FF3B30",
-    bg: "rgba(255, 59, 48, 0.15)",
-    border: "rgba(255, 59, 48, 0.40)",
-    badgeBg: "rgba(255, 59, 48, 0.20)",
-    badgeText: "#FF3B30",
-    badgeBorder: "rgba(255, 59, 48, 0.40)",
-    help: "Serie llevada al límite donde no puedes completar ni una repetición más con buena técnica (RIR 0 / RPE 10). Úsala preferiblemente en la última serie del ejercicio.",
-  },
-  {
-    kind: "drop",
-    badge: "D",
-    title: "Serie Descendente (Drop Set)",
-    color: "#BF5AF2",
-    bg: "rgba(191, 90, 242, 0.15)",
-    border: "rgba(191, 90, 242, 0.40)",
-    badgeBg: "rgba(191, 90, 242, 0.20)",
-    badgeText: "#BF5AF2",
-    badgeBorder: "rgba(191, 90, 242, 0.40)",
-    help: "Al terminar tus repeticiones cerca del fallo, reduces el peso inmediatamente entre un 20% y 30% y continúas sin descanso para maximizar el estrés metabólico.",
-  },
-];
-
-function SetTrackerTable({
-  index,
-  entry,
-  previousKg,
-  previousReps,
-  formatWeight,
-  onChange,
-  onRemove,
-  onFillFromPrevious,
-  canRemove = false,
-  totalSets = 1,
-}: SetTrackerTableProps) {
-  const setNumber = index + 1;
-  const [typeMenuOpen, setTypeMenuOpen] = useState(false);
-  const [helpKind, setHelpKind] = useState<SetEntry["kind"] | null>(null);
-
-  const currentOption = useMemo(() => {
-    const kind = entry.kind ?? "normal";
-    return SET_TYPE_OPTIONS.find((o) => o.kind === kind) ?? SET_TYPE_OPTIONS[0];
-  }, [entry.kind]);
-
-  const previousText = previousKg != null && previousReps != null
-    ? formatWeight
-      ? `${formatWeight(previousKg)} × ${previousReps}`
-      : `${previousKg}kg × ${previousReps}`
-    : "—";
-
-  const hasPrevious = previousKg != null && previousReps != null;
-  const isCompleted = entry.completed;
-
-  const openTypeMenu = () => {
-    setTypeMenuOpen(true);
-    setHelpKind(null);
-  };
-
-  const selectKind = (kind: NonNullable<SetEntry["kind"]>) => {
-    onChange(index, { ...entry, kind });
-    setTypeMenuOpen(false);
-    setHelpKind(null);
-    if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-      navigator.vibrate([15]);
-    }
-  };
-
-  const badgeLabel = (entry.kind ?? "normal") === "normal" ? String(setNumber) : currentOption.badge;
-
-  const handleFillFromPrevious = () => {
-    if (hasPrevious && onFillFromPrevious) {
-      onFillFromPrevious(index);
-      if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-        navigator.vibrate([15]);
-      }
-    }
-  };
-
-  const handleRemove = () => {
-    if (canRemove) {
-      onRemove(index);
-    }
-  };
-
-  return (
-    <div
-      role="group"
-      aria-label={`Serie ${setNumber}`}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "30px 44px minmax(0, 1fr) minmax(0, 1fr) 36px 32px 32px",
-        alignItems: "center",
-        gap: 4,
-        padding: "6px 6px",
-        borderBottom: index > 0 ? "1px solid rgba(255, 255, 255, 0.06)" : "none",
-        background: isCompleted ? "rgba(48, 209, 88, 0.06)" : "transparent",
-        borderRadius: 10,
-        transition: "background 200ms ease",
-        minHeight: 44,
-      }}
-    >
-      {/* Serie Badge - Tap to open type selector */}
-      <button
-        type="button"
-        onClick={openTypeMenu}
-        aria-label={`Serie ${setNumber} tipo: ${currentOption.title}. Toca para cambiar.`}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 32,
-          height: 32,
-          borderRadius: 10,
-          background: currentOption.bg,
-          border: `1px solid ${currentOption.border}`,
-          color: currentOption.color,
-          fontSize: "12px",
-          fontWeight: 700,
-          fontFamily: TYPE.mono.font,
-          fontVariantNumeric: "tabular-nums",
-          cursor: "pointer",
-          flexShrink: 0,
-          transition: "transform 150ms ease, box-shadow 150ms ease, background 150ms ease, border-color 150ms ease",
-        }}
-        className="active:scale-[0.95]"
-        onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.92)"; }}
-        onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-      >
-        {badgeLabel}
-      </button>
-
-      {typeMenuOpen && (
-        <div
-          role="dialog"
-          aria-label="Selector de tipo de serie"
-          aria-modal="true"
-          style={{
-            position: "fixed",
-            inset: 0,
-            zIndex: Z_INDEX.modal,
-            display: "flex",
-            alignItems: "flex-end",
-            justifyContent: "center",
-            background: SCRIM.modal,
-            backdropFilter: "blur(8px)",
-            WebkitBackdropFilter: "blur(8px)",
-            padding: "16px",
-          }}
-          onClick={() => { setTypeMenuOpen(false); setHelpKind(null); }}
-        >
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="bg-[#1C1C1E] border border-white/12 rounded-3xl p-4 shadow-2xl"
-            style={{
-              width: "100%",
-              maxWidth: 520,
-              maxHeight: "80vh",
-              overflowY: "auto",
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12, marginBottom: 12 }}>
-              <div style={{ minWidth: 0 }}>
-                <h3 className="text-base font-bold text-white" style={{ margin: 0 }}>Tipo de serie</h3>
-                <p className="text-xs text-zinc-400" style={{ margin: "4px 0 0" }}>
-                  Selecciona el estímulo de la serie #{setNumber}
-                </p>
-              </div>
-              <button
-                type="button"
-                aria-label="Cerrar selector de tipo de serie"
-                onClick={() => { setTypeMenuOpen(false); setHelpKind(null); }}
-                style={{
-                  width: 32,
-                  height: 32,
-                  borderRadius: 9999,
-                  border: "1px solid rgba(255,255,255,0.15)",
-                  background: "rgba(255,255,255,0.06)",
-                  color: "#D4D4D8",
-                  fontSize: 18,
-                  lineHeight: 1,
-                  cursor: "pointer",
-                  flexShrink: 0,
-                }}
-              >
-                ×
-              </button>
-            </div>
-
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {SET_TYPE_OPTIONS.map((opt) => {
-                const selected = (entry.kind ?? "normal") === opt.kind;
-                const optionBadge = opt.kind === "normal" ? String(setNumber) : opt.badge;
-                const helpOpen = helpKind === opt.kind;
-                return (
-                  <div
-                    key={opt.kind}
-                    className="rounded-2xl bg-[#2C2C2E] border border-white/8 p-3 transition-all"
-                    style={{
-                      borderColor: selected ? opt.border : "rgba(255,255,255,0.08)",
-                      background: selected ? "rgba(44,44,46,0.95)" : "#2C2C2E",
-                    }}
-                  >
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <button
-                        type="button"
-                        onClick={() => selectKind(opt.kind)}
-                        aria-label={`Seleccionar ${opt.title}`}
-                        style={{
-                          flex: 1,
-                          minWidth: 0,
-                          display: "flex",
-                          alignItems: "center",
-                          gap: 10,
-                          background: "transparent",
-                          border: "none",
-                          padding: 0,
-                          color: "inherit",
-                          cursor: "pointer",
-                          textAlign: "left",
-                        }}
-                      >
-                        <span
-                          style={{
-                            width: 28,
-                            height: 28,
-                            borderRadius: 8,
-                            display: "inline-flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            background: opt.badgeBg,
-                            color: opt.badgeText,
-                            border: `1px solid ${opt.badgeBorder}`,
-                            fontSize: "12px",
-                            fontWeight: 700,
-                            fontFamily: TYPE.mono.font,
-                            flexShrink: 0,
-                          }}
-                        >
-                          {optionBadge}
-                        </span>
-                        <span style={{ fontSize: "14px", fontWeight: 600, color: TEXT.primary }}>
-                          {opt.title}
-                        </span>
-                      </button>
-                      <button
-                        type="button"
-                        aria-label={`Ayuda: ${opt.title}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setHelpKind((prev) => (prev === opt.kind ? null : opt.kind));
-                        }}
-                        className="w-7 h-7 rounded-full bg-white/8 hover:bg-white/15 border border-white/15 font-mono text-xs font-bold text-zinc-300 flex items-center justify-center"
-                        style={{ cursor: "pointer", flexShrink: 0 }}
-                      >
-                        ?
-                      </button>
-                    </div>
-                    {helpOpen && (
-                      <div className="mt-2 pt-2 border-t border-white/8 text-xs text-zinc-300 leading-relaxed">
-                        {opt.help}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Anterior - Tap to fill from previous */}
-      <button
-        type="button"
-        onClick={handleFillFromPrevious}
-        disabled={!hasPrevious}
-        aria-label={hasPrevious ? `Rellenar con valores anteriores: ${previousText}` : "Sin datos anteriores"}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          minWidth: 0,
-          width: "100%",
-          height: "100%",
-          minHeight: 34,
-          fontSize: "11px",
-          fontFamily: TYPE.mono.font,
-          fontVariantNumeric: "tabular-nums",
-          color: hasPrevious ? TEXT.secondary : TEXT.disabled,
-          background: "transparent",
-          border: "none",
-          padding: "0 4px",
-          textAlign: "center",
-          whiteSpace: "nowrap",
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-          cursor: hasPrevious ? "pointer" : "not-allowed",
-          opacity: hasPrevious ? 1 : 0.4,
-          transition: "color 150ms ease, background 150ms ease",
-          borderRadius: 8,
-        }}
-        onMouseEnter={(e) => {
-          if (hasPrevious) e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
-        }}
-        onMouseLeave={(e) => {
-          e.currentTarget.style.background = "transparent";
-        }}
-      >
-        {previousText}
-      </button>
-
-      {/* KG/LB Input */}
-      <input
-        type="number"
-        inputMode="decimal"
-        aria-label={`Peso serie ${setNumber}`}
-        value={entry.weight}
-        placeholder="0"
-        onChange={(e) => onChange(index, { ...entry, weight: e.target.value })}
-        onFocus={(e) => { e.target.select(); }}
-        className="cronos-set-input"
-        style={{
-          width: "100%",
-          height: 42,
-          background: "#2C2C2E",
-          border: "1px solid rgba(255, 255, 255, 0.10)",
-          borderRadius: 12,
-          padding: "0 4px",
-          textAlign: "center",
-          color: TEXT.primary,
-          fontSize: "15px",
-          fontFamily: TYPE.mono.font,
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 700,
-          outline: "none",
-          transition: "border-color 150ms ease, background 150ms ease",
-        }}
-        onFocusCapture={(e) => {
-          e.currentTarget.style.borderColor = "rgba(255, 59, 48, 0.6)";
-        }}
-        onBlurCapture={(e) => {
-          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.10)";
-        }}
-      />
-
-      {/* REPS Input */}
-      <input
-        type="number"
-        inputMode="numeric"
-        aria-label={`Repeticiones serie ${setNumber}`}
-        value={entry.reps}
-        placeholder="10"
-        onChange={(e) => onChange(index, { ...entry, reps: e.target.value })}
-        onFocus={(e) => { e.target.select(); }}
-        className="cronos-set-input"
-        style={{
-          width: "100%",
-          height: 42,
-          background: "#2C2C2E",
-          border: "1px solid rgba(255, 255, 255, 0.10)",
-          borderRadius: 12,
-          padding: "0 4px",
-          textAlign: "center",
-          color: TEXT.primary,
-          fontSize: "15px",
-          fontFamily: TYPE.mono.font,
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 700,
-          outline: "none",
-          transition: "border-color 150ms ease, background 150ms ease",
-        }}
-        onFocusCapture={(e) => {
-          e.currentTarget.style.borderColor = "rgba(255, 59, 48, 0.6)";
-        }}
-        onBlurCapture={(e) => {
-          e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.10)";
-        }}
-      />
-
-      {/* RPE Button (static display) */}
-      <button
-        type="button"
-        aria-label={`RPE serie ${setNumber}: ${entry.rpe || "—"}`}
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
-          height: 42,
-          borderRadius: 12,
-          background: "#2C2C2E",
-          border: "1px solid rgba(255, 255, 255, 0.10)",
-          color: TEXT.tertiary,
-          fontSize: "16px",
-          fontFamily: TYPE.mono.font,
-          fontVariantNumeric: "tabular-nums",
-          fontWeight: 700,
-          cursor: "pointer",
-          flexShrink: 0,
-          transition: "transform 150ms ease",
-        }}
-        className="active:scale-[0.95]"
-        onMouseDown={(e) => { e.currentTarget.style.transform = "scale(0.95)"; }}
-        onMouseUp={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-        onMouseLeave={(e) => { e.currentTarget.style.transform = "scale(1)"; }}
-      >
-        {entry.rpe || "—"}
-      </button>
-
-      {/* Check Button */}
-      <button
-        type="button"
-        aria-label={isCompleted ? `Marcar la serie ${setNumber} como no completada` : `Marcar la serie ${setNumber} como completada`}
-        onClick={() => {
-          if (typeof navigator !== "undefined" && "vibrate" in navigator) {
-            navigator.vibrate(isCompleted ? [15] : [40, 60, 80]);
-          }
-          onChange(index, { ...entry, completed: !entry.completed });
-        }}
-        className="rounded-full active:scale-95 transition-transform"
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 32,
-          height: 32,
-          borderRadius: 9999,
-          background: isCompleted ? "#30D158" : "#2C2C2E",
-          color: isCompleted ? "#000" : "rgba(255, 255, 255, 0.45)",
-          border: isCompleted ? "1px solid #30D158" : "1px solid rgba(255, 255, 255, 0.06)",
-          cursor: "pointer",
-          flexShrink: 0,
-          transition: "all 150ms ease",
-          boxShadow: isCompleted ? "0 0 14px rgba(48, 209, 88, 0.45)" : "none",
-        }}
-      >
-        <Check size={15} strokeWidth={3} />
-      </button>
-
-      {/* Remove/Duplicate Button - only show if canRemove and totalSets > 1 */}
-      {(canRemove && totalSets > 1) && (
-        <button
-          type="button"
-          onClick={handleRemove}
-          aria-label={`Eliminar serie ${setNumber}`}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            width: 32,
-            height: 32,
-            borderRadius: 10,
-            background: "rgba(122, 47, 61, 0.15)",
-            border: "1px solid rgba(224, 141, 156, 0.3)",
-            color: "#E08D9C",
-            cursor: "pointer",
-            flexShrink: 0,
-            transition: "all 150ms ease",
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.background = "rgba(122, 47, 61, 0.3)";
-            e.currentTarget.style.borderColor = "rgba(224, 141, 156, 0.6)";
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.background = "rgba(122, 47, 61, 0.15)";
-            e.currentTarget.style.borderColor = "rgba(224, 141, 156, 0.3)";
-          }}
-        >
-          <X size={14} strokeWidth={2} aria-hidden="true" />
-        </button>
-      )}
-    </div>
-  );
-}
-
-/** ------------------------------------------------------------------ Exercise Stage (Identity Area) */
-
-interface ExerciseStageProps {
-  exercise: Exercise;
-  completedSets: number;
-  totalSets: number;
-  lastSessionShort: string | null;
-  equipment: EquipmentEntry | null;
-  /** Where the exercise happens, for the pill's label when there is no machine. */
-  locationLabel: string;
-  /** Whether the set-type guide is open; the dock owns the toggle. */
-  guidesOpen: boolean;
-  onToggleGuides: () => void;
-  onDemo?: () => void;
-  onAdvance?: () => void;
-  onChangeExercise: () => void;
-  /** Opens the machine: its photo, and the other machines that can host it. */
-  onAdjustEquipment: () => void;
-  /** The athlete's standing on this movement, and the sheet that explains it. */
-  rank: ExerciseRankResult;
-  onOpenRank: () => void;
-  /** How long the rest between sets lasts, and how to change it. */
-  restSeconds: number;
-  onAdjustRest: () => void;
-  onAddWarmup: () => void;
-  prBadge?: { e1rmKg: number; weightKg: number; reps: number } | null;
-  onOpenBiomechanics?: () => void;
-  biomechanicsNote?: string | null;
-  onRequestSpot?: () => void;
-  onReportMachine?: () => void;
-}
-
-/**
- * The exercise, as the athlete meets it: the demonstration, where it happens,
- * and the four things they can do about it.
- *
- * One focal point (the GIF), one place to read progress, one dock for the
- * actions: the previous version stacked a title block, a counter pill and a
- * four-button toolbar, which pushed the set table below the fold on a phone the
- * athlete is holding in one hand.
- */
-function ExerciseStage({
-  exercise,
-  completedSets,
-  totalSets,
-  lastSessionShort,
-  equipment,
-  locationLabel,
-  guidesOpen,
-  onToggleGuides,
-  onDemo,
-  onAdvance,
-  onChangeExercise,
-  onAdjustEquipment,
-  rank,
-  onOpenRank,
-  restSeconds,
-  onAdjustRest,
-  onAddWarmup,
-  prBadge,
-  onOpenBiomechanics,
-  biomechanicsNote,
-  onRequestSpot,
-  onReportMachine,
-}: ExerciseStageProps) {
-  const media = resolveMedia("exercise-gif", exercise.id, exercise.gif_url);
-  const { src, failed, onLoad, onError } = useMediaSrc(media);
-  const cleanLocation = cleanEquipmentLabel(locationLabel);
-  const displayName = cleanExerciseName(getExerciseDisplayName(exercise));
-
-  return (
-    <section
-      style={{
-        maxWidth: "560px",
-        margin: "0 auto",
-        width: "100%",
-        display: "flex",
-        flexDirection: "column",
-        gap: SPACE.sm,
-        alignItems: "center",
-        padding: `0 ${SPACE.md}px`,
-      }}
-    >
-      {/* The demonstration, on pure black, right under the carousel. */}
-      <div
-        style={{
-          position: "relative",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: "100%",
-          maxWidth: 280,
-          height: 190,
-        }}
-      >
-        {media.url && !failed ? (
-          <img
-            src={src}
-            alt={`Demo de ${cleanExerciseName(getExerciseDisplayName(exercise))}`}
-            onLoad={onLoad}
-            onError={onError}
-            style={{
-              maxWidth: "280px",
-              height: "190px",
-              objectFit: "contain",
-              background: "transparent",
-              filter: "invert(1) hue-rotate(180deg) contrast(125%) brightness(110%)",
-              imageRendering: "-webkit-optimize-contrast",
-            }}
-            width={640}
-            height={360}
-          />
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-              gap: 8,
-              color: TEXT.tertiary,
-              fontSize: TYPE.caption.size,
-            }}
-          >
-            <Dumbbell size={32} strokeWidth={1.5} aria-hidden="true" />
-            Sin demo disponible
-          </div>
-        )}
-
-        {/*
-          Where the exercise happens: an Apple-glass pill over the demo, and the
-          whole pill is the control. Only a machine earns one. A bodyweight
-          movement has no station to inspect, and a pill that says "floor" is
-          chrome the athlete reads every set and never acts on -- so it is not
-          rendered at all.
-        */}
-        {equipment && (
-          <button
-            type="button"
-            onClick={onAdjustEquipment}
-            aria-label={SET_LOGGER_LABELS.machineAriaLabel(cleanLocation)}
-            className="absolute bottom-1 left-1/2 flex max-w-[92vw] -translate-x-1/2 items-center gap-2 rounded-full border border-white/15 bg-neutral-900/90 px-3.5 py-1.5 text-left shadow-lg backdrop-blur-md"
-          >
-            <Dumbbell
-              size={14}
-              strokeWidth={2}
-              aria-hidden="true"
-              style={{ color: ACCENT.base, flexShrink: 0 }}
-            />
-            <span className="min-w-0 truncate text-xs font-semibold text-white">
-              {cleanLocation}
-            </span>
-            <span className="flex shrink-0 items-center gap-0.5 text-[11px] font-semibold text-neutral-200">
-              Ver foto
-              <ChevronRight size={12} strokeWidth={2.5} aria-hidden="true" />
-            </span>
-          </button>
-        )}
-      </div>
-
-      {/* The header row: exercise title aligned horizontally with its rank pill. */}
-      <div className="flex w-full items-center justify-between gap-2.5 px-2">
-        <h2
-          className="min-w-0 flex-1 text-left text-lg font-bold leading-snug tracking-tight text-white"
-          style={{ margin: 0, overflowWrap: "break-word" }}
-        >
-          {displayName}
-        </h2>
-        <button
-          type="button"
-          onClick={onOpenRank}
-          aria-label={`Rango del ejercicio: ${rank.currentRank.tier}`}
-          title={`${rank.currentRank.tier} · siguiente ${rank.nextRank.tier}`}
-          className="flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 py-1.5 text-[11px] font-semibold backdrop-blur-md"
-          style={{
-            borderColor: rank.currentRank.colorHex,
-            backgroundColor: GLASS.fillSubtle,
-            color: rank.currentRank.colorHex,
-          }}
-        >
-          <Shield size={12} strokeWidth={2} aria-hidden="true" />
-          {rank.currentRank.tier}
-        </button>
-      </div>
-      {lastSessionShort && (
-        <p
-          className="w-full px-2 text-left"
-          style={{
-            margin: 0,
-            fontSize: TYPE.caption.size,
-            fontFamily: TYPE.mono.font,
-            fontVariantNumeric: "tabular-nums",
-            color: TEXT.tertiary,
-            whiteSpace: "nowrap",
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            maxWidth: "100%",
-          }}
-        >
-          {lastSessionShort}
-        </p>
-      )}
-      {prBadge && (
-        <div className="w-full px-2">
-          <div
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-            style={{
-              background: ACCENT.subtle,
-              color: ACCENT.text,
-              border: `1px solid ${ACCENT.border}`,
-              fontVariantNumeric: "tabular-nums",
-            }}
-          >
-            <Award size={13} strokeWidth={2} aria-hidden="true" />
-            <span>Nuevo PR · {prBadge.e1rmKg} kg e1RM</span>
-          </div>
-        </div>
-      )}
-      {biomechanicsNote && (
-        <div className="w-full px-2">
-          <button
-            type="button"
-            onClick={onOpenBiomechanics}
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
-            style={{
-              backgroundColor: GLASS.fillSubtle,
-              color: TEXT.primary,
-              border: `1px solid ${ACCENT.border}`,
-            }}
-          >
-            <Compass size={12} strokeWidth={2} aria-hidden="true" style={{ color: ACCENT.text }} />
-            <span>{biomechanicsNote}</span>
-          </button>
-        </div>
-      )}
-
-      {/*
-        One dock: every action that belongs to this exercise.
-        The buttons carry words, not only icons: at the rack, an icon the
-        athlete has to decode is a tap they will not make.
-      */}
-      <div
-        className="flex w-full items-center gap-1.5 overflow-x-auto rounded-full border border-white/[0.06] py-1.5 px-2 backdrop-blur-xl"
-        style={{ backgroundColor: "rgba(28, 28, 30, 0.80)" }}
-      >
-        <span className="sr-only">
-          {completedSets} / {totalSets} series
-        </span>
-        <DockButton
-          label="Demo"
-          onClick={onDemo ?? (() => {})}
-          icon={<Play size={14} strokeWidth={2} aria-hidden="true" />}
-        >
-          Tutorial
-        </DockButton>
-        <DockButton
-          label="Avance"
-          onClick={onAdvance ?? (() => {})}
-          icon={<Target size={14} strokeWidth={2} aria-hidden="true" />}
-        >
-          Notas
-        </DockButton>
-        <DockButton
-          label="Cambiar"
-          onClick={onChangeExercise}
-          icon={<ArrowRight size={14} strokeWidth={2} aria-hidden="true" />}
-        >
-          Reemplazar
-        </DockButton>
-        <DockButton
-          label="Ajustar"
-          onClick={onAdjustRest}
-          icon={<RefreshCw size={14} strokeWidth={2} aria-hidden="true" />}
-        >
-          {formatClock(restSeconds)}
-        </DockButton>
-        <DockButton
-          label="+ Calentamiento (W)"
-          onClick={onAddWarmup}
-          icon={<Plus size={14} strokeWidth={2} aria-hidden="true" />}
-        >
-          Calentamiento
-        </DockButton>
-        <DockButton
-          label="Postura / Agarre"
-          onClick={onOpenBiomechanics ?? (() => {})}
-          icon={<Compass size={14} strokeWidth={2} aria-hidden="true" />}
-        >
-          Postura / Agarre
-        </DockButton>
-        {totalSets > 0 && (
-          <DockButton
-            label={SET_LOGGER_LABELS.guideAriaLabel}
-            active={guidesOpen}
-            onClick={onToggleGuides}
-            icon={<Info size={14} strokeWidth={2} aria-hidden="true" />}
-          >
-            Guía
-          </DockButton>
-        )}
-        {onRequestSpot && (
-          <DockButton
-            label="Pedir Spot o ayuda al coach en piso"
-            onClick={onRequestSpot}
-            icon={<Bell size={14} strokeWidth={2} aria-hidden="true" />}
-          >
-            Spot / Coach
-          </DockButton>
-        )}
-        {onReportMachine && (
-          <DockButton
-            label="Reportar falla en esta máquina"
-            onClick={onReportMachine}
-            icon={<AlertTriangle size={14} strokeWidth={2} aria-hidden="true" />}
-          >
-            Reportar falla
-          </DockButton>
-        )}
-      </div>
-    </section>
-  );
-}
-
-/**
- * One control of the dock: 44px of target, a word, and an icon.
- *
- * The word is the point. Five icons in a row are five things to learn, and the
- * athlete is standing up with a bar in their hands; the accessible name stays
- * the short one the rest of the app (and its tests) already use, so a screen
- * reader and a tired thumb are both served by the same control.
- */
-function DockButton({
-  label,
-  icon,
-  onClick,
-  active = false,
-  children,
-}: {
-  label: string;
-  icon: JSX.Element;
-  onClick: () => void;
-  active?: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      aria-pressed={active || undefined}
-      onClick={onClick}
-      title={label}
-      className={`flex h-9 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-3 text-xs font-medium transition-colors ${
-        active ? "bg-white/15 text-white" : "text-neutral-200 active:bg-white/10"
-      }`}
-    >
-      <span aria-hidden="true" className="flex shrink-0 items-center">
-        {icon}
-      </span>
-      {children}
-    </button>
-  );
-}
-
 /** ------------------------------------------------------------------ Undo Banner */
 
 interface UndoBannerProps {
@@ -1308,323 +405,6 @@ function UndoBanner({ setNumber, onUndo, onDismiss }: UndoBannerProps) {
           animation: `cronos-undo-drain ${UNDO_WINDOW_MS}ms linear forwards`,
         }}
       />
-    </div>
-  );
-}
-
-/** ------------------------------------------------------------------ Equipment Inspection Sheet */
-
-interface EquipmentInspectionSheetProps {
-  equipment: EquipmentEntry;
-  alternatives?: EquipmentEntry[];
-  onClose: () => void;
-  onSelect?: (equipment: EquipmentEntry) => void;
-}
-
-function EquipmentInspectionSheet({
-  equipment,
-  alternatives = [],
-  onClose,
-  onSelect,
-}: EquipmentInspectionSheetProps) {
-  const [selected, setSelected] = useState<EquipmentEntry>(equipment);
-
-  useEffect(() => {
-    setSelected(equipment);
-  }, [equipment]);
-
-  return (
-    <div
-      style={{
-        position: "fixed",
-        inset: 0,
-        zIndex: Z_INDEX.modal,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        background: SCRIM.modal,
-        backdropFilter: "blur(8px)",
-        WebkitBackdropFilter: "blur(8px)",
-      }}
-    >
-      <div
-        style={{
-          position: "relative",
-          width: "90vw",
-          maxWidth: 560,
-          maxHeight: "85vh",
-          borderRadius: RADIUS.modal,
-          background: SURFACE.base,
-          border: `1px solid ${GLASS.borderStrong}`,
-          boxShadow: GLASS.shadow,
-          display: "flex",
-          flexDirection: "column",
-          overflow: "hidden",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: `${SPACE.md} ${SPACE.lg}`,
-            borderBottom: `1px solid ${GLASS.border}`,
-            background: SURFACE.base,
-          }}
-        >
-          <h3
-            style={{
-              margin: 0,
-              fontSize: TYPE.title2.size,
-              fontWeight: TYPE.title2.weight,
-              color: TEXT.primary,
-            }}
-          >
-            {selected.name}
-          </h3>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Cerrar inspección de equipo"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 44,
-              height: 44,
-              borderRadius: "50%",
-              border: `1px solid ${GLASS.border}`,
-              background: "transparent",
-              color: TEXT.secondary,
-              cursor: "pointer",
-            }}
-          >
-            <X size={18} aria-hidden="true" />
-          </button>
-        </div>
-
-        <div
-          style={{
-            flex: 1,
-            overflowY: "auto",
-            padding: SPACE.md,
-            display: "flex",
-            flexDirection: "column",
-            gap: SPACE.md,
-          }}
-        >
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "1fr 1fr",
-              gap: SPACE.sm,
-            }}
-          >
-            {selected.views.map((view: { id: number; src: string }) => (
-              <div
-                key={view.id}
-                style={{
-                  position: "relative",
-                  width: "100%",
-                  aspectRatio: "1 / 1",
-                  background: SURFACE.raised,
-                  borderRadius: RADIUS.surface,
-                  border: `1px solid ${GLASS.border}`,
-                  overflow: "hidden",
-                }}
-              >
-                <img
-                  src={resolveMediaUrl(view.src)}
-                  alt={`Vista ${view.id} de ${selected.name}`}
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "cover",
-                  }}
-                />
-              </div>
-            ))}
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: SPACE.xs,
-              padding: `${SPACE.xs} ${SPACE.sm}`,
-              borderRadius: RADIUS.control,
-              border: `1px solid ${GLASS.border}`,
-              background: SOLID.card,
-            }}
-          >
-            <span
-              style={{
-                fontSize: TYPE.label.size,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: TEXT.secondary,
-              }}
-            >
-              Categoría
-            </span>
-            <span
-              style={{
-                fontSize: TYPE.caption.size,
-                color: TEXT.primary,
-                fontWeight: 600,
-              }}
-            >
-              {selected.category}
-            </span>
-          </div>
-
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: SPACE.xs,
-              padding: `${SPACE.xs} ${SPACE.sm}`,
-              borderRadius: RADIUS.control,
-              border: `1px solid ${GLASS.border}`,
-              background: SOLID.card,
-            }}
-          >
-            <span
-              style={{
-                fontSize: TYPE.label.size,
-                fontWeight: 700,
-                textTransform: "uppercase",
-                letterSpacing: "0.08em",
-                color: TEXT.secondary,
-              }}
-            >
-              ID
-            </span>
-            <span
-              style={{
-                fontFamily: TYPE.mono.font,
-                fontSize: TYPE.caption.size,
-                color: TEXT.primary,
-              }}
-            >
-              {selected.id}
-            </span>
-          </div>
-
-          {(alternatives.length > 0 || equipment.id !== selected.id || alternatives.some((a) => a.id === equipment.id)) && (
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: SPACE.xs,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: TYPE.caption.size,
-                  color: TEXT.secondary,
-                  fontWeight: 600,
-                }}
-              >
-                Máquinas compatibles
-              </span>
-              <div
-                style={{
-                  display: "flex",
-                  gap: SPACE.xs,
-                  overflowX: "auto",
-                  paddingBottom: SPACE.xs,
-                }}
-              >
-                {[equipment, ...alternatives]
-                  .filter((e, i, arr) => arr.findIndex((x) => x.id === e.id) === i)
-                  .map((e) => (
-                    <button
-                      key={e.id}
-                      type="button"
-                      onClick={() => {
-                        setSelected(e);
-                        onSelect?.(e);
-                      }}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        alignItems: "center",
-                        gap: 4,
-                        padding: `${SPACE.xs} ${SPACE.sm}`,
-                        borderRadius: RADIUS.control,
-                        border: `1px solid ${e.id === selected.id ? ACCENT.base : GLASS.border}`,
-                        background: e.id === selected.id ? ACCENT.subtle : SOLID.card,
-                        cursor: "pointer",
-                        minWidth: 80,
-                      }}
-                    >
-                      {e.views?.[0] && (
-                        <img
-                          src={resolveMediaUrl(e.views[0].src)}
-                          alt={e.name}
-                          style={{
-                            width: 32,
-                            height: 32,
-                            borderRadius: "50%",
-                            objectFit: "cover",
-                          }}
-                        />
-                      )}
-                      <span
-                        style={{
-                          fontSize: TYPE.caption.size,
-                          color: e.id === selected.id ? ACCENT.text : TEXT.primary,
-                          whiteSpace: "nowrap",
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          maxWidth: 100,
-                        }}
-                      >
-                        {e.id}
-                      </span>
-                    </button>
-                  ))}
-              </div>
-            </div>
-          )}
-
-          <div
-            style={{
-              marginTop: SPACE.md,
-              paddingTop: SPACE.md,
-              borderTop: `1px solid ${GLASS.border}`,
-            }}
-          >
-            <label
-              style={{
-                display: "block",
-                fontSize: TYPE.caption.size,
-                color: TEXT.secondary,
-                marginBottom: SPACE.xs,
-                fontWeight: 600,
-              }}
-            >
-              Notas del equipo
-            </label>
-            <textarea
-              style={{
-                width: "100%",
-                minHeight: 80,
-                padding: `8px 12px`,
-                borderRadius: RADIUS.input,
-                border: `1px solid ${GLASS.border}`,
-                background: SOLID.card,
-                color: TEXT.primary,
-                fontSize: TYPE.body.size,
-                fontFamily: TYPE.mono.font,
-                resize: "vertical",
-              }}
-            />
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
@@ -1735,6 +515,13 @@ export function ActiveWorkout({
   const gym = useGymSettings();
   /** The athlete's bodyweight, the denominator of every relative rank. */
   const { profile } = useProfile(userId);
+  const { todayCheckin, logCheckin } = useBodyMetrics(userId);
+  const [checkinDismissed, setCheckinDismissed] = useState(false);
+  const [plateCalc, setPlateCalc] = useState<{
+    open: boolean;
+    setIndex: number | null;
+    initialWeightKg: number;
+  }>({ open: false, setIndex: null, initialWeightKg: 60 });
 
   const sync = useOfflineSync();
 
@@ -2891,6 +1678,32 @@ export function ActiveWorkout({
             onTerminate={finish}
           />
 
+          {!todayCheckin && !checkinDismissed && (
+            <div style={{ padding: `${SPACE.sm}px ${SPACE.md}px 0` }}>
+              <PreWorkoutCheckinCard
+                onSave={logCheckin}
+                onDismiss={() => setCheckinDismissed(true)}
+                onApplyRecoveryLoad={() => {
+                  const barKg =
+                    gym.barType === "custom" ? gym.customBarKg : BAR_WEIGHTS[gym.barType];
+                  setItems((prev) =>
+                    prev.map((item) => ({
+                      ...item,
+                      sets: item.sets.map((s) => {
+                        if (s.completed || s.kind === "warmup") return s;
+                        const w = toNumber(s.weight);
+                        if (w == null || w <= 0) return s;
+                        const scaled = nearestLoadable(w * 0.9, barKg, gym.inventory);
+                        return { ...s, weight: String(scaled > 0 ? scaled : Math.round(w * 0.9 * 2) / 2) };
+                      }),
+                    })),
+                  );
+                  setNotice("Descarga del 10% aplicada según tu check-in de hoy.");
+                }}
+              />
+            </div>
+          )}
+
           {carouselItems.length > 0 && (
             <div
               style={{
@@ -2951,6 +1764,18 @@ export function ActiveWorkout({
                 prBadge={sessionPrByExercise[selected.exercise.id] ?? null}
                 onOpenBiomechanics={() => setBiomechanicsModalOpen(true)}
                 biomechanicsNote={biomechanicsByExercise[selected.exercise.id] ?? null}
+                onOpenPlates={() => {
+                  const pendingIdx = selected.sets.findIndex((s) => !s.completed);
+                  const fallbackIdx = pendingIdx >= 0 ? pendingIdx : 0;
+                  const targetSet = selected.sets[fallbackIdx];
+                  const initialW =
+                    (targetSet ? toNumber(targetSet.weight) : null) ?? smartLoad?.weightKg ?? 60;
+                  setPlateCalc({
+                    open: true,
+                    setIndex: targetSet ? fallbackIdx : null,
+                    initialWeightKg: initialW,
+                  });
+                }}
                 onRequestSpot={() => {
                   const station = equipmentForSelected?.name || locationLabel;
                   const exName = cleanExerciseName(getExerciseDisplayName(selected.exercise));
@@ -3218,6 +2043,10 @@ export function ActiveWorkout({
                         }
                         onChange={(i, e) => updateSet(selected.key, i, e)}
                         onRemove={(i) => removeSet(selected.key, i)}
+                        onOpenPlates={(setIdx, weightStr) => {
+                          const w = toNumber(weightStr) ?? smartLoad?.weightKg ?? 60;
+                          setPlateCalc({ open: true, setIndex: setIdx, initialWeightKg: w });
+                        }}
                         onFillFromPrevious={(i: number) => {
                           const prev = performance[selected.exercise.id]?.bestSet;
                           if (prev?.weight != null && prev?.reps != null) {
@@ -3399,6 +2228,25 @@ export function ActiveWorkout({
                 ...prev,
                 [selected.exercise.id]: selection.chipSummary,
               }));
+            }}
+          />
+          <PlateCalculatorSheet
+            isOpen={plateCalc.open}
+            initialWeightKg={plateCalc.initialWeightKg}
+            targetSetNumber={plateCalc.setIndex != null ? plateCalc.setIndex + 1 : null}
+            onClose={() => setPlateCalc((prev) => ({ ...prev, open: false }))}
+            onApplyWeight={(nextKg) => {
+              const targetIdx =
+                plateCalc.setIndex ??
+                Math.max(
+                  0,
+                  selected.sets.findIndex((s) => !s.completed),
+                );
+              const existing = selected.sets[targetIdx];
+              if (existing) {
+                updateSet(selected.key, targetIdx, { ...existing, weight: String(nextKg) });
+                setNotice(`Cargado ${nextKg} kg en la Serie ${targetIdx + 1}.`);
+              }
             }}
           />
         </>

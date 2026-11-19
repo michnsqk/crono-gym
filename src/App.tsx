@@ -19,6 +19,9 @@ const ActiveWorkoutView = lazy(() =>
 const ProgressCharts = lazy(() =>
   import("./components/progress/ProgressCharts").then((m) => ({ default: m.ProgressCharts })),
 );
+const BodyMetricsPanel = lazy(() =>
+  import("./components/progress/BodyMetricsPanel").then((m) => ({ default: m.BodyMetricsPanel })),
+);
 const ConsistencyTracker = lazy(() =>
   import("./components/progress/ConsistencyTracker").then((m) => ({ default: m.ConsistencyTracker })),
 );
@@ -609,6 +612,7 @@ export function ProgressView() {
           />
           <Suspense fallback={<p className="text-sm text-neutral-500">Cargando gráficas…</p>}>
             <ProgressCharts stats={stats} />
+            <BodyMetricsPanel userId={userId} />
             <div className="grid gap-5 lg:grid-cols-[1fr_360px] lg:items-start">
               <ConsistencyTracker week={stats.week} />
               <WorkoutHistory recent={stats.recent} />

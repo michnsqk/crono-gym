@@ -138,6 +138,16 @@ export interface CoachMuscleFact {
   activeWeeks: number;
 }
 
+/** Recent subjective pre-workout readiness check-in from `session_checkins`. */
+export interface CoachReadinessCheckin {
+  checkedOn: string;
+  energy: number | null;
+  sleepHours: number | null;
+  soreness: number | null;
+  stress: number | null;
+  notes: string | null;
+}
+
 /**
  * Everything the coach knows, assembled for one moment in time.
  *
@@ -152,6 +162,7 @@ export interface CoachContext {
   volume: CoachVolumeFact;
   energy: CoachEnergyFact | null;
   muscles: CoachMuscleFact[];
+  readinessCheckin?: CoachReadinessCheckin | null;
   /** What could not be assembled. Empty is a real state, not a default. */
   dataGaps: CoachDataGap[];
 }

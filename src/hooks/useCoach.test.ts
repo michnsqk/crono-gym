@@ -78,9 +78,13 @@ function setupMocks(row: LocalStateRow | null) {
     changeLast30Days: null,
     measurements: [],
     checkins: [],
+    todayCheckin: null,
+    latestCheckin: null,
     loading: false,
     error: null,
     logWeight: vi.fn(),
+    logMeasurement: vi.fn(),
+    logCheckin: vi.fn(),
     refresh: vi.fn(),
   });
   vi.mocked(useProgress).mockReturnValue({

@@ -246,6 +246,54 @@ export type Database = {
         }
         Relationships: []
       }
+      class_bookings: {
+        Row: {
+          athlete_name: string
+          booking_date: string
+          class_id: string
+          created_at: string
+          id: string
+          schedule_id: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          athlete_name?: string
+          booking_date?: string
+          class_id: string
+          created_at?: string
+          id?: string
+          schedule_id?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          athlete_name?: string
+          booking_date?: string
+          class_id?: string
+          created_at?: string
+          id?: string
+          schedule_id?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_bookings_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "gym_classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "class_bookings_schedule_id_fkey"
+            columns: ["schedule_id"]
+            isOneToOne: false
+            referencedRelation: "gym_schedules"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       coach_exercise_requests: {
         Row: {
           body_part: string
@@ -647,6 +695,33 @@ export type Database = {
           station_key?: string | null
           target?: string
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      gym_attendance: {
+        Row: {
+          checked_in_at: string
+          checked_in_on: string
+          display_name: string | null
+          id: string
+          source: string
+          user_id: string
+        }
+        Insert: {
+          checked_in_at?: string
+          checked_in_on?: string
+          display_name?: string | null
+          id?: string
+          source?: string
+          user_id: string
+        }
+        Update: {
+          checked_in_at?: string
+          checked_in_on?: string
+          display_name?: string | null
+          id?: string
+          source?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1299,6 +1374,50 @@ export type Database = {
           },
         ]
       }
+      shared_routines: {
+        Row: {
+          clone_count: number
+          code: string
+          created_at: string
+          description: string | null
+          owner_id: string
+          owner_name: string
+          payload: Json
+          routine_id: string | null
+          title: string
+        }
+        Insert: {
+          clone_count?: number
+          code: string
+          created_at?: string
+          description?: string | null
+          owner_id: string
+          owner_name?: string
+          payload: Json
+          routine_id?: string | null
+          title: string
+        }
+        Update: {
+          clone_count?: number
+          code?: string
+          created_at?: string
+          description?: string | null
+          owner_id?: string
+          owner_name?: string
+          payload?: Json
+          routine_id?: string | null
+          title?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_routines_routine_id_fkey"
+            columns: ["routine_id"]
+            isOneToOne: false
+            referencedRelation: "routines"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       spot_requests: {
         Row: {
           athlete_name: string
@@ -1418,6 +1537,15 @@ export type Database = {
     }
     Functions: {
       activate_vip: { Args: { target_user_id: string }; Returns: undefined }
+      book_gym_class: {
+        Args: {
+          p_athlete_name?: string
+          p_booking_date?: string
+          p_class_id: string
+          p_schedule_id?: string
+        }
+        Returns: Json
+      }
       finalize_session:
         | {
             Args: {
@@ -1434,6 +1562,33 @@ export type Database = {
             Returns: string
           }
         | { Args: { p_session_id: string }; Returns: undefined }
+      get_admin_attendance_radar: {
+        Args: never
+        Returns: {
+          at_risk: boolean
+          days_inactive: number
+          display_name: string
+          last_visit_at: string
+          user_id: string
+          visits_30d: number
+        }[]
+      }
+      get_class_seat_counts: {
+        Args: { p_booking_date?: string }
+        Returns: {
+          class_id: string
+          confirmed_count: number
+        }[]
+      }
+      get_monthly_challenge_leaderboard: {
+        Args: { p_month_start?: string }
+        Returns: {
+          display_name: string
+          last_activity_at: string
+          sessions_count: number
+          user_id: string
+        }[]
+      }
       grant_user_role: {
         Args: {
           new_role: Database["public"]["Enums"]["app_role"]
@@ -1444,6 +1599,10 @@ export type Database = {
       has_role: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
+      }
+      increment_shared_routine_clone: {
+        Args: { p_code: string }
+        Returns: number
       }
       is_coach: { Args: never; Returns: boolean }
       my_roles: { Args: never; Returns: string[] }
@@ -1648,3 +1807,7 @@ export type Exercise = Omit<DbExerciseRow, OptionalExerciseGovernanceKeys> &
   };
 
 export type Routine = Database["public"]["Tables"]["routines"]["Row"];
+export type SharedRoutineRow = Database["public"]["Tables"]["shared_routines"]["Row"];
+export type GymAttendanceRow = Database["public"]["Tables"]["gym_attendance"]["Row"];
+export type ClassBookingRow = Database["public"]["Tables"]["class_bookings"]["Row"];
+
