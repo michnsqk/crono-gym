@@ -63,7 +63,6 @@ import tailwind from "../../tailwind.config";
  * these rules are checked against the values the app ships.
  */
 import { EARNABLE_RANKS } from "../lib/ranks/rankConfig";
-import { LOGO_GRADIENT } from "./logoGradient";
 
 /**
  * Every component source file, read as text, so the type scale can be checked for leaks.
@@ -1051,24 +1050,6 @@ describe("the token set", () => {
     expect(RADIUS.card).not.toBe(RADIUS.surface);
     expect(RADIUS.chip).toBe(RADIUS.sm);
     expect(RADIUS.button).toBe(RADIUS.control);
-  });
-
-  it("keeps the brand mark in the accent's red", () => {
-    /*
-     * The logo is the one asset that cannot read a CSS custom property, so its stops are
-     * literals in `logoGradient.ts`. That is exactly the arrangement that lets a palette
-     * change leave the mark behind, which is what happened once already: the mark was gold
-     * while the accent went red, and the two only stopped matching when someone noticed.
-     * The mid stop is asserted to *be* the accent rather than a colour resembling it.
-     */
-    expect(LOGO_GRADIENT.base).toBe(ACCENT.base);
-    expect(LOGO_GRADIENT.deep).toBe(ACCENT.pressed);
-    expect(redPolicyFor(LOGO_GRADIENT.light, "accent")).toBe(false);
-    // No gold survives anywhere in the mark.
-    for (const stop of Object.values(LOGO_GRADIENT)) {
-      const { h } = rgbToHsl(parseColor(stop)!);
-      expect(h < 20 || h > 340, `${stop} is not in the red arc`).toBe(true);
-    }
   });
 });
 

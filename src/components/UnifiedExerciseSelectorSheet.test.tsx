@@ -12,7 +12,6 @@ import { act, cleanup, fireEvent, render, screen } from "@testing-library/react"
 import { UnifiedExerciseSelectorSheet } from "./UnifiedExerciseSelectorSheet";
 import type { Exercise } from "@/types/supabase";
 import { useExerciseCatalog } from "@/hooks/useExerciseCatalog";
-import { useDebouncedValue } from "@/hooks/useDebouncedValue";
 import { useFrequentExercises } from "@/hooks/useFrequentExercises";
 import { hapticSuccess, hapticLight } from "@/lib/haptics";
 
@@ -21,9 +20,6 @@ vi.mock("@/hooks/useExerciseCatalog", () => ({
   normaliseExerciseName: vi.fn((value: string) =>
     value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, ""),
   ),
-}));
-vi.mock("@/hooks/useDebouncedValue", () => ({
-  useDebouncedValue: vi.fn((value: string) => value),
 }));
 vi.mock("@/hooks/useFrequentExercises", () => ({
   useFrequentExercises: vi.fn(() => ({
@@ -39,7 +35,6 @@ vi.mock("@/lib/haptics", () => ({
 }));
 
 const useExerciseCatalogMock = vi.mocked(useExerciseCatalog);
-const useDebouncedValueMock = vi.mocked(useDebouncedValue);
 const useFrequentExercisesMock = vi.mocked(useFrequentExercises);
 const hapticSuccessMock = vi.mocked(hapticSuccess);
 const hapticLightMock = vi.mocked(hapticLight);
@@ -103,7 +98,6 @@ beforeEach(() => {
   vi.useRealTimers();
   useExerciseCatalogMock.mockReset();
   useExerciseCatalogMock.mockReturnValue(catalogState());
-  useDebouncedValueMock.mockImplementation((value: string, _delayMs?: number) => value);
   useFrequentExercisesMock.mockReturnValue({
     frequentIds: [],
     add: vi.fn(),
