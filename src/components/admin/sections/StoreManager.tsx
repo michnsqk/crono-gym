@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ImagePlus, Package, ShoppingBag, Ticket as TicketIcon } from "lucide-react";
+import { ImagePlus, Minus, Package, Plus, ShoppingBag, Ticket as TicketIcon } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { compressImage } from "@/lib/image/compressImage";
 import { ACCENT, GLASS, RADIUS, STATUS, SURFACE, TEXT } from "@/design/tokens";
@@ -10,6 +10,7 @@ import {
   saveStoreMeta,
   type LocalProduct,
 } from "@/lib/gymClubMetadata";
+import type { Database, PurchaseTicketRow } from "@/types/supabase";
 
 type Product = {
   id: string;
@@ -22,14 +23,7 @@ type Product = {
   is_active?: boolean;
 };
 
-type Ticket = {
-  id: string;
-  ticket_number: string;
-  total_cents: number;
-  quantity: number;
-  status: string;
-  product_id: string;
-};
+type TicketStatus = Database["public"]["Enums"]["purchase_ticket_status"];
 
 const CATEGORY_LABELS: Record<string, string> = {
   supplements: "Suplementos",
@@ -43,7 +37,7 @@ const field =
 
 export function StoreManager() {
   const [products, setProducts] = useState<Product[]>([]);
-  const [tickets, setTickets] = useState<Ticket[]>([]);
+  const [tickets, setTickets] = useState<PurchaseTicketRow[]>([]);
   const [name, setName] = useState("");
   const [category, setCategory] = useState("supplements");
   const [price, setPrice] = useState("");
@@ -53,23 +47,46 @@ export function StoreManager() {
 
   const load = useCallback(async () => {
     const [p, t] = await Promise.all([
-      (supabase as any).from("products").select("*").order("created_at", { ascending: false }),
-      (supabase as any).from("purchase_tickets").select("*").order("created_at", { ascending: false }),
+      supabase.from("products").select("*").order("created_at", { ascending: false }),
+      supabase.from("purchase_tickets").select("*").order("created_at", { ascending: false }).limit(30),
     ]);
-    const remote = (p.data ?? []).map((item: Product) => {
+    const remote: Product[] = (p.data ?? []).map((item) => {
       const meta = findStoreMeta(item.id, item.name);
-      return { ...item, ...meta, image_path: item.image_path ?? meta?.imageUrl };
+      return {
+        id: item.id,
+        name: item.name,
+        description: item.description ?? undefined,
+        category: item.description ?? meta?.category,
+        price_cents: Math.round(Number(item.price ?? 0) * 100),
+        stock: Number(item.stock ?? 0),
+        image_path: item.image_url ?? meta?.imageUrl,
+        is_active: Boolean(item.is_active ?? true),
+      };
     });
     const local = readLocalProducts();
     setProducts([
       ...remote,
-      ...local.filter((item) => !remote.some((current: Product) => current.id === item.id)),
+      ...local.filter((item) => !remote.some((current) => current.id === item.id)),
     ]);
     setTickets(t.data ?? []);
   }, []);
 
   useEffect(() => {
     void load();
+    if (typeof (supabase as { channel?: unknown }).channel !== "function") return;
+    const channel = supabase
+      .channel("cronos-store-tickets-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "purchase_tickets" },
+        () => {
+          void load();
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [load]);
 
   const create = async () => {
@@ -77,31 +94,34 @@ export function StoreManager() {
       setStatus("Escribe un nombre para el producto.");
       return;
     }
-    const priceCents = Math.max(0, Math.round(Number(price || 0) * 100));
-    const payload = {
-      name: name.trim(),
-      category,
-      price_cents: priceCents,
-      stock: Math.max(0, Number(stock) || 0),
-      image_path: image || null,
-    };
-    const { data, error } = await (supabase as any)
+    const priceMxn = Math.max(0, Number(price || 0));
+    const priceCents = Math.round(priceMxn * 100);
+    const parsedStock = Math.max(0, Number(stock) || 0);
+    const { data, error } = await supabase
       .from("products")
-      .insert(payload)
+      .insert({
+        name: name.trim(),
+        description: category,
+        price: priceMxn,
+        stock: parsedStock,
+        image_url: image || null,
+        is_active: true,
+      })
       .select("id")
       .single();
+
     const product: LocalProduct = {
       id: String(data?.id ?? `local-product-${Date.now()}`),
       name: name.trim(),
       category,
       price_cents: priceCents,
-      stock: payload.stock,
+      stock: parsedStock,
       image_path: image || undefined,
       is_active: true,
       created_at: new Date().toISOString(),
     };
     saveStoreMeta([product.id, product.name], { imageUrl: image || undefined, category });
-    saveLocalProduct(product);
+    if (error) saveLocalProduct(product);
     setProducts((current) => [product, ...current]);
     setStatus(
       error ? "Producto guardado localmente y publicado en la tienda." : "Producto añadido a la tienda.",
@@ -113,8 +133,32 @@ export function StoreManager() {
     if (!error) await load();
   };
 
-  const ticket = async (id: string, value: string) => {
-    await (supabase as any).from("purchase_tickets").update({ status: value }).eq("id", id);
+  const adjustStock = async (productId: string, delta: number) => {
+    const currentProd = products.find((p) => p.id === productId);
+    if (!currentProd) return;
+    const nextStock = Math.max(0, currentProd.stock + delta);
+    setProducts((prev) => prev.map((p) => (p.id === productId ? { ...p, stock: nextStock } : p)));
+    await supabase.from("products").update({ stock: nextStock }).eq("id", productId);
+  };
+
+  const ticket = async (id: string, value: TicketStatus) => {
+    const currentTicket = tickets.find((t) => t.id === id);
+    await supabase.from("purchase_tickets").update({ status: value }).eq("id", id);
+
+    if (
+      currentTicket &&
+      (value === "paid" || value === "delivered") &&
+      currentTicket.status === "pending"
+    ) {
+      const targetProduct = products.find((p) => p.id === currentTicket.product_id);
+      if (targetProduct) {
+        const decremented = Math.max(0, targetProduct.stock - (currentTicket.quantity || 1));
+        await supabase
+          .from("products")
+          .update({ stock: decremented })
+          .eq("id", targetProduct.id);
+      }
+    }
     await load();
   };
 
@@ -145,7 +189,6 @@ export function StoreManager() {
           />
         </label>
 
-        {/* Fila Bento de 3 columnas: Categoría + Precio (MXN) + Stock disponible */}
         <div className="grid grid-cols-3 gap-2">
           <label className="grid min-w-0 gap-1">
             <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
@@ -188,7 +231,6 @@ export function StoreManager() {
           </label>
         </div>
 
-        {/* Fila compacta de imagen */}
         <div className="grid grid-cols-[1fr_auto] items-end gap-2">
           <label className="grid min-w-0 gap-1">
             <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
@@ -247,7 +289,6 @@ export function StoreManager() {
         ) : null}
       </div>
 
-      {/* Apple Store Card Grid */}
       <div className="grid gap-2.5 sm:grid-cols-2">
         {products.map((product) => (
           <article
@@ -283,64 +324,103 @@ export function StoreManager() {
                 </span>
               </div>
               <strong className="mt-1 block truncate text-sm text-white">{product.name}</strong>
-              <span
-                className="mt-0.5 block font-mono text-xs tabular-nums"
-                style={{ color: TEXT.secondary }}
-              >
-                ${(product.price_cents / 100).toFixed(2)} MXN · Stock {product.stock}
-              </span>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <span
+                  className="font-mono text-xs tabular-nums"
+                  style={{ color: product.stock === 0 ? ACCENT.text : TEXT.secondary }}
+                >
+                  ${(product.price_cents / 100).toFixed(2)} · Stock {product.stock}
+                </span>
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    aria-label={`Reducir stock de ${product.name}`}
+                    onClick={() => void adjustStock(product.id, -1)}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: SURFACE.sunken, border: `1px solid ${GLASS.border}` }}
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <button
+                    type="button"
+                    aria-label={`Aumentar stock de ${product.name}`}
+                    onClick={() => void adjustStock(product.id, 1)}
+                    className="flex h-7 w-7 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: SURFACE.sunken, border: `1px solid ${GLASS.border}` }}
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+              </div>
             </div>
           </article>
         ))}
       </div>
 
       <div className="grid gap-2">
-        <div className="flex items-center gap-2">
-          <TicketIcon size={16} style={{ color: TEXT.secondary }} aria-hidden="true" />
-          <h3 className="text-sm font-bold text-white">Tickets de compra recibidos</h3>
-        </div>
-        {tickets.map((item) => (
-          <div
-            key={item.id}
-            className="flex flex-wrap items-center justify-between gap-2 p-3"
-            style={{
-              borderRadius: RADIUS.surface,
-              backgroundColor: SURFACE.l1,
-              border: `1px solid ${GLASS.border}`,
-            }}
-          >
-            <span
-              className="font-mono text-xs tabular-nums"
-              style={{ color: TEXT.secondary }}
-            >
-              {item.ticket_number} · ${(item.total_cents / 100).toFixed(2)} · {item.status}
-            </span>
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                className="min-h-[38px] rounded-xl px-3 text-xs font-medium text-white"
-                style={{
-                  backgroundColor: GLASS.fillRaised,
-                  border: `1px solid ${GLASS.border}`,
-                }}
-                onClick={() => void ticket(item.id, "cancelled")}
-              >
-                Cancelar
-              </button>
-              <button
-                type="button"
-                className="min-h-[38px] rounded-xl px-3 text-xs font-bold"
-                style={{
-                  backgroundColor: STATUS.success.base,
-                  color: TEXT.onAccent,
-                }}
-                onClick={() => void ticket(item.id, "delivered")}
-              >
-                Confirmar pago y entregar
-              </button>
-            </div>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <TicketIcon size={16} style={{ color: TEXT.secondary }} aria-hidden="true" />
+            <h3 className="text-sm font-bold text-white">Tickets de compra recibidos</h3>
           </div>
-        ))}
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
+            style={{ backgroundColor: STATUS.success.muted, color: STATUS.success.text }}
+          >
+            EN VIVO
+          </span>
+        </div>
+        {tickets.length === 0 ? (
+          <p className="text-xs" style={{ color: TEXT.tertiary }}>
+            Sin reservas de tienda recientes.
+          </p>
+        ) : (
+          tickets.map((item) => (
+            <div
+              key={item.id}
+              className="flex flex-wrap items-center justify-between gap-2 p-3"
+              style={{
+                borderRadius: RADIUS.surface,
+                backgroundColor: SURFACE.l1,
+                border: `1px solid ${GLASS.border}`,
+              }}
+            >
+              <span
+                className="font-mono text-xs tabular-nums"
+                style={{ color: TEXT.secondary }}
+              >
+                {item.ticket_number} · ${(item.total_cents / 100).toFixed(2)} ·{" "}
+                <strong className="text-white">{item.status}</strong>
+              </span>
+              {item.status === "pending" && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="min-h-[38px] rounded-xl px-3 text-xs font-medium text-white"
+                    style={{
+                      backgroundColor: GLASS.fillRaised,
+                      border: `1px solid ${GLASS.border}`,
+                    }}
+                    onClick={() => void ticket(item.id, "cancelled")}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="button"
+                    className="min-h-[38px] rounded-xl px-3 text-xs font-bold"
+                    style={{
+                      backgroundColor: STATUS.success.base,
+                      color: TEXT.onAccent,
+                    }}
+                    onClick={() => void ticket(item.id, "delivered")}
+                  >
+                    Confirmar pago y entregar
+                  </button>
+                </div>
+              )}
+            </div>
+          ))
+        )}
       </div>
     </section>
   );

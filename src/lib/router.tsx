@@ -114,6 +114,12 @@ const LazySharedRoutinePage = lazy(() =>
   })),
 );
 
+const LazyReceptionCheckinPage = lazy(() =>
+  import("@/components/attendance/ReceptionCheckinPage").then((mod) => ({
+    default: mod.ReceptionCheckinPage,
+  })),
+);
+
 /**
  * The dev-only component catalog and the coach-portal preview.
  *
@@ -243,6 +249,14 @@ export const router = createBrowserRouter([
           // reload and so the pill's destination is a real screen.
           { path: "/entrenar", element: <TrainView /> },
           { path: "/rangos", element: <RangosView /> },
+          {
+            path: "/checkin",
+            element: (
+              <Suspense fallback={<LoadingSpinner label="Cargando check-in…" />}>
+                <LazyReceptionCheckinPage />
+              </Suspense>
+            ),
+          },
           {
             path: PROFILE_PATH,
             element: (

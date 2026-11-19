@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { Calendar, Clock } from "lucide-react";
+import { Calendar, Check, Clock, Users } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { ACCENT, GLASS, RADIUS, STATUS, SURFACE, TEXT } from "@/design/tokens";
 import {
@@ -9,6 +9,12 @@ import {
   saveLocalClass,
   type LocalGymClass,
 } from "@/lib/gymClubMetadata";
+import {
+  getClassSeatCounts,
+  listAdminClassBookings,
+  markBookingAttended,
+} from "@/services/attendanceAndClubService";
+import type { ClassBookingRow } from "@/types/supabase";
 
 const DAYS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const field =
@@ -21,6 +27,8 @@ type GymClass = {
   capacity: number;
   price_cents?: number;
   description?: string;
+  day_of_week?: string;
+  start_time?: string;
 };
 
 type Schedule = {
@@ -33,6 +41,8 @@ type Schedule = {
 export function ClassesManager() {
   const [classes, setClasses] = useState<GymClass[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
+  const [seatCounts, setSeatCounts] = useState<Record<string, number>>({});
+  const [bookings, setBookings] = useState<ClassBookingRow[]>([]);
   const [classId, setClassId] = useState("");
   const [name, setName] = useState("");
   const [instructor, setInstructor] = useState("");
@@ -44,24 +54,54 @@ export function ClassesManager() {
   const [status, setStatus] = useState("");
 
   const load = useCallback(async () => {
-    const [c, s] = await Promise.all([
-      (supabase as any).from("gym_classes").select("*").order("created_at", { ascending: false }),
-      (supabase as any).from("gym_schedules").select("*").order("day_of_week"),
+    const [c, s, counts, bks] = await Promise.all([
+      supabase.from("gym_classes").select("*").order("created_at", { ascending: false }),
+      supabase.from("gym_schedules").select("*").order("day_of_week"),
+      getClassSeatCounts(),
+      listAdminClassBookings(),
     ]);
-    const rows = (c.data ?? []).map((item: GymClass) => {
-      const meta = findClassMeta(item.id, item.name);
-      return { ...item, ...meta, price_cents: meta?.priceCents ?? item.price_cents };
+    const rows: GymClass[] = (c.data ?? []).map((item) => {
+      const meta = findClassMeta(item.id, item.title);
+      return {
+        id: item.id,
+        name: item.title,
+        instructor: item.instructor ?? undefined,
+        capacity: Number(item.capacity ?? 20),
+        day_of_week: item.day_of_week,
+        start_time: item.start_time,
+        ...meta,
+        price_cents: meta?.priceCents,
+      };
     });
     const local = readLocalClasses();
     setClasses([
       ...rows,
-      ...local.filter((item) => !rows.some((current: GymClass) => current.id === item.id)),
+      ...local.filter((item) => !rows.some((current) => current.id === item.id)),
     ]);
-    setSchedules(s.data ?? []);
+    setSchedules((s.data ?? []) as Schedule[]);
+    setSeatCounts(counts);
+    setBookings(bks);
   }, []);
 
   useEffect(() => {
     void load();
+    if (typeof (supabase as { channel?: unknown }).channel !== "function") return;
+    const channel = supabase
+      .channel("cronos-class-bookings-live")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "class_bookings" },
+        () => {
+          void Promise.all([getClassSeatCounts(), listAdminClassBookings()]).then(([c, b]) => {
+            setSeatCounts(c);
+            setBookings(b);
+          });
+        },
+      )
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
   }, [load]);
 
   const createClass = async () => {
@@ -71,15 +111,27 @@ export function ClassesManager() {
     }
     const priceCents = Math.max(0, Math.round(Number(price || 0) * 100));
     const parsedCapacity = Number(capacity) || 20;
-    const { data, error } = await (supabase as any)
+    const { data, error } = await supabase
       .from("gym_classes")
       .insert({
-        name: name.trim(),
+        title: name.trim(),
         instructor: instructor.trim() || null,
+        day_of_week: DAYS[Number(day)] ?? "Lun",
+        start_time: time || "18:00",
         capacity: parsedCapacity,
+        is_active: true,
       })
       .select("id")
       .single();
+
+    if (!error && data?.id) {
+      await supabase.from("gym_schedules").insert({
+        class_id: data.id,
+        day_of_week: Number(day),
+        start_time: `${time}:00`,
+      });
+    }
+
     const classItem: LocalGymClass = {
       id: String(data?.id ?? `local-class-${Date.now()}`),
       name: name.trim(),
@@ -90,9 +142,9 @@ export function ClassesManager() {
       created_at: new Date().toISOString(),
     };
     saveClassMeta([classItem.id, classItem.name], { priceCents });
-    saveLocalClass(classItem);
+    if (error) saveLocalClass(classItem);
     setClasses((current) => [classItem, ...current]);
-    setStatus(error ? "Clase guardada localmente y publicada en Clases." : "Clase creada.");
+    setStatus(error ? "Clase guardada localmente y publicada en Clases." : "Clase creada y publicada en la nube.");
     setName("");
     setInstructor("");
     setPrice("0");
@@ -104,7 +156,7 @@ export function ClassesManager() {
       setStatus("Selecciona una clase primero.");
       return;
     }
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("gym_schedules")
       .insert({ class_id: classId, day_of_week: Number(day), start_time: `${time}:00` });
     setStatus(error ? "No se pudo añadir el horario." : "Horario añadido.");
@@ -121,9 +173,17 @@ export function ClassesManager() {
           border: `1px solid ${GLASS.border}`,
         }}
       >
-        <div className="flex items-center gap-2">
-          <Calendar size={18} style={{ color: ACCENT.text }} aria-hidden="true" />
-          <h2 className="text-base font-bold text-white">Clases y horarios</h2>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Calendar size={18} style={{ color: ACCENT.text }} aria-hidden="true" />
+            <h2 className="text-base font-bold text-white">Clases y horarios</h2>
+          </div>
+          <span
+            className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
+            style={{ backgroundColor: STATUS.success.muted, color: STATUS.success.text }}
+          >
+            CUPOS EN VIVO
+          </span>
         </div>
 
         <div className="grid grid-cols-2 gap-2">
@@ -151,7 +211,6 @@ export function ClassesManager() {
           </label>
         </div>
 
-        {/* Fila Bento de 3 columnas: Precio (MXN), Cupo máximo y Duración (min) */}
         <div className="grid grid-cols-3 gap-2">
           <label className="grid min-w-0 gap-1">
             <span className="truncate text-xs font-medium" style={{ color: TEXT.secondary }}>
@@ -200,7 +259,6 @@ export function ClassesManager() {
           Crear clase
         </button>
 
-        {/* Bloque de horarios: Clase arriba y Día + Hora en grid-cols-2 */}
         <div className="mt-1 grid gap-2 border-t border-white/10 pt-3">
           <label className="grid gap-1">
             <span className="text-xs font-medium" style={{ color: TEXT.secondary }}>
@@ -267,30 +325,83 @@ export function ClassesManager() {
       </div>
 
       <div className="grid gap-2.5">
-        {classes.map((item) => (
-          <article
-            key={item.id}
-            className="p-3.5"
-            style={{
-              borderRadius: RADIUS.surface,
-              backgroundColor: SURFACE.l1,
-              border: `1px solid ${GLASS.border}`,
-            }}
-          >
-            <strong className="text-sm text-white">{item.name}</strong>
-            <p className="mt-0.5 text-xs" style={{ color: TEXT.secondary }}>
-              {item.instructor || "Instructor por confirmar"} ·{" "}
-              {item.price_cents ? `$${(item.price_cents / 100).toFixed(2)} MXN` : "Incluida"} ·{" "}
-              {item.capacity} cupos
-            </p>
-            <p className="mt-2 font-mono text-xs tabular-nums" style={{ color: TEXT.primary }}>
-              {schedules
-                .filter((schedule) => schedule.class_id === item.id)
-                .map((schedule) => `${DAYS[schedule.day_of_week]} ${schedule.start_time.slice(0, 5)}`)
-                .join(" · ") || "Sin horarios"}
-            </p>
-          </article>
-        ))}
+        {classes.map((item) => {
+          const occupied = seatCounts[item.id] ?? 0;
+          const full = occupied >= item.capacity;
+          const classBookings = bookings.filter((b) => b.class_id === item.id);
+          return (
+            <article
+              key={item.id}
+              className="space-y-2 p-3.5"
+              style={{
+                borderRadius: RADIUS.surface,
+                backgroundColor: SURFACE.l1,
+                border: `1px solid ${GLASS.border}`,
+              }}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <strong className="text-sm text-white">{item.name}</strong>
+                  <p className="mt-0.5 text-xs" style={{ color: TEXT.secondary }}>
+                    {item.instructor || "Instructor por confirmar"} ·{" "}
+                    {item.price_cents ? `$${(item.price_cents / 100).toFixed(2)} MXN` : "Incluida"}
+                  </p>
+                </div>
+                <span
+                  className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-mono text-[11px] font-bold"
+                  style={{
+                    backgroundColor: full ? ACCENT.subtle : STATUS.success.muted,
+                    color: full ? ACCENT.text : STATUS.success.text,
+                  }}
+                >
+                  <Users size={11} />
+                  {occupied}/{item.capacity} hoy
+                </span>
+              </div>
+
+              <p className="font-mono text-xs tabular-nums" style={{ color: TEXT.primary }}>
+                {schedules
+                  .filter((schedule) => schedule.class_id === item.id)
+                  .map((schedule) => `${DAYS[schedule.day_of_week]} ${schedule.start_time.slice(0, 5)}`)
+                  .join(" · ") ||
+                  (item.day_of_week && item.start_time
+                    ? `${item.day_of_week} ${item.start_time}`
+                    : "Sin horarios")}
+              </p>
+
+              {classBookings.length > 0 && (
+                <div className="space-y-1 border-t border-white/10 pt-2">
+                  {classBookings.map((bk) => (
+                    <div key={bk.id} className="flex items-center justify-between text-xs">
+                      <span className="text-white">{bk.athlete_name}</span>
+                      {bk.status === "attended" ? (
+                        <span
+                          className="inline-flex items-center gap-1 font-semibold"
+                          style={{ color: STATUS.success.text }}
+                        >
+                          <Check size={12} /> Asistió
+                        </span>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            void markBookingAttended(bk.id).then((ok) => {
+                              if (ok) void load();
+                            });
+                          }}
+                          className="rounded-lg px-2 py-1 text-[11px] font-semibold text-white"
+                          style={{ backgroundColor: SURFACE.sunken, border: `1px solid ${GLASS.border}` }}
+                        >
+                          Marcar asistió
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </article>
+          );
+        })}
       </div>
     </section>
   );

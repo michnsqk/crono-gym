@@ -108,7 +108,7 @@ export function AdminHub() {
 
         {/* Barra de 5 Pestañas Apple Segmented Control visible al 100% en 390px */}
         <nav
-          className="grid w-full grid-cols-6 gap-1 rounded-2xl p-1"
+          className="grid w-full grid-cols-4 gap-1 rounded-2xl p-1 sm:grid-cols-7"
           style={{
             borderRadius: RADIUS.surface,
             border: `1px solid ${GLASS.border}`,

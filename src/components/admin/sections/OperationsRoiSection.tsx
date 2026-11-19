@@ -2,16 +2,29 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  Copy,
   Download,
   Flame,
   PauseCircle,
   Printer,
+  QrCode,
   ShieldAlert,
   TrendingUp,
+  Trophy,
+  Users,
 } from "lucide-react";
 import { supabase } from "@lib/supabase";
-import { ACCENT, GLASS, STATUS, TEXT } from "@/design/tokens";
+import { ACCENT, GLASS, STATUS, SURFACE, TEXT } from "@/design/tokens";
 import { equipmentMap } from "@/data/equipmentMap";
+import type { GymAttendanceRow } from "@/types/supabase";
+import {
+  getAdminAttendanceRadar,
+  getMonthlyChallengeLeaderboard,
+  listTodayAttendance,
+  openPrintableAttendanceQrSheet,
+  type AttendanceRadarRow,
+  type ChallengeLeaderboardRow,
+} from "@/services/attendanceAndClubService";
 import {
   createGymChallenge,
   exportFullGymDatabaseCsv,
@@ -48,17 +61,23 @@ export function OperationsRoiSection() {
 
   const [challengeTitle, setChallengeTitle] = useState("Completa 16 sesiones este mes");
   const [challengeTarget, setChallengeTarget] = useState(16);
+  const [todayAttendance, setTodayAttendance] = useState<GymAttendanceRow[]>([]);
+  const [attendanceRadar, setAttendanceRadar] = useState<AttendanceRadarRow[]>([]);
+  const [leaderboard, setLeaderboard] = useState<ChallengeLeaderboardRow[]>([]);
   const [notice, setNotice] = useState<string | null>(null);
   const [actorId, setActorId] = useState("admin");
 
   const loadAll = useCallback(async () => {
-    const [{ data: authData }, chgs, reps, ints, auds, status] = await Promise.all([
+    const [{ data: authData }, chgs, reps, ints, auds, status, attToday, radar, lb] = await Promise.all([
       supabase.auth.getUser(),
       listGymChallenges(),
       listMachineReports(),
       listDemandIntents(),
       listAdminAuditLogs(),
       getGymServiceStatus(),
+      listTodayAttendance(),
+      getAdminAttendanceRadar(),
+      getMonthlyChallengeLeaderboard(),
     ]);
 
     if (authData.user?.id) setActorId(authData.user.id);
@@ -67,6 +86,9 @@ export function OperationsRoiSection() {
     setIntents(ints);
     setAuditLogs(auds);
     setServiceStatusState(status);
+    setTodayAttendance(attToday);
+    setAttendanceRadar(radar);
+    setLeaderboard(lb);
 
     const { data: vips } = await supabase
       .from("coach_session_requests")
@@ -97,6 +119,21 @@ export function OperationsRoiSection() {
         { event: "*", schema: "public", table: "machine_reports" },
         () => {
           void listMachineReports().then(setReports);
+        },
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "gym_attendance" },
+        () => {
+          void Promise.all([
+            listTodayAttendance(),
+            getAdminAttendanceRadar(),
+            getMonthlyChallengeLeaderboard(),
+          ]).then(([att, radar, lb]) => {
+            setTodayAttendance(att);
+            setAttendanceRadar(radar);
+            setLeaderboard(lb);
+          });
         },
       )
       .subscribe();
@@ -289,6 +326,110 @@ export function OperationsRoiSection() {
             </strong>
           </div>
         )}
+
+        {leaderboard.length > 0 && (
+          <div className="mt-3 space-y-1.5 rounded-xl bg-[#09090B] p-3">
+            <div className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-white">
+              <Trophy size={13} color={ACCENT.base} aria-hidden="true" />
+              <span>Top 5 Ranking del Mes</span>
+            </div>
+            {leaderboard.slice(0, 5).map((row, idx) => (
+              <div key={row.userId} className="flex items-center justify-between text-xs">
+                <span className="truncate text-white">
+                  <strong className="font-mono" style={{ color: idx < 3 ? ACCENT.text : TEXT.secondary }}>
+                    #{idx + 1}
+                  </strong>{" "}
+                  {row.displayName}
+                </span>
+                <span className="font-mono font-bold tabular-nums text-white">
+                  {row.sessionsCount} días
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      {/* 3B. Asistencia QR en Recepción y Radar de Inactividad (14+ días) */}
+      <section className="rounded-2xl border border-white/10 bg-[#1C1C1E] p-4 sm:p-5">
+        <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Users size={18} color={ACCENT.base} />
+            <div>
+              <h2 className="text-sm font-bold text-white">
+                Asistencia QR Recepción &amp; Radar de Retención (14d)
+              </h2>
+              <p className="text-[11px]" style={{ color: TEXT.secondary }}>
+                Asistencias registradas hoy: <strong className="text-white">{todayAttendance.length}</strong>
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => openPrintableAttendanceQrSheet()}
+            className="inline-flex h-10 items-center gap-1.5 rounded-xl border border-white/10 bg-[#09090B] px-3 text-xs font-semibold text-white"
+          >
+            <QrCode size={14} />
+            <span>Imprimir QR Recepción</span>
+          </button>
+        </div>
+
+        {todayAttendance.length > 0 && (
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            {todayAttendance.slice(0, 8).map((a) => (
+              <span
+                key={a.id}
+                className="rounded-full px-2.5 py-1 text-[11px] font-semibold"
+                style={{ backgroundColor: STATUS.success.muted, color: STATUS.success.text }}
+              >
+                ✓ {a.display_name || "Atleta Cronos"}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {(() => {
+          const atRisk = attendanceRadar.filter((r) => r.atRisk);
+          if (atRisk.length === 0) {
+            return (
+              <p className="text-xs" style={{ color: TEXT.secondary }}>
+                Sin socios en alerta de inactividad (&ge; 14 días sin visitar o entrenar).
+              </p>
+            );
+          }
+          return (
+            <div className="space-y-2">
+              <p className="text-xs font-bold" style={{ color: ACCENT.text }}>
+                Socios con 14+ días sin asistir ({atRisk.length})
+              </p>
+              <div className="divide-y divide-white/10 rounded-xl bg-[#09090B] px-3">
+                {atRisk.slice(0, 8).map((member) => (
+                  <div key={member.userId} className="flex items-center justify-between gap-2 py-2 text-xs">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold text-white">{member.displayName}</p>
+                      <p className="font-mono text-[11px]" style={{ color: TEXT.secondary }}>
+                        {member.daysInactive} días sin asistir · {member.visits30d} visitas/30d
+                      </p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const msg = `¡Hola ${member.displayName}! Te extrañamos en Cronos Gym 💪 Llevas ${member.daysInactive} días sin pasar. ¡Te esperamos hoy para tu sesión!`;
+                        void navigator.clipboard?.writeText(msg);
+                        setNotice(`Mensaje copiado para ${member.displayName}`);
+                      }}
+                      className="inline-flex h-8 shrink-0 items-center gap-1 rounded-lg px-2.5 text-[11px] font-semibold text-white"
+                      style={{ backgroundColor: SURFACE.l1, border: `1px solid ${GLASS.border}` }}
+                    >
+                      <Copy size={12} />
+                      <span>WhatsApp</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </section>
 
       {/* 4. Inteligencia de Maquinaria, Mantenimiento y 77 QRs */}

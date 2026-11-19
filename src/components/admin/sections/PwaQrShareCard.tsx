@@ -4,6 +4,7 @@ import { Download, FileText, QrCode, Smartphone } from "lucide-react";
 import { ACCENT, GLASS, SURFACE, TEXT } from "@/design/tokens";
 
 const DEFAULT_PWA_URL = "https://cronogym.vercel.app/";
+const DEFAULT_CHECKIN_URL = "https://cronogym.vercel.app/checkin?gate=cronos-main";
 
 /** Builds a valid 1-page A4/Letter-proportioned PDF embedding a JPEG image buffer. */
 function buildSingleImagePdf(jpegBytes: Uint8Array, imgWidth: number, imgHeight: number): Blob {
@@ -146,10 +147,16 @@ async function renderPosterCanvas(url: string): Promise<HTMLCanvasElement> {
 }
 
 export function PwaQrShareCard() {
+  const [qrMode, setQrMode] = useState<"pwa" | "checkin">("pwa");
   const [targetUrl, setTargetUrl] = useState(DEFAULT_PWA_URL);
   const [previewSrc, setPreviewSrc] = useState<string>("");
   const [busy, setBusy] = useState<"png" | "pdf" | null>(null);
   const mountedRef = useRef(true);
+
+  const switchMode = (nextMode: "pwa" | "checkin") => {
+    setQrMode(nextMode);
+    setTargetUrl(nextMode === "pwa" ? DEFAULT_PWA_URL : DEFAULT_CHECKIN_URL);
+  };
 
   useEffect(() => {
     mountedRef.current = true;
@@ -209,7 +216,7 @@ export function PwaQrShareCard() {
         border: `1px solid ${GLASS.border}`,
       }}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="flex items-center gap-3">
           <div
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
@@ -218,11 +225,42 @@ export function PwaQrShareCard() {
             <QrCode size={22} aria-hidden="true" />
           </div>
           <div>
-            <h2 className="text-base font-bold text-white">QR de descarga PWA</h2>
+            <h2 className="text-base font-bold text-white">
+              {qrMode === "pwa" ? "QR de descarga PWA" : "QR Check-in Recepción"}
+            </h2>
             <p className="text-xs" style={{ color: TEXT.secondary }}>
-              Imprime o comparte este código en el gimnasio para que los atletas instalen la app al escanear.
+              {qrMode === "pwa"
+                ? "Imprime o comparte este código en el gimnasio para que los atletas instalen la app al escanear."
+                : "Coloca este QR en la entrada del gym para registrar asistencias y rachas diarias."}
             </p>
           </div>
+        </div>
+        <div
+          className="grid grid-cols-2 gap-1 rounded-xl p-1"
+          style={{ backgroundColor: SURFACE.sunken, border: `1px solid ${GLASS.border}` }}
+        >
+          <button
+            type="button"
+            onClick={() => switchMode("pwa")}
+            className="h-8 rounded-lg px-2.5 text-xs font-semibold"
+            style={{
+              backgroundColor: qrMode === "pwa" ? ACCENT.base : "transparent",
+              color: qrMode === "pwa" ? TEXT.primary : TEXT.secondary,
+            }}
+          >
+            QR App
+          </button>
+          <button
+            type="button"
+            onClick={() => switchMode("checkin")}
+            className="h-8 rounded-lg px-2.5 text-xs font-semibold"
+            style={{
+              backgroundColor: qrMode === "checkin" ? ACCENT.base : "transparent",
+              color: qrMode === "checkin" ? TEXT.primary : TEXT.secondary,
+            }}
+          >
+            Check-in QR
+          </button>
         </div>
       </div>
 

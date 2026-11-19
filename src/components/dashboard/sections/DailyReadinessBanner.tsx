@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Flame, Sparkles } from "lucide-react";
-import { ACCENT, TEXT } from "@/design/tokens";
+import { useNavigate } from "react-router-dom";
+import { Flame, QrCode, Sparkles, Trophy } from "lucide-react";
+import { ACCENT, GLASS, SURFACE, TEXT } from "@/design/tokens";
 import {
   computeDailyReadiness,
   loadTodayReadinessMood,
@@ -8,6 +9,10 @@ import {
   type ReadinessMood,
 } from "@/engines/dailyReadinessEngine";
 import { listGymChallenges, type GymChallenge } from "@/services/gymOperationsService";
+import {
+  getMonthlyChallengeLeaderboard,
+  type ChallengeLeaderboardRow,
+} from "@/services/attendanceAndClubService";
 
 interface DailyReadinessBannerProps {
   sessionsLast7Days: number;
@@ -26,8 +31,11 @@ export function DailyReadinessBanner({
   weeklyTargetDays,
   workoutsThisMonth,
 }: DailyReadinessBannerProps) {
+  const navigate = useNavigate();
   const [mood, setMood] = useState<ReadinessMood>(() => loadTodayReadinessMood());
   const [activeChallenge, setActiveChallenge] = useState<GymChallenge | null>(null);
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [leaderboard, setLeaderboard] = useState<ChallengeLeaderboardRow[]>([]);
 
   useEffect(() => {
     void listGymChallenges().then((list) => {
@@ -97,14 +105,69 @@ export function DailyReadinessBanner({
       </p>
 
       {activeChallenge && (
-        <div className="mt-3 flex items-center justify-between border-t border-white/10 pt-3 text-xs">
-          <div className="flex items-center gap-2 text-white">
-            <Flame size={15} color={ACCENT.base} aria-hidden="true" />
-            <span className="font-semibold">Reto del mes: {activeChallenge.title}</span>
+        <div className="mt-3 space-y-2.5 border-t border-white/10 pt-3 text-xs">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 text-white">
+              <Flame size={15} color={ACCENT.base} aria-hidden="true" />
+              <span className="font-semibold">Reto del mes: {activeChallenge.title}</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="font-mono font-bold tabular-nums" style={{ color: ACCENT.text }}>
+                {workoutsThisMonth}/{activeChallenge.targetSessions}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const next = !leaderboardOpen;
+                  setLeaderboardOpen(next);
+                  if (next && leaderboard.length === 0) {
+                    void getMonthlyChallengeLeaderboard().then(setLeaderboard);
+                  }
+                }}
+                className="inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold text-white"
+                style={{ backgroundColor: SURFACE.sunken, border: `1px solid ${GLASS.border}` }}
+              >
+                <Trophy size={12} color={ACCENT.base} aria-hidden="true" />
+                <span>{leaderboardOpen ? "Ocultar" : "Ranking"}</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => navigate("/checkin")}
+                className="inline-flex h-8 items-center gap-1 rounded-full px-2.5 text-[11px] font-semibold text-white"
+                style={{ backgroundColor: ACCENT.subtle, border: `1px solid ${ACCENT.border}`, color: ACCENT.text }}
+              >
+                <QrCode size={12} aria-hidden="true" />
+                <span>Check-in</span>
+              </button>
+            </div>
           </div>
-          <span className="font-mono font-bold tabular-nums" style={{ color: ACCENT.text }}>
-            {workoutsThisMonth}/{activeChallenge.targetSessions}
-          </span>
+
+          {leaderboardOpen && (
+            <div
+              className="space-y-1 rounded-xl p-2.5"
+              style={{ backgroundColor: SURFACE.sunken, border: `1px solid ${GLASS.border}` }}
+            >
+              {leaderboard.length === 0 ? (
+                <p className="text-[11px]" style={{ color: TEXT.tertiary }}>
+                  Aún no hay actividad registrada en el ranking de este mes.
+                </p>
+              ) : (
+                leaderboard.slice(0, 5).map((row, idx) => (
+                  <div key={row.userId} className="flex items-center justify-between text-[11px]">
+                    <span className="truncate text-white">
+                      <strong className="font-mono" style={{ color: idx < 3 ? ACCENT.text : TEXT.secondary }}>
+                        #{idx + 1}
+                      </strong>{" "}
+                      {row.displayName}
+                    </span>
+                    <span className="font-mono font-bold tabular-nums text-white">
+                      {row.sessionsCount} ses.
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
         </div>
       )}
     </section>

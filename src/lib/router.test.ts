@@ -208,4 +208,8 @@ describe("route table", () => {
     );
     expect(sharedRoutineRoute).toBeTruthy();
   });
+
+  it("mounts reception check-in route (/checkin) under AuthGate", () => {
+    expect(routeElement("/checkin")).toBeTruthy();
+  });
 });

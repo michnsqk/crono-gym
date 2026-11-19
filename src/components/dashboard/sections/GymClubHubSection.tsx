@@ -8,6 +8,14 @@ import {
   readLocalProducts,
 } from "@/lib/gymClubMetadata";
 import { recordDemandIntent } from "@/services/gymOperationsService";
+import {
+  bookClassSeat,
+  cancelClassSeat,
+  getClassSeatCounts,
+  listUserClassBookings,
+} from "@/services/attendanceAndClubService";
+import { useProfile } from "@/hooks/useProfile";
+import type { ClassBookingRow, PurchaseTicketRow } from "@/types/supabase";
 
 type Product = {
   id: string;
@@ -24,8 +32,10 @@ type GymClass = {
   capacity: number;
   price_cents?: number;
   description?: string;
+  day_of_week?: string;
+  start_time?: string;
 };
-type Schedule = { class_id: string; day_of_week: number; start_time: string };
+type Schedule = { id: string; class_id: string; day_of_week: number; start_time: string };
 const days = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
 export function GymClubHubSection({
@@ -37,15 +47,19 @@ export function GymClubHubSection({
   compactPreview?: boolean;
   onViewAll?: () => void;
 }) {
+  const { profile } = useProfile(userId);
   const [tab, setTab] = useState<"store" | "classes">("store");
   const [products, setProducts] = useState<Product[]>([]);
   const [classes, setClasses] = useState<GymClass[]>([]);
   const [schedules, setSchedules] = useState<Schedule[]>([]);
-  const [subscribed, setSubscribed] = useState<string[]>([]);
+  const [seatCounts, setSeatCounts] = useState<Record<string, number>>({});
+  const [bookings, setBookings] = useState<ClassBookingRow[]>([]);
+  const [myTickets, setMyTickets] = useState<PurchaseTicketRow[]>([]);
   const [ticket, setTicket] = useState<string | null>(null);
+  const [bookingMsg, setBookingMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
-    const [p, c, s] = await Promise.all([
+    const [p, c, s, seats, userBookings, userTickets] = await Promise.all([
       supabase
         .from("products")
         .select("*")
@@ -53,6 +67,14 @@ export function GymClubHubSection({
         .order("created_at", { ascending: false }),
       supabase.from("gym_classes").select("*").eq("is_active", true),
       supabase.from("gym_schedules").select("*"),
+      getClassSeatCounts(),
+      listUserClassBookings(userId),
+      supabase
+        .from("purchase_tickets")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false })
+        .limit(4),
     ]);
 
     const remoteProducts: Product[] = (p.data ?? []).map((item) => {
@@ -60,7 +82,7 @@ export function GymClubHubSection({
       return {
         id: item.id,
         name: item.name,
-        category: meta?.category,
+        category: item.description ?? meta?.category,
         price_cents: Math.round(Number(item.price ?? 0) * 100),
         stock: Number(item.stock ?? 0),
         ...meta,
@@ -74,6 +96,8 @@ export function GymClubHubSection({
         name: item.title,
         instructor: item.instructor ?? undefined,
         capacity: Number(item.capacity ?? 20),
+        day_of_week: item.day_of_week,
+        start_time: item.start_time,
         ...meta,
         price_cents: meta?.priceCents,
       };
@@ -91,20 +115,16 @@ export function GymClubHubSection({
         ...localClasses.filter((item) => !remoteClasses.some((cur) => cur.id === item.id)),
       ]);
       setSchedules((s.data ?? []) as Schedule[]);
+      setSeatCounts(seats);
+      setBookings(userBookings);
+      setMyTickets(userTickets.data ?? []);
     });
-    try {
-      setSubscribed(
-        JSON.parse(localStorage.getItem(`cronos-class-subscriptions:${userId}`) ?? "[]") as string[],
-      );
-    } catch {
-      setSubscribed([]);
-    }
   }, [userId]);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {
       void load();
-    }, 1800);
+    }, 100);
     return () => clearTimeout(timeoutId);
   }, [load]);
 
@@ -120,14 +140,35 @@ export function GymClubHubSection({
       total_cents: product.price_cents,
       status: "pending",
     });
-    if (!error) setTicket(ticketNumber);
+    if (!error) {
+      setTicket(ticketNumber);
+      void load();
+    }
   };
 
-  const subscribe = (item: GymClass) => {
-    const next = [...new Set([...subscribed, item.id])];
-    setSubscribed(next);
-    localStorage.setItem(`cronos-class-subscriptions:${userId}`, JSON.stringify(next));
+  const bookClass = async (item: GymClass) => {
+    setBookingMsg(null);
     void recordDemandIntent("class", item.id, item.name, userId);
+    const firstSchedule = schedules.find((s) => s.class_id === item.id);
+    const res = await bookClassSeat({
+      classId: item.id,
+      scheduleId: firstSchedule?.id ?? null,
+      athleteName: profile?.display_name || "Atleta Cronos",
+    });
+    if (res.ok) {
+      setBookingMsg(`¡Lugar apartado en ${item.name}!`);
+      await load();
+    } else {
+      setBookingMsg(res.error || "No se pudo apartar tu lugar.");
+    }
+  };
+
+  const cancelBooking = async (bookingId: string) => {
+    const ok = await cancelClassSeat(bookingId);
+    if (ok) {
+      setBookingMsg("Reserva cancelada.");
+      await load();
+    }
   };
 
   if (compactPreview) {
@@ -144,7 +185,7 @@ export function GymClubHubSection({
             <button
               type="button"
               onClick={onViewAll}
-              className="inline-flex h-11 items-center gap-1 rounded-xl px-3 text-xs font-semibold text-[#FF3B30] active:scale-[0.98] transition-transform duration-150"
+              className="inline-flex h-11 items-center gap-1 rounded-xl px-3 text-xs font-semibold text-[#FF3B30] transition-transform duration-150 active:scale-[0.98]"
             >
               <span>Ver todos</span>
               <ChevronRight size={15} aria-hidden="true" />
@@ -179,7 +220,7 @@ export function GymClubHubSection({
                   )}
                   <strong className="block truncate text-sm text-white">{product.name}</strong>
                   <span className="mt-0.5 block font-mono text-xs text-zinc-400">
-                    ${(product.price_cents / 100).toFixed(2)} MXN
+                    ${(product.price_cents / 100).toFixed(2)} MXN · {product.stock} disp.
                   </span>
                 </div>
                 <button
@@ -188,7 +229,7 @@ export function GymClubHubSection({
                   onClick={() => void reserve(product)}
                   className="mt-3 h-11 w-full rounded-xl bg-[#FF3B30] px-3 text-xs font-semibold text-white active:scale-[0.98] disabled:opacity-40"
                 >
-                  Apartar en recepción
+                  {product.stock < 1 ? "Agotado" : "Apartar en recepción"}
                 </button>
               </article>
             ))}
@@ -225,59 +266,104 @@ export function GymClubHubSection({
           Ticket #{ticket} · muestra este folio en recepción
         </p>
       ) : null}
+      {bookingMsg ? (
+        <p className="rounded-xl bg-white/10 p-3 text-xs font-semibold text-white">{bookingMsg}</p>
+      ) : null}
+
       {tab === "store" ? (
-        <div className="grid gap-2 sm:grid-cols-2">
-          {products.map((product) => (
-            <article key={product.id} className="flex gap-3 rounded-xl bg-[#2C2C2E] p-3">
-              {product.image_path ? (
-                <img src={product.image_path} alt="" className="h-16 w-16 rounded-xl object-cover" />
-              ) : null}
-              <div className="min-w-0 flex-1">
-                <strong className="block truncate text-sm text-white">{product.name}</strong>
-                <span className="font-mono text-xs text-zinc-400">
-                  ${(product.price_cents / 100).toFixed(2)} MXN · {product.stock} disponibles
-                </span>
-                <button
-                  type="button"
-                  disabled={product.stock < 1}
-                  className="mt-2 h-11 rounded-xl bg-[#FF3B30] px-3 text-xs font-semibold text-white disabled:opacity-40"
-                  onClick={() => void reserve(product)}
+        <div className="space-y-3">
+          {myTickets.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {myTickets.slice(0, 3).map((t) => (
+                <span
+                  key={t.id}
+                  className="rounded-full border border-white/10 bg-black/40 px-2.5 py-1 font-mono text-[11px] text-zinc-300"
                 >
-                  Apartar en recepción
-                </button>
-              </div>
-            </article>
-          ))}
+                  {t.ticket_number} · {t.status}
+                </span>
+              ))}
+            </div>
+          )}
+          <div className="grid gap-2 sm:grid-cols-2">
+            {products.map((product) => (
+              <article key={product.id} className="flex gap-3 rounded-xl bg-[#2C2C2E] p-3">
+                {product.image_path ? (
+                  <img
+                    src={product.image_path}
+                    alt=""
+                    className="h-16 w-16 rounded-xl object-cover"
+                  />
+                ) : null}
+                <div className="min-w-0 flex-1">
+                  <strong className="block truncate text-sm text-white">{product.name}</strong>
+                  <span className="font-mono text-xs text-zinc-400">
+                    ${(product.price_cents / 100).toFixed(2)} MXN · {product.stock} disponibles
+                  </span>
+                  <button
+                    type="button"
+                    disabled={product.stock < 1}
+                    className="mt-2 h-11 rounded-xl bg-[#FF3B30] px-3 text-xs font-semibold text-white disabled:opacity-40"
+                    onClick={() => void reserve(product)}
+                  >
+                    {product.stock < 1 ? "Agotado" : "Apartar en recepción"}
+                  </button>
+                </div>
+              </article>
+            ))}
+          </div>
         </div>
       ) : (
         <div className="grid gap-2">
           {classes.map((item) => {
-            const active = subscribed.includes(item.id);
+            const occupied = seatCounts[item.id] ?? 0;
+            const remaining = Math.max(0, item.capacity - occupied);
+            const myBooking = bookings.find((b) => b.class_id === item.id);
+            const active = Boolean(myBooking);
+            const classSchedules = schedules.filter((schedule) => schedule.class_id === item.id);
+            const scheduleText =
+              classSchedules
+                .map((schedule) => `${days[schedule.day_of_week]} ${schedule.start_time.slice(0, 5)}`)
+                .join(" · ") ||
+              (item.day_of_week && item.start_time
+                ? `${item.day_of_week} ${item.start_time}`
+                : "Horario por confirmar");
+
             return (
               <article key={item.id} className="rounded-xl bg-[#2C2C2E] p-3">
-                <strong className="text-sm text-white">{item.name}</strong>
+                <div className="flex items-start justify-between gap-2">
+                  <strong className="text-sm text-white">{item.name}</strong>
+                  <span
+                    className={`font-mono text-[11px] font-bold ${
+                      remaining === 0 ? "text-[#FF6961]" : "text-[#30D158]"
+                    }`}
+                  >
+                    {remaining === 0 ? "Cupo lleno" : `${remaining}/${item.capacity} lugares`}
+                  </span>
+                </div>
                 <p className="text-xs text-zinc-400">
                   {item.instructor || "Instructor por confirmar"} ·{" "}
                   {item.price_cents ? `$${(item.price_cents / 100).toFixed(2)} MXN` : "Incluida"} ·{" "}
-                  {item.capacity} cupos
+                  {scheduleText}
                 </p>
-                {active ? (
-                  <div className="mt-2 rounded-lg bg-[#30D158]/10 p-2 text-xs text-[#30D158]">
-                    <strong>SUSCRITO · Tus horarios</strong>
-                    <p className="mt-1">
-                      {schedules
-                        .filter((schedule) => schedule.class_id === item.id)
-                        .map((schedule) => `${days[schedule.day_of_week]} ${schedule.start_time.slice(0, 5)}`)
-                        .join(" · ") || "Horario por confirmar"}
-                    </p>
+                {active && myBooking ? (
+                  <div className="mt-2 flex flex-wrap items-center justify-between gap-2 rounded-lg bg-[#30D158]/10 p-2 text-xs text-[#30D158]">
+                    <strong>LUGAR APARTADO HOY</strong>
+                    <button
+                      type="button"
+                      onClick={() => void cancelBooking(myBooking.id)}
+                      className="rounded-lg bg-black/40 px-2.5 py-1 text-[11px] font-semibold text-white"
+                    >
+                      Liberar cupo
+                    </button>
                   </div>
                 ) : (
                   <button
                     type="button"
-                    className="mt-2 h-11 rounded-xl bg-[#FF3B30] px-3 text-xs font-semibold text-white"
-                    onClick={() => subscribe(item)}
+                    disabled={remaining === 0}
+                    className="mt-2 h-11 rounded-xl bg-[#FF3B30] px-3 text-xs font-semibold text-white disabled:opacity-40"
+                    onClick={() => void bookClass(item)}
                   >
-                    Suscribirme a esta clase
+                    {remaining === 0 ? "Cupo agotado" : "Apartar lugar en recepción"}
                   </button>
                 )}
               </article>
