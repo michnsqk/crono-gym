@@ -105,7 +105,7 @@ describe("AnatomicalRanksView", () => {
     expect(screen.getByRole("heading", { name: "Rangos anatómicos" })).toBeTruthy();
     expect(screen.getByText("Rango global")).toBeTruthy();
     expect(screen.getByText(/de 100/)).toBeTruthy();
-    expect(screen.getByText(/músculos clasificados/)).toBeTruthy();
+    expect(screen.getByText("Clasificados")).toBeTruthy();
   });
 
   it("names the strongest and the focus muscle, and both are clickable", async () => {
@@ -139,12 +139,40 @@ describe("AnatomicalRanksView", () => {
     expect(within(legend).getByRole("button", { name: /Pecho/ })).toBeTruthy();
   });
 
-  it("lists all seven earned ranks in the legend with their thresholds", async () => {
+  it("lists all seven earned ranks and contextual volume zones inside Escala", async () => {
     await renderView();
+    const scaleBtn = screen.getByRole("button", { name: /Escala/i });
+    expect(scaleBtn.getAttribute("aria-expanded")).toBe("false");
+    expect(screen.queryByText("Leyenda")).toBeNull();
+
+    fireEvent.click(scaleBtn);
+    expect(scaleBtn.getAttribute("aria-expanded")).toBe("true");
     expect(screen.getByText("Leyenda")).toBeTruthy();
     for (const label of ["Hierro", "Bronce", "Plata", "Oro", "Platino", "Diamante", "Cronos"]) {
       expect(screen.getAllByText(new RegExp(label)).length).toBeGreaterThan(0);
     }
+
+    fireEvent.click(screen.getByRole("tab", { name: "Volumen" }));
+    const legendRegion = document.getElementById("rank-scale-legend")!;
+    expect(within(legendRegion).getByText("Mantenimiento")).toBeTruthy();
+    expect(within(legendRegion).getByText("Hipertrofia óptima")).toBeTruthy();
+    expect(within(legendRegion).getByText("Límite de fatiga")).toBeTruthy();
+  });
+
+  it("dims non-matching muscles on the SVG map when filtering and restores them on Todos", async () => {
+    const { container } = await renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Sin clasificar" }));
+    const dimmedCss = [...container.querySelectorAll("style")]
+      .map((el) => el.textContent ?? "")
+      .join("\n");
+    expect(dimmedCss).toContain('path[id="chest"]');
+    expect(dimmedCss).toContain("opacity: 0.2");
+
+    fireEvent.click(screen.getByRole("button", { name: "Todos" }));
+    const clearedCss = [...container.querySelectorAll("style")]
+      .map((el) => el.textContent ?? "")
+      .join("\n");
+    expect(clearedCss).not.toContain("opacity: 0.2");
   });
 
   it("opens the detail panel for a muscle and closes it again", async () => {

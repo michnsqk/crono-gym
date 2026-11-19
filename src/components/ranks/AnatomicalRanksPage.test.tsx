@@ -101,11 +101,13 @@ async function renderView() {
 }
 
 describe("AnatomicalRanksPage", () => {
-  it("shows the global rank and how many muscles are classified", async () => {
+  it("shows the global rank, hides redundant mobile header, and shows Clasificados", async () => {
     await renderView();
+    const heading = screen.getByRole("heading", { name: "Rangos anatómicos" });
+    expect(heading.closest("header")?.className).toContain("sr-only sm:not-sr-only");
     expect(screen.getByText("Rango global")).toBeTruthy();
     expect(screen.getByText(/de 100/)).toBeTruthy();
-    expect(screen.getByText(/músculos clasificados/)).toBeTruthy();
+    expect(screen.getByText("Clasificados")).toBeTruthy();
   });
 
   it("names the strongest and the focus muscle, and both are clickable", async () => {
@@ -287,7 +289,7 @@ describe("AnatomicalRanksPage", () => {
 
     fireEvent.click(within(modeGroup).getByRole("tab", { name: "Volumen" }));
     expect(within(modeGroup).getByRole("tab", { name: "Volumen" }).getAttribute("aria-selected")).toBe("true");
-    expect(screen.getAllByText(/series\/sem/).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/\d+ series?/i).length).toBeGreaterThan(0);
   });
 
   it("shows the symmetry radar and its title", async () => {

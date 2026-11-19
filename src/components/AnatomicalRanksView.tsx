@@ -2,12 +2,22 @@
  * AnatomicalRanksView.tsx — Apple Fitness+ / Apple Health iOS 18 OLED ranks view.
  *
  * Renders the Hero Biometric OLED arc, Bento Strongest/Focus cards, iOS 18
- * segmented control (Rangos | Volumen | Simetría), interactive body map,
- * 2-column Apple Health muscle grid with filters, and MuscleRankDetail sheet.
+ * segmented control (Rangos | Volumen | Simetría), synchronized interactive body map
+ * with collapsible contextual scale, 2-column Apple Health muscle grid, and
+ * MuscleRankDetail sheet.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Award, ChevronRight, Flame, Scale, Sparkles, TrendingUp } from "lucide-react";
+import {
+  Award,
+  ChevronDown,
+  ChevronRight,
+  Flame,
+  Info,
+  Scale,
+  Sparkles,
+  TrendingUp,
+} from "lucide-react";
 import type { Slug } from "react-muscle-highlighter";
 import { MuscleSelector } from "./MuscleSelector";
 import { MuscleRankDetail } from "./MuscleRankDetail";
@@ -24,6 +34,7 @@ import { EARNABLE_RANKS } from "../lib/ranks/rankConfig";
 import {
   bucketForWeeklySets,
   heatmapColorByMuscle,
+  heatmapColorFor,
   weeklySetsFor,
 } from "../lib/ranks/heatmapColors";
 import {
@@ -31,7 +42,7 @@ import {
   estimatePercentile,
   type SymmetryAxis,
 } from "../lib/ranks/symmetry";
-import { ACCENT, GLASS, SURFACE, TEXT } from "@/design/tokens";
+import { ACCENT, GLASS, HEATMAP, SURFACE, TEXT } from "@/design/tokens";
 
 type ViewTab = "ranks" | "volume" | "symmetry";
 type MuscleFilter = "all" | "nearly" | "unranked";
@@ -41,6 +52,8 @@ export interface AnatomicalRanksViewProps {
   onBrowseMuscle?: (slug: Slug) => void;
   initialDetail?: string | null;
   readOnly?: boolean;
+  /** True when hosted inside RangosView (hides redundant mobile page header and double horizontal padding). */
+  embedded?: boolean;
 }
 
 export function AnatomicalRanksView({
@@ -48,6 +61,7 @@ export function AnatomicalRanksView({
   onBrowseMuscle,
   initialDetail = null,
   readOnly = false,
+  embedded = false,
 }: AnatomicalRanksViewProps) {
   const ranks = useMuscleRanks(userId, { readOnly });
   const reducedMotion = useReducedMotion();
@@ -55,6 +69,7 @@ export function AnatomicalRanksView({
   const [seenPromotions, setSeenPromotions] = useState<string[]>([]);
   const [activeTab, setActiveTab] = useState<ViewTab>("ranks");
   const [filter, setFilter] = useState<MuscleFilter>("all");
+  const [legendOpen, setLegendOpen] = useState(false);
 
   const map = ranks.map;
 
@@ -118,12 +133,44 @@ export function AnatomicalRanksView({
     return all;
   }, [map, filter]);
 
+  const dimmedSlugs = useMemo<ReadonlySet<Slug> | undefined>(() => {
+    if (!map || filter === "all") return undefined;
+    const visible = new Set(filteredMuscles.map((m) => m.slug));
+    const dimmed = new Set<Slug>();
+    for (const slug of map.muscles.keys()) {
+      if (!visible.has(slug)) dimmed.add(slug);
+    }
+    return dimmed;
+  }, [map, filter, filteredMuscles]);
+
+  const scaleToggle = (
+    <button
+      type="button"
+      aria-expanded={legendOpen}
+      aria-controls="rank-scale-legend"
+      onClick={() => setLegendOpen((open) => !open)}
+      className="flex h-11 items-center gap-1.5 rounded-xl border border-white/10 px-3 text-xs font-medium whitespace-nowrap transition-transform duration-150 active:scale-[0.98]"
+      style={{ backgroundColor: SURFACE.l2, color: TEXT.secondary }}
+    >
+      <Info className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+      <span>Escala</span>
+      <ChevronDown
+        className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${
+          legendOpen ? "rotate-180" : ""
+        }`}
+        aria-hidden="true"
+      />
+    </button>
+  );
+
   return (
     <div
-      className="w-full max-w-full overflow-x-hidden px-4 pb-28 pt-4 text-white"
+      className={`w-full max-w-full overflow-x-hidden pb-28 text-white ${
+        embedded ? "px-0 pt-0" : "px-4 pt-4"
+      }`}
       style={{ backgroundColor: SURFACE.base }}
     >
-      <header className="mb-5">
+      <header className={embedded ? "sr-only sm:not-sr-only sm:mb-5" : "mb-5"}>
         <p className="text-[11px] font-semibold uppercase tracking-widest text-neutral-500">
           Cronos · Biomecánica
         </p>
@@ -194,7 +241,7 @@ export function AnatomicalRanksView({
           <div
             role="tablist"
             aria-label="Modo de análisis anatómico"
-            className="grid grid-cols-3 gap-1 rounded-xl p-1"
+            className="grid w-full grid-cols-3 gap-1 rounded-xl p-1"
             style={{ backgroundColor: SURFACE.l2 }}
           >
             {(
@@ -212,20 +259,20 @@ export function AnatomicalRanksView({
                   type="button"
                   aria-selected={selected}
                   onClick={() => setActiveTab(id)}
-                  className="flex h-11 items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-transform duration-150 active:scale-[0.98]"
+                  className="flex h-11 w-full items-center justify-center gap-1 rounded-lg px-1.5 py-2 text-[11px] font-semibold whitespace-nowrap transition-transform duration-150 active:scale-[0.98]"
                   style={{
                     backgroundColor: selected ? SURFACE.l1 : "transparent",
                     color: selected ? TEXT.primary : TEXT.secondary,
                   }}
                 >
                   <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                  <span className="truncate">{label}</span>
+                  <span>{label}</span>
                 </button>
               );
             })}
           </div>
 
-          {/* 4. Symmetry Panel or Interactive Map */}
+          {/* 4. Symmetry Panel or Synchronized Interactive Map + Contextual Scale */}
           {activeTab === "symmetry" ? (
             <SymmetryCard
               pushPull={symmetry.pushPull}
@@ -246,34 +293,27 @@ export function AnatomicalRanksView({
                 legendLabel={
                   activeTab === "volume" ? "Mapa de volumen" : "Mapa de rangos"
                 }
-                className=""
-                renderBadge={(slug) => {
-                  const entry = map.muscles.get(slug);
-                  if (!entry) return null;
-                  return (
-                    <span
-                      aria-hidden="true"
-                      className="font-mono text-[10px]"
-                      style={{ color: entry.rank.oledColor }}
-                    >
-                      {entry.rank.glyph}
-                    </span>
-                  );
-                }}
+                hideMuscleList
+                plainStage
+                dimmedSlugs={dimmedSlugs}
+                headerAccessory={scaleToggle}
               />
+
+              {legendOpen && <ContextualScale mode={activeTab} />}
             </section>
           )}
 
-          {/* 5. Metallic Tier Legend */}
-          <TierLegend />
-
-          {/* 6. Apple Health 2-Column Muscle Grid */}
+          {/* 5. Apple Health 2-Column Muscle Grid */}
           <section className="space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-sm font-semibold text-white">
                 {T.bodyMapLegend}
               </h2>
-              <div className="flex items-center gap-1.5" role="group" aria-label="Filtrar músculos">
+              <div
+                className="flex flex-wrap items-center gap-1.5"
+                role="group"
+                aria-label="Filtrar músculos"
+              >
                 {(
                   [
                     { id: "all", label: T.filterAll },
@@ -287,7 +327,7 @@ export function AnatomicalRanksView({
                       key={pill.id}
                       type="button"
                       onClick={() => setFilter(pill.id)}
-                      className="h-11 rounded-xl px-3 text-xs font-medium transition-transform duration-150 active:scale-[0.98]"
+                      className="h-11 rounded-xl px-3 text-xs font-medium whitespace-nowrap transition-transform duration-150 active:scale-[0.98]"
                       style={{
                         backgroundColor: active ? ACCENT.base : SURFACE.l2,
                         color: active ? TEXT.primary : TEXT.secondary,
@@ -310,7 +350,7 @@ export function AnatomicalRanksView({
             ) : (
               <ul
                 aria-label={T.bodyMapLegend}
-                className="grid grid-cols-2 gap-3"
+                className="grid grid-cols-2 gap-2.5"
               >
                 {filteredMuscles.map((entry) => (
                   <MuscleGridCard
@@ -356,7 +396,6 @@ function BiometricHero({
   const score = map.globalScore ?? 0;
   const arcColor = rank?.oledColor ?? TEXT.tertiary;
 
-  // Semicircle path math: radius 88, center (110, 102)
   const radius = 88;
   const circumference = Math.PI * radius;
   const clamped = Math.max(0, Math.min(100, score));
@@ -367,7 +406,6 @@ function BiometricHero({
       className="relative overflow-hidden rounded-2xl border border-white/10 p-5"
       style={{ backgroundColor: SURFACE.l1 }}
     >
-      {/* Subtle 8-10% glow behind the arc */}
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -top-12 left-1/2 h-40 w-56 -translate-x-1/2 rounded-full blur-3xl"
@@ -402,7 +440,7 @@ function BiometricHero({
               strokeDashoffset={offset}
             />
           </svg>
-          <div className=" -mt-14 flex flex-col items-center">
+          <div className="-mt-14 flex flex-col items-center">
             <span className="font-mono text-4xl font-bold tabular-nums leading-none text-white">
               {map.globalScore !== null ? map.globalScore : "—"}
             </span>
@@ -429,27 +467,27 @@ function BiometricHero({
         )}
       </div>
 
-      {/* 3 compact micro-metrics */}
+      {/* 3 compact micro-metrics — single-line numeric values */}
       <div className="mt-5 grid grid-cols-3 gap-2 border-t border-white/10 pt-4 text-center">
         <div className="min-w-0">
-          <p className="font-mono text-base font-bold tabular-nums text-white">
+          <p className="whitespace-nowrap font-mono text-sm font-bold tabular-nums text-white sm:text-base">
             {map.classifiedCount}/{map.totalCount}
           </p>
-          <p className="truncate text-[11px] text-neutral-400">
-            músculos clasificados
+          <p className="whitespace-nowrap text-[10px] text-zinc-400">
+            Clasificados
           </p>
         </div>
         <div className="min-w-0 border-x border-white/10 px-1">
-          <p className="font-mono text-base font-bold tabular-nums text-white">
+          <p className="whitespace-nowrap font-mono text-sm font-bold tabular-nums text-white sm:text-base">
             {symmetryIndex !== null ? `${symmetryIndex}%` : "—"}
           </p>
-          <p className="truncate text-[11px] text-neutral-400">Simetría</p>
+          <p className="whitespace-nowrap text-[10px] text-zinc-400">Simetría</p>
         </div>
         <div className="min-w-0">
-          <p className="font-mono text-base font-bold tabular-nums text-white">
+          <p className="whitespace-nowrap font-mono text-sm font-bold tabular-nums text-white sm:text-base">
             {percentile !== null ? `Top ${percentile}%` : "—"}
           </p>
-          <p className="truncate text-[11px] text-neutral-400">Percentil</p>
+          <p className="whitespace-nowrap text-[10px] text-zinc-400">Percentil</p>
         </div>
       </div>
     </section>
@@ -469,12 +507,16 @@ function BentoComparison({
   return (
     <section className="grid grid-cols-2 gap-3">
       <div
-        className="min-w-0 rounded-2xl border border-white/10 p-4"
+        className="min-w-0 rounded-2xl border border-white/10 p-3.5 sm:p-4"
         style={{ backgroundColor: SURFACE.l1 }}
       >
-        <div className="flex items-center gap-1.5 text-neutral-400">
-          <TrendingUp className="h-3.5 w-3.5 shrink-0" style={{ color: ACCENT.base }} aria-hidden="true" />
-          <p className="truncate text-[11px] font-semibold uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 text-zinc-400">
+          <TrendingUp
+            className="h-3.5 w-3.5 shrink-0"
+            style={{ color: ACCENT.base }}
+            aria-hidden="true"
+          />
+          <p className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider">
             {T.strongest}
           </p>
         </div>
@@ -482,20 +524,25 @@ function BentoComparison({
           <button
             type="button"
             onClick={() => onSelectMuscle(strongest.slug)}
-            className="mt-2 flex min-h-11 w-full items-center justify-between gap-2 text-left transition-transform duration-150 active:scale-[0.98]"
+            className="mt-2 flex min-h-[44px] w-full flex-col justify-center text-left transition-transform duration-150 active:scale-[0.98]"
           >
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-white">
+            <span className="flex w-full items-center justify-between gap-1">
+              <span className="truncate text-sm font-bold text-white">
                 {strongest.label}
-              </p>
-              <p
-                className="mt-0.5 font-mono text-xs font-semibold tabular-nums"
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden="true" />
+            </span>
+            <span className="mt-1 flex w-full items-center justify-between gap-1 whitespace-nowrap font-mono text-xs tabular-nums">
+              <span
+                className="truncate font-semibold"
                 style={{ color: strongest.rank.oledColor }}
               >
-                {strongest.progress.displayLabel} · {strongest.score}
-              </p>
-            </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden="true" />
+                {strongest.progress.displayLabel}
+              </span>
+              <span className="shrink-0 font-bold text-zinc-300">
+                {strongest.score}
+              </span>
+            </span>
           </button>
         ) : (
           <p className="mt-3 text-xs text-neutral-400">—</p>
@@ -503,12 +550,16 @@ function BentoComparison({
       </div>
 
       <div
-        className="min-w-0 rounded-2xl border border-white/10 p-4"
+        className="min-w-0 rounded-2xl border border-white/10 p-3.5 sm:p-4"
         style={{ backgroundColor: SURFACE.l1 }}
       >
-        <div className="flex items-center gap-1.5 text-neutral-400">
-          <Flame className="h-3.5 w-3.5 shrink-0" style={{ color: TEXT.secondary }} aria-hidden="true" />
-          <p className="truncate text-[11px] font-semibold uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 text-zinc-400">
+          <Flame
+            className="h-3.5 w-3.5 shrink-0"
+            style={{ color: TEXT.secondary }}
+            aria-hidden="true"
+          />
+          <p className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-wider">
             {T.weakest}
           </p>
         </div>
@@ -516,20 +567,25 @@ function BentoComparison({
           <button
             type="button"
             onClick={() => onSelectMuscle(weakest.slug)}
-            className="mt-2 flex min-h-11 w-full items-center justify-between gap-2 text-left transition-transform duration-150 active:scale-[0.98]"
+            className="mt-2 flex min-h-[44px] w-full flex-col justify-center text-left transition-transform duration-150 active:scale-[0.98]"
           >
-            <div className="min-w-0">
-              <p className="truncate text-sm font-bold text-white">
+            <span className="flex w-full items-center justify-between gap-1">
+              <span className="truncate text-sm font-bold text-white">
                 {weakest.label}
-              </p>
-              <p
-                className="mt-0.5 font-mono text-xs font-semibold tabular-nums"
+              </span>
+              <ChevronRight className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden="true" />
+            </span>
+            <span className="mt-1 flex w-full items-center justify-between gap-1 whitespace-nowrap font-mono text-xs tabular-nums">
+              <span
+                className="truncate font-semibold"
                 style={{ color: weakest.rank.oledColor }}
               >
-                {weakest.progress.displayLabel} · {weakest.score}
-              </p>
-            </div>
-            <ChevronRight className="h-4 w-4 shrink-0 text-neutral-500" aria-hidden="true" />
+                {weakest.progress.displayLabel}
+              </span>
+              <span className="shrink-0 font-bold text-zinc-300">
+                {weakest.score}
+              </span>
+            </span>
           </button>
         ) : (
           <p className="mt-2 text-xs leading-relaxed text-neutral-400">
@@ -562,10 +618,7 @@ function SymmetryCard({
       <AxisRow axis={pushPull} />
       <AxisRow axis={upperLower} />
 
-      <p
-        className="rounded-xl border border-white/10 px-3 py-2.5 text-xs text-neutral-200"
-        style={{ backgroundColor: SURFACE.l2 }}
-      >
+      <p className="border-t border-white/10 pt-3 text-xs leading-relaxed text-zinc-300">
         {insight}
       </p>
     </section>
@@ -580,23 +633,30 @@ function AxisRow({ axis }: { axis: SymmetryAxis }) {
 
   return (
     <div className="space-y-1.5">
-      <div className="flex items-center justify-between text-xs">
-        <span className="font-medium text-neutral-200">
-          {axis.leftLabel}{" "}
-          <span className="font-mono tabular-nums text-neutral-400">
+      <div className="grid grid-cols-[1fr_auto_1fr] items-end gap-2">
+        <div className="min-w-0 text-left">
+          <span className="block truncate text-[11px] font-medium text-zinc-300">
+            {axis.leftLabel}
+          </span>
+          <span className="block font-mono text-xs font-semibold tabular-nums text-zinc-400">
             {axis.leftScore !== null ? axis.leftScore : "—"}
           </span>
-        </span>
-        <span className="font-mono text-xs font-semibold tabular-nums text-white">
+        </div>
+
+        <span className="shrink-0 pb-0.5 text-center font-mono text-sm font-bold tabular-nums text-white">
           {axis.balancePercent !== null ? `${axis.balancePercent}%` : "—"}
         </span>
-        <span className="font-medium text-neutral-200">
-          <span className="font-mono tabular-nums text-neutral-400">
+
+        <div className="min-w-0 text-right">
+          <span className="block truncate text-[11px] font-medium text-zinc-300">
+            {axis.rightLabel}
+          </span>
+          <span className="block font-mono text-xs font-semibold tabular-nums text-zinc-400">
             {axis.rightScore !== null ? axis.rightScore : "—"}
-          </span>{" "}
-          {axis.rightLabel}
-        </span>
+          </span>
+        </div>
       </div>
+
       <div
         className="flex h-2 w-full overflow-hidden rounded-full"
         style={{ backgroundColor: SURFACE.l2 }}
@@ -614,30 +674,59 @@ function AxisRow({ axis }: { axis: SymmetryAxis }) {
   );
 }
 
-function TierLegend() {
+function ContextualScale({ mode }: { mode: "ranks" | "volume" }) {
+  const volumeZones = [
+    { label: T.heatmapMaintenance, range: "1–5", color: HEATMAP.maintenance },
+    { label: T.heatmapOptimal, range: "6–12", color: HEATMAP.optimal },
+    { label: T.heatmapFatigue, range: "13+", color: HEATMAP.fatigue },
+    { label: T.heatmapInactive, range: "0", color: HEATMAP.inactive },
+  ];
+
   return (
-    <section className="space-y-2">
-      <h2 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+    <div id="rank-scale-legend" className="mt-3 space-y-2 border-t border-white/10 pt-3">
+      <h2 className="text-[11px] font-semibold uppercase tracking-wider text-zinc-400">
         {T.legend}
       </h2>
-      <div className="flex flex-wrap gap-2">
-        {EARNABLE_RANKS.map((rank) => (
-          <span
-            key={rank.id}
-            className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-xs"
-            style={{ backgroundColor: SURFACE.l1 }}
-          >
-            <span aria-hidden="true" style={{ color: rank.oledColor }}>
-              {rank.glyph}
+      {mode === "volume" ? (
+        <div className="flex flex-wrap gap-1.5">
+          {volumeZones.map((zone) => (
+            <span
+              key={zone.label}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-[11px]"
+              style={{ backgroundColor: SURFACE.l2 }}
+            >
+              <span
+                aria-hidden="true"
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: zone.color }}
+              />
+              <span className="font-medium text-neutral-200">{zone.label}</span>
+              <span className="font-mono text-[10px] tabular-nums text-zinc-400">
+                {zone.range}
+              </span>
             </span>
-            <span className="font-medium text-neutral-200">{rank.label}</span>
-            <span className="font-mono text-[11px] tabular-nums text-neutral-500">
-              {rank.minScore}+
+          ))}
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-1.5">
+          {EARNABLE_RANKS.map((rank) => (
+            <span
+              key={rank.id}
+              className="inline-flex items-center gap-1.5 rounded-full border border-white/10 px-2.5 py-1 text-[11px]"
+              style={{ backgroundColor: SURFACE.l2 }}
+            >
+              <span aria-hidden="true" style={{ color: rank.oledColor }}>
+                {rank.glyph}
+              </span>
+              <span className="font-medium text-neutral-200">{rank.label}</span>
+              <span className="font-mono text-[10px] tabular-nums text-zinc-400">
+                {rank.minScore}+
+              </span>
             </span>
-          </span>
-        ))}
-      </div>
-    </section>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -669,16 +758,19 @@ function MuscleGridCard({
         ? Math.round(entry.progress.percent * 100)
         : 0;
 
+  const barFill =
+    mode === "volume" ? heatmapColorFor(bucket) : entry.rank.oledColor;
+
   return (
     <li className="min-w-0">
       <button
         type="button"
         onClick={onSelect}
-        className="flex h-full min-h-[96px] w-full flex-col justify-between rounded-2xl border border-white/10 p-3.5 text-left transition-transform duration-150 active:scale-[0.98]"
+        className="flex h-full min-h-[92px] w-full flex-col justify-between rounded-2xl border border-white/10 p-3 text-left transition-transform duration-150 active:scale-[0.98]"
         style={{ backgroundColor: SURFACE.l1 }}
       >
         <div className="flex items-start justify-between gap-1.5">
-          <span className="min-w-0 truncate text-sm font-semibold text-white">
+          <span className="min-w-0 text-[13px] font-semibold leading-tight text-white">
             {entry.label}
           </span>
           <span
@@ -693,27 +785,27 @@ function MuscleGridCard({
         <div className="mt-2">
           {mode === "volume" ? (
             <>
-              <p className="font-mono text-xs font-semibold tabular-nums text-white">
-                {weeklySets} series/sem
+              <p className="whitespace-nowrap font-mono text-xs font-bold tabular-nums text-white">
+                {weeklySets} {weeklySets === 1 ? "serie" : "series"}
               </p>
-              <p className="truncate text-[11px] text-neutral-400">
+              <p className="mt-0.5 text-[11px] leading-tight text-zinc-400">
                 {bucketLabel}
               </p>
             </>
           ) : classified ? (
-            <div className="flex items-baseline justify-between gap-1">
+            <div className="flex items-center justify-between gap-1 whitespace-nowrap font-mono text-[11px] tabular-nums">
               <span
-                className="truncate text-xs font-semibold"
+                className="font-semibold"
                 style={{ color: entry.rank.oledColor }}
               >
                 {entry.progress.displayLabel}
               </span>
-              <span className="shrink-0 font-mono text-xs font-bold tabular-nums text-neutral-300">
+              <span className="shrink-0 font-bold text-zinc-300">
                 {entry.score}
               </span>
             </div>
           ) : (
-            <p className="truncate text-[11px] text-neutral-500">
+            <p className="text-[11px] text-neutral-500">
               {entry.optional ? "Opcional" : "Faltan datos"}
             </p>
           )}
@@ -733,7 +825,7 @@ function MuscleGridCard({
             className="h-full rounded-full"
             style={{
               width: `${barPercent}%`,
-              backgroundColor: entry.rank.oledColor,
+              backgroundColor: barFill,
             }}
           />
         </div>
@@ -754,9 +846,7 @@ function EmptyState({
       className="rounded-2xl border border-white/10 p-5"
       style={{ backgroundColor: SURFACE.l1 }}
     >
-      <p className="text-base font-bold text-white">
-        {T.emptyTitle}
-      </p>
+      <p className="text-base font-bold text-white">{T.emptyTitle}</p>
       <p className="mt-1.5 text-sm text-neutral-300">
         {T.emptyBody(sessionsNeeded)}
       </p>

@@ -17,5 +17,5 @@ interface AnatomicalRanksPageProps {
 }
 
 export function AnatomicalRanksPage(props: AnatomicalRanksPageProps) {
-  return <AnatomicalRanksView {...props} />;
+  return <AnatomicalRanksView {...props} embedded />;
 }

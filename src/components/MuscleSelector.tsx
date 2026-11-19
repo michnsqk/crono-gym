@@ -36,7 +36,7 @@ import {
 } from "../lib/muscleMap";
 import { selectionSides, selectionLabels } from "../lib/muscleFilter";
 import { lighten } from "../lib/ranks/rankColors";
-import { ACCENT, DIAGRAM, MOTION } from "../design/tokens";
+import { ACCENT, DIAGRAM, MOTION, SURFACE, TEXT } from "../design/tokens";
 import { MUSCLE_FILTER_LABELS as T } from "../lib/i18n";
 
 // --- OLED palette ---------------------------------------------------------
@@ -116,6 +116,14 @@ export interface MuscleSelectorProps {
   renderBadge?: (slug: Slug) => React.ReactNode;
   /** Accessible name for the legend list; overrides the filter phrasing. */
   legendLabel?: string;
+  /** Hide the bottom list of muscle chips (used when parent renders its own grid). */
+  hideMuscleList?: boolean;
+  /** Render flat without nested inner card border/bg and use iOS 18 toggle pills. */
+  plainStage?: boolean;
+  /** Optional control rendered opposite the Frontal / Posterior toggle. */
+  headerAccessory?: React.ReactNode;
+  /** Slugs to dim on the SVG so filtered muscles stand out like a radar. */
+  dimmedSlugs?: ReadonlySet<Slug>;
 }
 
 export function MuscleSelector({
@@ -128,6 +136,10 @@ export function MuscleSelector({
   readOnly = false,
   renderBadge,
   legendLabel,
+  hideMuscleList = false,
+  plainStage = false,
+  headerAccessory,
+  dimmedSlugs,
 }: MuscleSelectorProps) {
   const [side, setSide] = useState<ViewSide>("front");
   const scopeId = useId().replace(/[:]/g, "");
@@ -206,9 +218,28 @@ const hoverRules = hoverTargets
       .map((slug) => pathSelector(scopeId, slug))
       .join(",\n");
 
+    const dimTargets =
+      dimmedSlugs && dimmedSlugs.size > 0
+        ? trainable.filter((slug) => dimmedSlugs.has(slug))
+        : [];
+    const activeRadarTargets =
+      dimmedSlugs && dimmedSlugs.size > 0 && colorByMuscle
+        ? trainable.filter((slug) => !dimmedSlugs.has(slug) && colorByMuscle.has(slug))
+        : [];
+
+    const dimmedRule = dimTargets.map((slug) => pathSelector(scopeId, slug)).join(",\n");
+    const radarHighlightRules = activeRadarTargets
+      .map((slug) => {
+        const glow = colorByMuscle?.get(slug) ?? ACCENT.glow;
+        return `${pathSelector(scopeId, slug)} {\n  opacity: 1;\n  filter: drop-shadow(0 0 6px ${glow});\n}`;
+      })
+      .join("\n");
+
     return [
-      `#${scopeId} path { transition: fill ${MOTION.fast} ${MOTION.standard}, filter ${MOTION.fast} ${MOTION.standard}; }`,
+      `#${scopeId} path { transition: fill ${MOTION.fast} ${MOTION.standard}, filter ${MOTION.fast} ${MOTION.standard}, opacity ${MOTION.fast} ${MOTION.standard}; }`,
       hoverRules,
+      radarHighlightRules,
+      dimmedRule ? `${dimmedRule} {\n  opacity: 0.2;\n}` : "",
       selectedRules
         ? `${selectedRules} {\n  filter: drop-shadow(0 0 10px ${DIAGRAM.selectedGlow});\n}`
         : "",
@@ -222,7 +253,7 @@ const hoverRules = hoverTargets
     ]
       .filter(Boolean)
       .join("\n");
-  }, [trainable, inert, selected, scopeId, readOnly, colorByMuscle]);
+  }, [trainable, inert, selected, scopeId, readOnly, colorByMuscle, dimmedSlugs]);
 
   const toggle = (slug: Slug) => {
     // Read-only still opens a panel; it just never changes the selection.
@@ -239,11 +270,16 @@ const hoverRules = hoverTargets
     <div className={`space-y-4 ${className}`}>
       <style>{rules}</style>
 
-      <div className="flex items-center justify-between gap-3">
+      <div className="flex items-center justify-between gap-2">
         <div
           role="radiogroup"
           aria-label={T.viewLabel}
-          className="flex rounded-lg border border-white/10 bg-neutral-950/60 p-0.5"
+          className={
+            plainStage
+              ? "flex rounded-xl border border-white/10 p-1"
+              : "flex rounded-lg border border-white/10 bg-neutral-950/60 p-0.5"
+          }
+          style={plainStage ? { backgroundColor: SURFACE.l2 } : undefined}
         >
           {(["front", "back"] as const).map((option) => {
             const active = side === option;
@@ -258,11 +294,23 @@ const hoverRules = hoverTargets
                 role="radio"
                 aria-checked={active}
                 onClick={() => setSide(option)}
-                className={`flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs transition ${
-                  active
-                    ? "bg-accent text-neutral-950"
-                    : "text-neutral-400 hover:text-neutral-100"
-                }`}
+                className={
+                  plainStage
+                    ? "flex min-h-[44px] items-center gap-1.5 rounded-lg px-3.5 py-2 text-xs font-semibold transition-transform duration-150 active:scale-[0.98]"
+                    : `flex items-center gap-1.5 rounded-md px-3.5 py-1.5 text-xs transition ${
+                        active
+                          ? "bg-accent text-neutral-950"
+                          : "text-neutral-400 hover:text-neutral-100"
+                      }`
+                }
+                style={
+                  plainStage
+                    ? {
+                        backgroundColor: active ? SURFACE.l1 : "transparent",
+                        color: active ? TEXT.primary : TEXT.secondary,
+                      }
+                    : undefined
+                }
               >
                 {option === "front" ? T.front : T.back}
                 {hiddenSelection && (
@@ -278,19 +326,28 @@ const hoverRules = hoverTargets
           })}
         </div>
 
-        {!readOnly && hasSelection && (
-          <button
-            type="button"
-            onClick={() => onChange([])}
-            className="text-[11px] text-neutral-500 underline-offset-2 hover:text-neutral-300 hover:underline"
-          >
-            {T.removeSelection}
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {!readOnly && hasSelection && (
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="text-[11px] text-neutral-500 underline-offset-2 hover:text-neutral-300 hover:underline"
+            >
+              {T.removeSelection}
+            </button>
+          )}
+          {headerAccessory}
+        </div>
       </div>
 
       {/* Decorative: the legend below is the accessible control. */}
-      <div className="flex justify-center rounded-2xl border border-white/10 bg-black p-3">
+      <div
+        className={
+          plainStage
+            ? "flex justify-center py-1"
+            : "flex justify-center rounded-2xl border border-white/10 bg-black p-3"
+        }
+      >
         <div id={scopeId} aria-hidden="true">
           <Body
             data={data}
@@ -314,45 +371,47 @@ const hoverRules = hoverTargets
       </div>
 
       {/* The accessible control: one real button per muscle, Spanish names. */}
-      <ul aria-label={legendLabel ?? T.alternateList} className="flex flex-wrap gap-1.5">
-        {trainable.map((slug) => {
-          const def = muscleDefinition(slug);
-          if (!def) return null;
-          const active = readOnly ? false : selectedSet.has(slug);
-          const count = counts?.get(slug);
-          const onOtherSide = !sides[side];
-          return (
-            <li key={slug}>
-              <button
-                type="button"
-                aria-pressed={readOnly ? undefined : active}
-                onClick={() => toggle(slug)}
-                className={`flex min-h-[28px] items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition ${
-                  active
-                    ? "border-accent bg-accent/15 text-accent"
-                    : "border-white/10 text-neutral-400 hover:border-white/25 hover:text-neutral-200"
-                }`}
-              >
-                {def.label}
-                {count !== undefined && (
-                  <span className={active ? "text-accent/70" : "text-neutral-600"}>
-                    {count}
-                  </span>
-                )}
-                {renderBadge?.(slug)}
-                {active && onOtherSide && (
-                  <span aria-hidden="true" className="text-[9px] text-accent/70">
-                    {side === "front" ? "· espalda" : "· frente"}
-                  </span>
-                )}
-              </button>
-            </li>
-          );
-        })}
-      </ul>
+      {!hideMuscleList && (
+        <ul aria-label={legendLabel ?? T.alternateList} className="flex flex-wrap gap-1.5">
+          {trainable.map((slug) => {
+            const def = muscleDefinition(slug);
+            if (!def) return null;
+            const active = readOnly ? false : selectedSet.has(slug);
+            const count = counts?.get(slug);
+            const onOtherSide = !sides[side];
+            return (
+              <li key={slug}>
+                <button
+                  type="button"
+                  aria-pressed={readOnly ? undefined : active}
+                  onClick={() => toggle(slug)}
+                  className={`flex min-h-[28px] items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] transition ${
+                    active
+                      ? "border-accent bg-accent/15 text-accent"
+                      : "border-white/10 text-neutral-400 hover:border-white/25 hover:text-neutral-200"
+                  }`}
+                >
+                  {def.label}
+                  {count !== undefined && (
+                    <span className={active ? "text-accent/70" : "text-neutral-600"}>
+                      {count}
+                    </span>
+                  )}
+                  {renderBadge?.(slug)}
+                  {active && onOtherSide && (
+                    <span aria-hidden="true" className="text-[9px] text-accent/70">
+                      {side === "front" ? "· espalda" : "· frente"}
+                    </span>
+                  )}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+      )}
 
       {/* A filter hint would be a lie here: nothing is being filtered. */}
-      {!readOnly && (
+      {!hideMuscleList && !readOnly && (
         <p className="text-[11px] text-neutral-500">
           {hasSelection ? T.hintActive(selectionLabels(selected)) : T.hint}
         </p>
