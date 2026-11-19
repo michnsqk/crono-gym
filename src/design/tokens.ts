@@ -47,6 +47,8 @@ export const SURFACE = {
   raised: "#0d0d10",
   /** L1 card surface: solid obsidian-grey for bento cards and list rows. */
   l1: "#1C1C1E",
+  /** L2 elevated surface: inputs, segmented controls, secondary pills. */
+  l2: "#2C2C2E",
   /** Elevated surfaces: popovers, modals, dropdowns. */
   overlay: "#16161a",
   /** Pressed or selected rows, inset wells. */

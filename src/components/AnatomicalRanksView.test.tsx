@@ -142,11 +142,9 @@ describe("AnatomicalRanksView", () => {
   it("lists all seven earned ranks in the legend with their thresholds", async () => {
     await renderView();
     expect(screen.getByText("Leyenda")).toBeTruthy();
-    for (const label of ["Bronce", "Plata", "Oro", "Platino", "Diamante", "Élite", "Obsidiana"]) {
+    for (const label of ["Hierro", "Bronce", "Plata", "Oro", "Platino", "Diamante", "Cronos"]) {
       expect(screen.getAllByText(new RegExp(label)).length).toBeGreaterThan(0);
     }
-    // `unranked` is not a rank on the ladder and stays out of the legend.
-    expect(screen.queryByText(/Sin clasificar/)).toBeNull();
   });
 
   it("opens the detail panel for a muscle and closes it again", async () => {
@@ -300,6 +298,6 @@ describe("AnatomicalRanksView", () => {
     state.map = buildRankMap({ sets: ALMOST_SETS, exercises: EXERCISES, context: CONTEXT });
     state.empty = false;
     await renderView();
-    expect(screen.getByText(/músculos sin clasificar todavía/)).toBeTruthy();
+    expect(screen.getByText(/músculos sin clasificar/)).toBeTruthy();
   });
 });

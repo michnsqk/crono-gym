@@ -55,7 +55,8 @@ describe("buildRankMap", () => {
   it("classifies nothing when there are no sets", () => {
     const map = buildRankMap({ sets: [], exercises: EXERCISES, context });
     expect(map.classifiedCount).toBe(0);
-    expect(map.pendingCount).toBe(enabledSlugs().length);
+    expect(map.totalCount).toBe(enabledSlugs().length - 1);
+    expect(map.pendingCount).toBe(map.totalCount);
     expect(map.globalRank).toBeNull();
     expect(map.globalScore).toBeNull();
     expect(shouldShowEmptyState(map)).toBe(true);
@@ -111,7 +112,7 @@ describe("buildRankMap", () => {
       exercises: EXERCISES,
       context,
     });
-    expect(map.pendingCount).toBe(enabledSlugs().length - map.classifiedCount);
+    expect(map.pendingCount).toBe(map.totalCount - map.classifiedCount);
     expect(map.globalScore).toBeGreaterThan(0);
     expect(map.globalRank?.id).not.toBe("unranked");
   });

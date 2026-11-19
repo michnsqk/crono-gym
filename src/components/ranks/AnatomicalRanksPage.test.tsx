@@ -105,7 +105,7 @@ describe("AnatomicalRanksPage", () => {
     await renderView();
     expect(screen.getByText("Rango global")).toBeTruthy();
     expect(screen.getByText(/de 100/)).toBeTruthy();
-    expect(screen.getByText(/\d+ \/ \d+ clasificados/)).toBeTruthy();
+    expect(screen.getByText(/músculos clasificados/)).toBeTruthy();
   });
 
   it("names the strongest and the focus muscle, and both are clickable", async () => {
@@ -276,22 +276,24 @@ describe("AnatomicalRanksPage", () => {
     state.map = buildRankMap({ sets: ALMOST_SETS, exercises: EXERCISES, context: CONTEXT });
     state.empty = false;
     await renderView();
-    expect(screen.getByText(/músculos sin clasificar todavía/)).toBeTruthy();
+    expect(screen.getByText(/músculos sin clasificar/)).toBeTruthy();
   });
 
   it("switches the body map between rank and heatmap colour modes", async () => {
     await renderView();
 
-    const modeGroup = screen.getByRole("radiogroup", { name: /Cambiar vista del mapa/ });
-    expect(within(modeGroup).getByRole("radio", { name: "Rango anatómico" }).getAttribute("aria-checked")).toBe("true");
+    const modeGroup = screen.getByRole("tablist", { name: /Modo de análisis anatómico/ });
+    expect(within(modeGroup).getByRole("tab", { name: "Rangos" }).getAttribute("aria-selected")).toBe("true");
 
-    fireEvent.click(within(modeGroup).getByRole("radio", { name: "Volumen semanal" }));
-    expect(within(modeGroup).getByRole("radio", { name: "Volumen semanal" }).getAttribute("aria-checked")).toBe("true");
-    expect(screen.getByText("Mantenimiento")).toBeTruthy();
+    fireEvent.click(within(modeGroup).getByRole("tab", { name: "Volumen" }));
+    expect(within(modeGroup).getByRole("tab", { name: "Volumen" }).getAttribute("aria-selected")).toBe("true");
+    expect(screen.getAllByText(/series\/sem/).length).toBeGreaterThan(0);
   });
 
   it("shows the symmetry radar and its title", async () => {
     await renderView();
+    const modeGroup = screen.getByRole("tablist", { name: /Modo de análisis anatómico/ });
+    fireEvent.click(within(modeGroup).getByRole("tab", { name: "Simetría" }));
     expect(screen.getByText("Simetría de fuerza")).toBeTruthy();
   });
 

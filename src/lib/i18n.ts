@@ -279,7 +279,9 @@ export const RANK_LABELS = {
 
   // ---- anatomical ranks premium (AnatomicalRanksPage) ----------------------
   bodyMapLegend: "Rango por músculo",
-  pendingMuscles: (count: number): string => `${count} músculos sin clasificar todavía`,
+  pendingMuscles: (count: number): string =>
+    count === 1 ? "1 músculo sin clasificar" : `${count} músculos sin clasificar`,
+  coolingDown: "En enfriamiento",
   dataQuality: "Calidad de los datos",
   dataQualityAvailable: "Evaluación disponible",
   dataQualityPartial: "Datos parciales",

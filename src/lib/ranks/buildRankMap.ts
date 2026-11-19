@@ -47,6 +47,8 @@ export interface MuscleRank {
   confidence: ConfidenceLevel;
   /** False when there is not enough data to rank this muscle. */
   classified: boolean;
+  /** True for optional/bonus regions (e.g. neck) excluded from main /15 count when unclassified. */
+  optional?: boolean;
   unrankedReason: MuscleScoreResult["unrankedReason"];
   /** Rank steps gained since the previous computation; 0 when unchanged. */
   delta: number;
@@ -78,6 +80,13 @@ export interface RankMap {
   /** Classified muscle count, and how many are still waiting for data. */
   classifiedCount: number;
   pendingCount: number;
+  /** Total muscles counted in the main completion denominator (15 unless optional neck is classified). */
+  totalCount: number;
+}
+
+/** Single source of truth for whether a muscle has an earned classification. */
+export function isMuscleClassified(entry: Pick<MuscleRank, "classified" | "rank">): boolean {
+  return entry.classified && entry.rank.id !== "unranked";
 }
 
 /** What the hook already knows about each muscle's last computed rank. */
@@ -138,6 +147,7 @@ export function buildRankMap(input: BuildRankMapInput): RankMap {
       progress: getNextRankProgress(detail.classified ? detail.score : 0),
       confidence: detail.confidence,
       classified: detail.classified,
+      optional: slug === "neck",
       unrankedReason: detail.unrankedReason,
       delta: detail.classified ? rankDelta(previousRank, rank.id) : 0,
       promoted: detail.classified && isPromotion(previousRank, rank.id),
@@ -145,7 +155,7 @@ export function buildRankMap(input: BuildRankMapInput): RankMap {
     });
   }
 
-  const classified = [...muscles.values()].filter((m) => m.classified);
+  const classified = [...muscles.values()].filter((m) => isMuscleClassified(m));
 
   const globalScore =
     classified.length === 0
@@ -156,6 +166,11 @@ export function buildRankMap(input: BuildRankMapInput): RankMap {
   // show the new-user empty state rather than a rank derived from nothing.
   const ranked = [...classified].sort((a, b) => b.score - a.score);
 
+  const neckEntry = muscles.get("neck");
+  const neckCounted = neckEntry ? isMuscleClassified(neckEntry) : false;
+  const totalCount = [...muscles.values()].filter((m) => m.slug !== "neck" || neckCounted).length;
+  const pendingCount = Math.max(0, totalCount - classified.length);
+
   return {
     muscles,
     globalRank: globalScore === null ? null : rankById(scoreToRankId(globalScore)),
@@ -163,7 +178,8 @@ export function buildRankMap(input: BuildRankMapInput): RankMap {
     strongest: ranked[0] ?? null,
     weakest: ranked.length > 1 ? ranked[ranked.length - 1] : null,
     classifiedCount: classified.length,
-    pendingCount: muscles.size - classified.length,
+    pendingCount,
+    totalCount,
   };
 }
 
@@ -245,6 +261,15 @@ export function colorByMuscle(map: RankMap): Map<Slug, string> {
   const colors = new Map<Slug, string>();
   for (const [slug, entry] of map.muscles) {
     colors.set(slug, entry.rank.color);
+  }
+  return colors;
+}
+
+/** Per-muscle Apple HIG OLED metallic fill colour for the interactive map. */
+export function oledColorByMuscle(map: RankMap): Map<Slug, string> {
+  const colors = new Map<Slug, string>();
+  for (const [slug, entry] of map.muscles) {
+    colors.set(slug, entry.rank.oledColor);
   }
   return colors;
 }

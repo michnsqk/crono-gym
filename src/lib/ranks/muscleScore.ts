@@ -105,6 +105,10 @@ export interface VolumeSummary {
   daysSinceLastSet: number | null;
   /** Combined 0-100 volume percentage. */
   volumePercent: number;
+  /** Effective sets logged in the last 28 days. */
+  sets28d?: number;
+  /** True when > 21 days have passed since the last working set. */
+  coolingDown?: boolean;
 }
 
 export interface MuscleScoreResult {
@@ -350,7 +354,9 @@ export function calculateMuscleScore(input: {
   const lastSetMs = new Map<string, number>();
   const recentWeeks = new Set<string>();
   let recentWorkingSets = 0;
+  let sets28d = 0;
   const windowStartMs = nowMs - VOLUME_RULES.windowDays * 86_400_000;
+  const window28dMs = nowMs - 28 * 86_400_000;
 
   for (const set of workingSets) {
     const at = new Date(set.performedAt);
@@ -368,6 +374,9 @@ export function calculateMuscleScore(input: {
     if (ts >= windowStartMs) {
       recentWorkingSets += 1;
       recentWeeks.add(weekKey(at));
+    }
+    if (ts >= window28dMs) {
+      sets28d += 1;
     }
   }
 
@@ -389,6 +398,8 @@ export function calculateMuscleScore(input: {
     decayFactor: Math.round(decay * 1000) / 1000,
     daysSinceLastSet,
     volumePercent: decayedVolumePercent,
+    sets28d,
+    coolingDown: daysSinceLastSet !== null && daysSinceLastSet > VOLUME_RULES.decayAfterDays,
   };
 
   const sessionCount = sessions.size;

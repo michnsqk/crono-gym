@@ -98,9 +98,11 @@ export function scoreToRankId(score: number): RankId {
  * width. At the floor of the current rank it is 0; at the next threshold it is
  * 1.
  */
+export type SubTier = "I" | "II" | "III";
+
 export interface RankProgress {
   current: RankDefinition;
-  /** Null at Obsidian, the top of the ladder. */
+  /** Null at Cronos (Élite), the top of the ladder. */
   next: RankDefinition | null;
   /** 0-1, where 1 means "one point below the next rank". */
   percent: number;
@@ -111,19 +113,47 @@ export interface RankProgress {
    * session could plausibly cross it. The UI highlights this case.
    */
   nearlyThere: boolean;
+  /** Sub-tier within intermediate earned ranks (I, II, III). Null for unranked or max rank. */
+  subTier: SubTier | null;
+  /** Human-readable rank + sub-tier label, e.g. "Oro II" or "Cronos (Élite)". */
+  displayLabel: string;
+  /** Next sub-tier or next tier label, e.g. "Oro III" or "Platino I". Null at max rank. */
+  nextSubTierLabel: string | null;
+  /** Points needed to reach the next sub-tier (or next rank). */
+  pointsToNextSubTier: number;
 }
 
 export function getNextRankProgress(score: number): RankProgress {
   const current = scoreToRank(score);
 
   if (current.id === "obsidian") {
-    return { current, next: null, percent: 1, pointsToNext: 0, nearlyThere: false };
+    return {
+      current,
+      next: null,
+      percent: 1,
+      pointsToNext: 0,
+      nearlyThere: false,
+      subTier: null,
+      displayLabel: current.label,
+      nextSubTierLabel: null,
+      pointsToNextSubTier: 0,
+    };
   }
 
   const index = RANKS.findIndex((r) => r.id === current.id);
   const next = RANKS[index + 1] ?? null;
   if (!next) {
-    return { current, next: null, percent: 1, pointsToNext: 0, nearlyThere: false };
+    return {
+      current,
+      next: null,
+      percent: 1,
+      pointsToNext: 0,
+      nearlyThere: false,
+      subTier: null,
+      displayLabel: current.label,
+      nextSubTierLabel: null,
+      pointsToNextSubTier: 0,
+    };
   }
 
   const span = next.minScore - current.minScore;
@@ -133,6 +163,30 @@ export function getNextRankProgress(score: number): RankProgress {
   const percent = span <= 0 ? 1 : Math.min(1, earned / span);
   const pointsToNext = Math.max(0, Math.round((next.minScore - score) * 10) / 10);
 
+  let subTier: SubTier | null = null;
+  let displayLabel = current.label;
+  let nextSubTierLabel: string | null = next.id === "obsidian" ? next.label : `${next.label} I`;
+  let pointsToNextSubTier = pointsToNext;
+
+  if (current.id !== "unranked" && span > 0) {
+    if (percent < 1 / 3) {
+      subTier = "I";
+      const targetScore = current.minScore + span / 3;
+      pointsToNextSubTier = Math.max(0.1, Math.round((targetScore - score) * 10) / 10);
+      nextSubTierLabel = `${current.label} II`;
+    } else if (percent < 2 / 3) {
+      subTier = "II";
+      const targetScore = current.minScore + (2 * span) / 3;
+      pointsToNextSubTier = Math.max(0.1, Math.round((targetScore - score) * 10) / 10);
+      nextSubTierLabel = `${current.label} III`;
+    } else {
+      subTier = "III";
+      pointsToNextSubTier = pointsToNext;
+      nextSubTierLabel = next.id === "obsidian" ? next.label : `${next.label} I`;
+    }
+    displayLabel = `${current.label} ${subTier}`;
+  }
+
   return {
     current,
     next,
@@ -140,6 +194,10 @@ export function getNextRankProgress(score: number): RankProgress {
     pointsToNext,
     // Within the last fifth of the band: one session away.
     nearlyThere: percent >= 0.8,
+    subTier,
+    displayLabel,
+    nextSubTierLabel,
+    pointsToNextSubTier,
   };
 }
 

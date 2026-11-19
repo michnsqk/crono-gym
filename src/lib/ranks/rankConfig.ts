@@ -39,6 +39,8 @@ export interface RankDefinition {
    * therefore carries a light label rather than dark ink.
    */
   color: string;
+  /** Apple HIG OLED metallic fill for badges, arcs, progress bars, and map. */
+  oledColor: string;
   /** Lighter variant for strokes and glows on a black background. */
   borderColor: string;
   /**
@@ -66,107 +68,79 @@ export const RANKS: RankDefinition[] = [
     id: "unranked",
     label: "Sin clasificar",
     minScore: 0,
-    // Deliberately recessive: this is the *absence* of a rank, and a muscle with
-    // no data should not compete for attention with one the user earned. It is
-    // the only fill allowed below the 4.5:1 floor the earned ranks all clear.
     color: "#3f3f46",
+    oledColor: "#52525B",
     borderColor: "#7a7a80",
     glyph: "—",
     description: "Faltan datos para clasificar este músculo.",
   },
   {
     id: "bronze",
-    label: "Bronce",
+    label: "Hierro",
     minScore: 12,
-    // 5.74:1 on black. A muted copper rather than the saturated orange this used
-    // to be: the ladder now runs through desaturated metallics, and a fully
-    // saturated orange next to `#9ca3af` silver read as a different family.
     color: "#b07a4f",
+    oledColor: "#71717A",
     borderColor: "#d97706",
     glyph: "●",
     description: "Primeros meses de trabajo constante.",
   },
   {
     id: "silver",
-    label: "Plata",
+    label: "Bronce",
     minScore: 28,
     color: "#9ca3af",
+    oledColor: "#CD7F32",
     borderColor: "#d1d5db",
     glyph: "◆",
     description: "Base sólida y fuerza en progresión.",
   },
   {
     id: "gold",
-    label: "Oro",
+    label: "Plata",
     minScore: 46,
-    // 11.73:1 on black. Warmer and lighter than the old #e8b923.
     color: "#f2b84b",
+    oledColor: "#CBD5E1",
     borderColor: "#ffd27a",
     glyph: "★",
     description: "Fuerza notable y volumen bien programado.",
   },
   {
     id: "platinum",
-    label: "Platino",
+    label: "Oro",
     minScore: 64,
-    // 12.76:1 on black, the lightest fill in the ladder.
-    //
-    // Sits close to Gold in *luminance*, and a luminance-only comparison calls the
-    // two the same colour. They are not: measured in Lab, the worst-case
-    // separation across the three dichromacies is ΔE 43.9, because amber and pale
-    // cyan sit far apart in hue and it is hue that survives every form of colour
-    // vision deficiency. `worstCaseCvdDeltaE` in rankColors.ts is what asserts
-    // that, rather than a contrast ratio, which is a text-legibility metric and
-    // answers the wrong question here.
     color: "#9fd3d6",
+    oledColor: "#F59E0B",
     borderColor: "#7dd3fc",
     glyph: "⬟",
     description: "Rendimiento alto y muy constante.",
   },
   {
     id: "diamond",
-    label: "Diamante",
+    label: "Platino",
     minScore: 80,
-    // 10.09:1 on black. A saturated azure, moved away from the violet family the
-    // ladder reserves for Elite and Obsidiana.
     color: "#7db7ff",
+    oledColor: "#38BDF8",
     borderColor: "#c7d2fe",
     glyph: "⬢",
-    description: "Fuerza avanzada, cerca de Elite.",
+    description: "Fuerza avanzada, cerca de Diamante.",
   },
   {
     id: "elite",
-    label: "Élite",
+    label: "Diamante",
     minScore: 88,
-    // Violet, not rose. The old #fb7185 was the one saturated red the ladder
-    // shipped, which a protanope cannot separate from the dark neutrals; #8B5CF6
-    // is 4.96:1 on black, so it still clears the fill floor the earned ranks all
-    // clear, and it is a hue nothing else in the ladder uses below it.
     color: "#8B5CF6",
-    // 3.69:1 on black. Clears the WCAG 1.4.11 non-text floor of 3:1 for a
-    // stroke, but NOT the 4.5:1 floor `rankColors.test.ts` currently asserts for
-    // every borderColor. Left as approved rather than quietly lightened; that
-    // assertion is a pending decision, not an oversight.
+    oledColor: "#A855F7",
     borderColor: "#7C3AED",
-    // The label on this fill is dark ink, not near-white: `labelFor` in
-    // rankColors.ts resolves #0a0a0c at 4.67:1 where #f5f5f7 would reach only
-    // 3.89:1, so the ladder's per-rank ink choice already lands on the right one.
     glyph: "✦",
     description: "Nivel comparativo alto, propio de competición.",
   },
   {
     id: "obsidian",
-    label: "Obsidiana",
+    label: "Cronos (Élite)",
     minScore: 95,
-    // Near-black with a violet cast, not a bright violet. Obsidiana has to be
-    // separable from Elite, and Elite is #8B5CF6: two violets of the same
-    // lightness collapse into one another under every dichromacy, so the top
-    // rank is moved apart on the only axis that survives -- lightness.
     color: "#0F0A1E",
+    oledColor: "#FF3B30",
     borderColor: "#DDD6FE",
-    // Label on this fill is the light violet #DDD6FE, not dark ink: a near-black
-    // fill cannot carry dark text, and `labelFor` in rankColors.ts resolves it to
-    // the light end of the scale on its own.
     glyph: "✷",
     description: "Nivel excepcional en ese músculo.",
   },
@@ -342,7 +316,7 @@ export const VOLUME_RULES = {
    * Six weeks is where detraining becomes measurable in trained lifters; the
    * decay is gradual rather than a cliff because nothing is lost on day 43.
    */
-  decayAfterDays: 42,
+  decayAfterDays: 21,
   /** Fraction of the volume component retained after a long layoff. */
   decayFloor: 0.4,
   /** Days over which the decay plays out once past `decayAfterDays`. */
